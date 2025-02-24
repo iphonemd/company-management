@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calendar</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <nav>
+      <!-- Hamburger Menu Icon -->
+      <button class="glow-btn hamburger" onclick="toggleMenu()">&#9776;</button>
+
+      <!-- Navigation Menu -->
+      <div class="menu">
+        <a href="calendar.html" class="glow-link">Calendar</a>
+        <a href="projects.html" class="glow-link">Projects</a>
+        <a href="basic-employee-info.html" class="glow-link">New Time Sheet</a>
+        <a href="employee-details.html" class="glow-link">Employee Details</a>
+      </div>
+    </nav>
+
+    <!-- Calendar Section -->
+    <div id="calendar" class="calendar">
+      <!-- Navigation Buttons Container -->
+      <div class="all-nav-buttons-container">
+        <!-- Month navigation -->
+        <div class="nav-buttons-container">
+          <button onclick="changeMonth(-1)" class="nav-buttons">
+            Previous
+          </button>
+          <div class="month" id="calendarMonth"></div>
+          <button onclick="changeMonth(1)" class="nav-buttons">Next</button>
+        </div>
+
+        <!-- Year navigation -->
+        <div class="nav-buttons-container">
+          <button onclick="changeYear(-1)" class="nav-buttons">Previous</button>
+          <div class="year" id="calendarYear"></div>
+          <button onclick="changeYear(1)" class="nav-buttons">Next</button>
+        </div>
+
+        <!-- Go to Today Button -->
+        <div class="nav-buttons-container">
+          <button onclick="goToToday()" class="nav-buttons">Go to Today</button>
+        </div>
+      </div>
+
+      <!-- Days of the week -->
+      <div class="days-of-week">
+        <div>Sun</div>
+        <div>Mon</div>
+        <div>Tue</div>
+        <div>Wed</div>
+        <div>Thu</div>
+        <div>Fri</div>
+        <div>Sat</div>
+      </div>
+
+      <!-- Days grid -->
+      <div id="days" class="days">
+        <!-- Days will be dynamically inserted here -->
+      </div>
+    </div>
+
+    <script src="calendar.js"></script>
+  </body>
+</html>

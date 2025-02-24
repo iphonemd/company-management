@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Details</title>
+
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="navbar"></div>
+    <script src="nav-var.js"></script>
+
+    <h1>Employee Details</h1>
+    <!-- Search Bar -->
+    <div class="emp-search-bar">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search by name, last name, or employee number"
+        oninput="searchEmployee()"
+      />
+    </div>
+    <div class="employee-details-container">
+      <!-- Employee Table -->
+      <table class="employee-table" id="employeeTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Last Name</th>
+            <th>Employee #</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Address</th>
+            <th>SSN</th>
+            <th>Hire Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Employee rows will be dynamically inserted here -->
+        </tbody>
+      </table>
+    </div>
+    <!-- Navigation Buttons -->
+    <div class="nav-buttons-container">
+      <!-- <button onclick="goToCalendar()">Back to Calendar</button> -->
+      <button onclick="goToAddEmployeePage()" class="nav-buttons">
+        Add New Employee
+      </button>
+    </div>
+
+    <script src="employee-details.js"></script>
+    <script src="nav-buttons.js"></script>
+  </body>
+</html>

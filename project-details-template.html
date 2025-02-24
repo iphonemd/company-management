@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Details</title>
+
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="navbar"></div>
+    <script src="nav-var.js"></script>
+
+    <div>
+      <h1>Project Details</h1>
+    </div>
+
+    <!-- Project Details -->
+    <div class="project-info">
+      <h3>
+        Project Name:
+        <input
+          type="text"
+          id="projectName"
+          value=""
+          oninput="saveProjectInfo()"
+          class="project-input"
+        />
+      </h3>
+      <p>
+        Address:
+        <input
+          type="text"
+          id="projectAddress"
+          value=""
+          oninput="saveProjectInfo()"
+          class="address-input"
+        />
+      </p>
+      <p>
+        <strong>Contractor:</strong>
+        <input
+          type="text"
+          id="contractorName"
+          value=""
+          oninput="saveProjectInfo()"
+          class="contractor-input"
+        />
+      </p>
+    </div>
+    <!-- Financial Tracking Table -->
+    <h3>Financial Tracking</h3>
+    <div class="financial-table-container">
+      <table id="jobDetailsTable">
+        <thead>
+          <tr>
+            <th>Scope</th>
+            <th>Budget</th>
+            <th>Material Budget</th>
+            <th>Material Used</th>
+            <th>Material Remaining</th>
+            <th>Man Hours Budget</th>
+            <th>Man Hours Used</th>
+            <th>Man Hours Remaining</th>
+            <th>Budget Remaining</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Site Sealants</td>
+            <td>
+              <input
+                type="number"
+                class="budget"
+                oninput="calculateFinancialRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-budget"
+                oninput="calculateFinancialRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateFinancialRemainingValues()"
+              />
+            </td>
+            <td class="material-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-budget"
+                oninput="calculateFinancialRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateFinancialRemainingValues()"
+              />
+            </td>
+            <td class="man-hours-remaining"></td>
+            <td class="budget-remaining"></td>
+          </tr>
+          <tr>
+            <td>Joint Sealants</td>
+            <td>
+              <input
+                type="number"
+                class="budget"
+                oninput="calculateFinancialRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-budget"
+                oninput="calculateFinancialRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateFinancialRemainingValues()"
+              />
+            </td>
+            <td class="material-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-budget"
+                oninput="calculateFinancialRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateFinancialRemainingValues()"
+              />
+            </td>
+            <td class="man-hours-remaining"></td>
+            <td class="budget-remaining"></td>
+          </tr>
+          <tr>
+            <td>Bentonite Waterproofing</td>
+            <td>
+              <input
+                type="number"
+                class="budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td class="material-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td class="man-hours-remaining"></td>
+            <td class="budget-remaining"></td>
+          </tr>
+          <tr>
+            <td>Sheet Waterproofing</td>
+            <td>
+              <input
+                type="number"
+                class="budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td class="material-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td class="man-hours-remaining"></td>
+            <td class="budget-remaining"></td>
+          </tr>
+          <tr>
+            <td>Air Barrier</td>
+            <td>
+              <input
+                type="number"
+                class="budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td class="material-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td class="man-hours-remaining"></td>
+            <td class="budget-remaining"></td>
+          </tr>
+          <tr>
+            <td>Firestop</td>
+            <td>
+              <input
+                type="number"
+                class="budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td class="material-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td class="man-hours-remaining"></td>
+            <td class="budget-remaining"></td>
+          </tr>
+          <tr>
+            <td>Other</td>
+            <td>
+              <input
+                type="number"
+                class="budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td class="material-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-budget"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateRemainingValues()"
+              />
+            </td>
+            <td class="man-hours-remaining"></td>
+            <td class="budget-remaining"></td>
+          </tr>
+
+          <!-- Add other rows for different scopes (e.g., Bentonite Waterproofing, etc.) -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footing and Quantities Tracking Table -->
+    <h3>Footing and Quantities Tracking</h3>
+    <div class="summary-table">
+      <table id="summaryTable">
+        <thead>
+          <tr>
+            <th>Scope</th>
+            <th>Total Footage</th>
+            <th>Footage Completed</th>
+            <th>Footage Remaining</th>
+            <th>Material Total</th>
+            <th>Material Used</th>
+            <th>Material Remaining</th>
+            <th>Man Hours Total</th>
+            <th>Man Hours Used</th>
+            <th>Man Hours Remaining</th>
+            <th>Project Progress</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Site Sealants</td>
+            <td>
+              <input
+                type="number"
+                class="total-footage"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="footage-completed"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="footage-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="material-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="material-remaining-summary"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="man-hours-remaining-summary"></td>
+            <td class="progress-bars">
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="footageProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="materialProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="manHoursProgress"></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Joint Sealants</td>
+            <td>
+              <input
+                type="number"
+                class="total-footage"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="footage-completed"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="footage-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="material-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="material-remaining-summary"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="man-hours-remaining-summary"></td>
+            <td class="progress-bars">
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="footageProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="materialProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="manHoursProgress"></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Bentonite Waterproofing</td>
+            <td>
+              <input
+                type="number"
+                class="total-footage"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="footage-completed"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="footage-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="material-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="material-remaining-summary"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="man-hours-remaining-summary"></td>
+            <td class="progress-bars">
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="footageProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="materialProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="manHoursProgress"></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Sheet Waterproofing</td>
+            <td>
+              <input
+                type="number"
+                class="total-footage"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="footage-completed"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="footage-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="material-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="material-remaining-summary"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="man-hours-remaining-summary"></td>
+            <td class="progress-bars">
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="footageProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="materialProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="manHoursProgress"></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Air Barrier</td>
+            <td>
+              <input
+                type="number"
+                class="total-footage"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="footage-completed"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="footage-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="material-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="material-remaining-summary"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="man-hours-remaining-summary"></td>
+            <td class="progress-bars">
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="footageProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="materialProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="manHoursProgress"></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Firestop</td>
+            <td>
+              <input
+                type="number"
+                class="total-footage"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="footage-completed"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="footage-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="material-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="material-remaining-summary"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="man-hours-remaining-summary"></td>
+            <td class="progress-bars">
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="footageProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="materialProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="manHoursProgress"></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Other</td>
+            <td>
+              <input
+                type="number"
+                class="total-footage"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="footage-completed"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="footage-remaining"></td>
+            <td>
+              <input
+                type="number"
+                class="material-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="material-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="material-remaining-summary"></td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-total"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td>
+              <input
+                type="number"
+                class="man-hours-used"
+                oninput="calculateProjectProgress()"
+              />
+            </td>
+            <td class="man-hours-remaining-summary"></td>
+            <td class="progress-bars">
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="footageProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="materialProgress"></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" id="manHoursProgress"></div>
+              </div>
+            </td>
+          </tr>
+          <!-- Add other rows for different scopes -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="nav-buttons-container">
+      <button class="nav-btn" onclick="saveProject()" class="nav-buttons">
+        Save Project
+      </button>
+
+      <div id="saveMessage">Saved!</div>
+    </div>
+
+    <script src="project-details-template.js"></script>
+    <script src="nav-buttons.js"></script>
+  </body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projects</title>
+
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="navbar"></div>
+    <script src="nav-var.js"></script>
+
+    <div>
+      <h1>Projects Dashboard</h1>
+    </div>
+
+    <!-- Project Columns (Active, Future, Completed) -->
+    <div class="project-list">
+      <div
+        class="project-column"
+        id="active-column"
+        ondrop="drop(event)"
+        ondragover="allowDrop(event)"
+      >
+        <h3>Active Projects</h3>
+        <div id="active-projects">
+          <!-- Active projects will go here -->
+        </div>
+      </div>
+
+      <div
+        class="project-column"
+        id="future-column"
+        ondrop="drop(event)"
+        ondragover="allowDrop(event)"
+      >
+        <h3>Future Projects</h3>
+        <div id="future-projects">
+          <!-- Future projects will go here -->
+        </div>
+      </div>
+
+      <div
+        class="project-column"
+        id="completed-column"
+        ondrop="drop(event)"
+        ondragover="allowDrop(event)"
+      >
+        <h3>Completed Projects</h3>
+        <div id="completed-projects">
+          <!-- Completed projects will go here -->
+        </div>
+      </div>
+    </div>
+    <!-- Add Project Button -->
+    <button class="nav-buttons" onclick="addNewProject()">
+      Add New Project
+    </button>
+
+    <!-- Back to Calendar Button NOT neded since we are using the nav bar -->
+    <!-- <button class="back-btn" onclick="goBackToCalendar()">Go Back to Calendar</button> -->
+
+    <script src="projects.js"></script>
+    <script src="nav-buttons.js"></script>
+  </body>
+</html>

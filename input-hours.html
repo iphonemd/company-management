@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Work Hours</title>
+
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="navbar"></div>
+    <script src="nav-var.js"></script>
+
+    <h1>Employee Work Data for the Week</h1>
+
+    <!-- Employee Table -->
+    <table id="employeeTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Last Name</th>
+          <th>Employee Number</th>
+          <th class="date-header" id="day1">Day 1</th>
+          <th class="date-header" id="day2">Day 2</th>
+          <th class="date-header" id="day3">Day 3</th>
+          <th class="date-header" id="day4">Day 4</th>
+          <th class="date-header" id="day5">Day 5</th>
+          <th class="date-header" id="day6">Day 6</th>
+          <th class="date-header" id="day7">Day 7</th>
+        </tr>
+      </thead>
+      <tbody id="employeeTableBody">
+        <!-- Employee data will be dynamically inserted here -->
+      </tbody>
+    </table>
+
+    <!-- Submit Button -->
+    <div class="nav-buttons-container">
+      <button id="submitButton" class="nav-buttons">Submit Hours</button>
+    </div>
+
+    <!-- Go back to Calendar Button NOT neded since we are using the nav bar -->
+    <!-- <button class="back-button" onclick="goBackToCalendar()">Go Back to Calendar</button> -->
+
+    <script src="input-hours.js"></script>
+    <script src="nav-buttons.js"></script>
+  </body>
+</html>
