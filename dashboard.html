@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanPro - Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🧹</div>
+        <span class="sidebar-title">CleanPro</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title" data-i18n="dashboard">Main</div>
+          <a href="dashboard.html" class="nav-item active">
+            <span class="nav-item-icon">📊</span>
+            <span class="nav-item-text" data-i18n="dashboard">Dashboard</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="employees.html" class="nav-item">
+            <span class="nav-item-icon">👥</span>
+            <span class="nav-item-text" data-i18n="employees">Employees</span>
+          </a>
+          <a href="clients.html" class="nav-item">
+            <span class="nav-item-icon">🏠</span>
+            <span class="nav-item-text" data-i18n="clients">Clients</span>
+          </a>
+          <a href="scheduling.html" class="nav-item">
+            <span class="nav-item-icon">📅</span>
+            <span class="nav-item-text" data-i18n="scheduling">Scheduling</span>
+          </a>
+          <a href="timeclock.html" class="nav-item">
+            <span class="nav-item-icon">⏱️</span>
+            <span class="nav-item-text" data-i18n="timeClock">Time Clock</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title" data-i18n="finances">Finance</div>
+          <a href="finances.html" class="nav-item">
+            <span class="nav-item-icon">💰</span>
+            <span class="nav-item-text" data-i18n="finances">Finances</span>
+          </a>
+          <a href="reports.html" class="nav-item">
+            <span class="nav-item-icon">📈</span>
+            <span class="nav-item-text" data-i18n="reports">Reports</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="audit-log.html" class="nav-item">
+            <span class="nav-item-icon">📋</span>
+            <span class="nav-item-text" data-i18n="auditLog">Audit Log</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebarUser">
+          <div class="sidebar-user-avatar" id="userAvatar">AD</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="userName">Admin</div>
+            <div class="sidebar-user-role" id="userRole">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <button class="header-menu-btn" id="menuToggle">☰</button>
+        
+        <div class="header-search">
+          <span class="header-search-icon">🔍</span>
+          <input type="text" class="header-search-input" placeholder="Search..." data-i18n-placeholder="search" id="globalSearch">
+        </div>
+
+        <div class="header-actions">
+          <button class="header-btn lang-toggle" id="langToggle">
+            🌐 <span id="langLabel">ES</span>
+          </button>
+          <button class="header-btn" id="logoutBtn" title="Logout">
+            🚪
+          </button>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <!-- Welcome Section -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">
+              <span data-i18n="welcomeBack">Welcome back</span>, 
+              <span id="welcomeName">Admin</span>!
+            </h1>
+            <p class="text-gray-500" id="todayDate"></p>
+          </div>
+          <div class="page-actions">
+            <a href="scheduling.html" class="btn btn-primary">
+              <span>📅</span>
+              <span data-i18n="scheduleJob">Schedule Job</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-4 mb-6">
+          <div class="card stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-icon primary">📋</div>
+            </div>
+            <div class="stat-card-value" id="statJobsToday">0</div>
+            <div class="stat-card-label" data-i18n="jobsToday">Jobs Today</div>
+          </div>
+
+          <div class="card stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-icon success">💵</div>
+            </div>
+            <div class="stat-card-value" id="statRevenueWeek">$0</div>
+            <div class="stat-card-label" data-i18n="revenueThisWeek">Revenue This Week</div>
+          </div>
+
+          <div class="card stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-icon warning">👥</div>
+            </div>
+            <div class="stat-card-value" id="statActiveEmployees">0</div>
+            <div class="stat-card-label" data-i18n="activeEmployees">Active Employees</div>
+          </div>
+
+          <div class="card stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-icon secondary">🏠</div>
+            </div>
+            <div class="stat-card-value" id="statActiveClients">0</div>
+            <div class="stat-card-label" data-i18n="activeClients">Active Clients</div>
+          </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-3">
+          <!-- Today's Schedule -->
+          <div class="card" style="grid-column: span 2;">
+            <div class="card-header">
+              <h3 class="card-title" data-i18n="todaySchedule">Today's Schedule</h3>
+              <a href="scheduling.html" class="btn btn-ghost btn-sm" data-i18n="viewFullSchedule">View Full Schedule</a>
+            </div>
+            <div class="card-body" id="todayScheduleContainer">
+              <div class="empty-state" id="noJobsToday">
+                <div class="empty-state-icon">📅</div>
+                <div class="empty-state-title" data-i18n="noJobsToday">No jobs scheduled for today</div>
+                <a href="scheduling.html" class="btn btn-primary mt-4" data-i18n="scheduleJob">Schedule a Job</a>
+              </div>
+              <div class="table-container hidden" id="todayJobsTable">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th data-i18n="time">Time</th>
+                      <th data-i18n="clients">Client</th>
+                      <th data-i18n="team">Team</th>
+                      <th data-i18n="serviceType">Service</th>
+                      <th data-i18n="status">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="todayJobsBody">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions & Alerts -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title" data-i18n="quickActions">Quick Actions</h3>
+            </div>
+            <div class="card-body">
+              <div class="flex flex-col gap-3">
+                <a href="employees.html?action=add" class="btn btn-outline" style="justify-content: flex-start;">
+                  <span>👤</span>
+                  <span data-i18n="addEmployee">Add Employee</span>
+                </a>
+                <a href="clients.html?action=add" class="btn btn-outline" style="justify-content: flex-start;">
+                  <span>🏠</span>
+                  <span data-i18n="addClient">Add Client</span>
+                </a>
+                <a href="scheduling.html?action=add" class="btn btn-outline" style="justify-content: flex-start;">
+                  <span>📅</span>
+                  <span data-i18n="scheduleJob">Schedule Job</span>
+                </a>
+                <a href="finances.html?action=expense" class="btn btn-outline" style="justify-content: flex-start;">
+                  <span>💸</span>
+                  <span data-i18n="addExpense">Add Expense</span>
+                </a>
+                <a href="clients.html?action=import" class="btn btn-outline" style="justify-content: flex-start;">
+                  <span>📥</span>
+                  <span data-i18n="importClients">Import Clients</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Second Row -->
+        <div class="grid grid-cols-2 mt-6">
+          <!-- Pending Payments -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title" data-i18n="pendingPayments">Pending Payments</h3>
+              <span class="badge badge-warning" id="pendingCount">0</span>
+            </div>
+            <div class="card-body" id="pendingPaymentsContainer">
+              <div class="empty-state" id="noPendingPayments">
+                <div class="empty-state-icon">✓</div>
+                <div class="empty-state-title">All caught up!</div>
+                <p class="text-gray-500">No pending payments</p>
+              </div>
+              <div class="hidden" id="pendingPaymentsList">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title" data-i18n="recentActivity">Recent Activity</h3>
+              <a href="audit-log.html" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div class="card-body" id="recentActivityContainer">
+              <div class="empty-state" id="noActivity">
+                <div class="empty-state-icon">📋</div>
+                <div class="empty-state-title">No recent activity</div>
+              </div>
+              <div class="hidden" id="activityList">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div class="modal-backdrop" id="sidebarOverlay"></div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script type="module">
+    import { 
+      auth, db, onAuthStateChanged, signOut,
+      collection, doc, getDoc, getDocs, query, where, orderBy, limit, Timestamp
+    } from './js/firebase-config.js';
+    import { i18n } from './js/i18n.js';
+    import { 
+      formatCurrency, formatDate, formatDateTime, getToday, 
+      getStartOfWeek, getEndOfWeek, showToast, getInitials
+    } from './js/utils.js';
+
+    // ============================================
+    // AUTHENTICATION CHECK
+    // ============================================
+    let currentUser = null;
+    let currentAdmin = null;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        try {
+          const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+          if (adminDoc.exists()) {
+            currentAdmin = { id: adminDoc.id, ...adminDoc.data() };
+            localStorage.setItem('adminName', currentAdmin.name);
+            initializeDashboard();
+          } else {
+            window.location.href = 'index.html';
+          }
+        } catch (error) {
+          console.error('Error fetching admin:', error);
+          window.location.href = 'index.html';
+        }
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // ============================================
+    // INITIALIZE DASHBOARD
+    // ============================================
+    function initializeDashboard() {
+      // Set user info
+      document.getElementById('userName').textContent = currentAdmin.name;
+      document.getElementById('welcomeName').textContent = currentAdmin.name.split(' ')[0];
+      document.getElementById('userAvatar').textContent = getInitials(
+        currentAdmin.name.split(' ')[0], 
+        currentAdmin.name.split(' ')[1] || ''
+      );
+      document.getElementById('userRole').textContent = 
+        currentAdmin.role === 'super_admin' ? 'Super Admin' : 
+        currentAdmin.role === 'admin' ? 'Administrator' : 'Viewer';
+
+      // Set today's date
+      document.getElementById('todayDate').textContent = i18n.formatDate(new Date(), {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      // Initialize language
+      updateLanguage();
+      i18n.updatePageTranslations();
+
+      // Load dashboard data
+      loadDashboardStats();
+      loadTodaySchedule();
+      loadPendingPayments();
+      loadRecentActivity();
+
+      // Setup event listeners
+      setupEventListeners();
+    }
+
+    // ============================================
+    // LOAD DASHBOARD STATS
+    // ============================================
+    async function loadDashboardStats() {
+      try {
+        // Count today's jobs
+        const today = getToday();
+        const schedulesRef = collection(db, 'schedules');
+        const todayQuery = query(schedulesRef, where('date', '==', today));
+        const todaySnap = await getDocs(todayQuery);
+        document.getElementById('statJobsToday').textContent = todaySnap.size;
+
+        // Count active employees
+        const employeesRef = collection(db, 'employees');
+        const activeEmpQuery = query(employeesRef, where('isActive', '==', true));
+        const empSnap = await getDocs(activeEmpQuery);
+        document.getElementById('statActiveEmployees').textContent = empSnap.size;
+
+        // Count active clients
+        const clientsRef = collection(db, 'clients');
+        const activeClientQuery = query(clientsRef, where('isActive', '==', true));
+        const clientSnap = await getDocs(activeClientQuery);
+        document.getElementById('statActiveClients').textContent = clientSnap.size;
+
+        // Calculate week revenue
+        const startOfWeek = getStartOfWeek();
+        const endOfWeek = getEndOfWeek();
+        const paymentsRef = collection(db, 'payments');
+        const weekPaymentsQuery = query(
+          paymentsRef,
+          where('status', '==', 'paid')
+        );
+        const paymentsSnap = await getDocs(weekPaymentsQuery);
+        
+        let weekRevenue = 0;
+        paymentsSnap.forEach(doc => {
+          const payment = doc.data();
+          const paymentDate = payment.date?.toDate ? payment.date.toDate() : new Date(payment.date);
+          if (paymentDate >= startOfWeek && paymentDate <= endOfWeek) {
+            weekRevenue += payment.amount || 0;
+          }
+        });
+        document.getElementById('statRevenueWeek').textContent = formatCurrency(weekRevenue);
+
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    // ============================================
+    // LOAD TODAY'S SCHEDULE
+    // ============================================
+    async function loadTodaySchedule() {
+      try {
+        const today = getToday();
+        const schedulesRef = collection(db, 'schedules');
+        const todayQuery = query(
+          schedulesRef, 
+          where('date', '==', today),
+          orderBy('timeSlot')
+        );
+        const snapshot = await getDocs(todayQuery);
+
+        if (snapshot.empty) {
+          document.getElementById('noJobsToday').classList.remove('hidden');
+          document.getElementById('todayJobsTable').classList.add('hidden');
+          return;
+        }
+
+        document.getElementById('noJobsToday').classList.add('hidden');
+        document.getElementById('todayJobsTable').classList.remove('hidden');
+
+        const tbody = document.getElementById('todayJobsBody');
+        tbody.innerHTML = '';
+
+        // Get clients and teams for lookup
+        const clients = await getClientsMap();
+        const teams = await getTeamsMap();
+
+        snapshot.forEach(doc => {
+          const job = { id: doc.id, ...doc.data() };
+          const client = clients[job.clientId] || { firstName: 'Unknown', lastName: '' };
+          const team = teams[job.teamId] || { name: 'Unassigned' };
+
+          const statusClass = {
+            scheduled: 'pending',
+            in_progress: 'active',
+            completed: 'completed',
+            cancelled: 'inactive'
+          }[job.status] || 'pending';
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${job.timeSlot === 'morning' ? '🌅 ' + i18n.t('morning') : '🌆 ' + i18n.t('afternoon')}</td>
+            <td>
+              <div class="font-semibold">${client.firstName} ${client.lastName}</div>
+              <div class="text-sm text-gray-500">${client.address?.street || ''}</div>
+            </td>
+            <td>${team.name}</td>
+            <td>
+              <span class="badge badge-${job.serviceDetails?.type === 'full' ? 'primary' : 'secondary'}">
+                ${job.serviceDetails?.type === 'full' ? i18n.t('serviceTypes.full') : i18n.t('serviceTypes.half')}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge ${statusClass}">
+                ${i18n.t(`jobStatus.${job.status}`) || job.status}
+              </span>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+
+      } catch (error) {
+        console.error('Error loading today schedule:', error);
+      }
+    }
+
+    // ============================================
+    // LOAD PENDING PAYMENTS
+    // ============================================
+    async function loadPendingPayments() {
+      try {
+        const paymentsRef = collection(db, 'payments');
+        const pendingQuery = query(
+          paymentsRef,
+          where('status', 'in', ['pending', 'overdue']),
+          limit(5)
+        );
+        const snapshot = await getDocs(pendingQuery);
+
+        document.getElementById('pendingCount').textContent = snapshot.size;
+
+        if (snapshot.empty) {
+          document.getElementById('noPendingPayments').classList.remove('hidden');
+          document.getElementById('pendingPaymentsList').classList.add('hidden');
+          return;
+        }
+
+        document.getElementById('noPendingPayments').classList.add('hidden');
+        document.getElementById('pendingPaymentsList').classList.remove('hidden');
+
+        const clients = await getClientsMap();
+        const container = document.getElementById('pendingPaymentsList');
+        container.innerHTML = '';
+
+        snapshot.forEach(doc => {
+          const payment = { id: doc.id, ...doc.data() };
+          const client = clients[payment.clientId] || { firstName: 'Unknown', lastName: '' };
+          
+          const item = document.createElement('div');
+          item.className = 'flex items-center justify-between p-3 border-b';
+          item.innerHTML = `
+            <div>
+              <div class="font-semibold">${client.firstName} ${client.lastName}</div>
+              <div class="text-sm text-gray-500">${formatDate(payment.date?.toDate ? payment.date.toDate() : payment.date)}</div>
+            </div>
+            <div class="text-right">
+              <div class="font-semibold">${formatCurrency(payment.amount)}</div>
+              <span class="status-badge ${payment.status === 'overdue' ? 'cancelled' : 'pending'}">
+                ${i18n.t(`paymentStatus.${payment.status}`)}
+              </span>
+            </div>
+          `;
+          container.appendChild(item);
+        });
+
+      } catch (error) {
+        console.error('Error loading pending payments:', error);
+      }
+    }
+
+    // ============================================
+    // LOAD RECENT ACTIVITY
+    // ============================================
+    async function loadRecentActivity() {
+      try {
+        const auditRef = collection(db, 'auditLog');
+        const recentQuery = query(
+          auditRef,
+          orderBy('timestamp', 'desc'),
+          limit(5)
+        );
+        const snapshot = await getDocs(recentQuery);
+
+        if (snapshot.empty) {
+          document.getElementById('noActivity').classList.remove('hidden');
+          document.getElementById('activityList').classList.add('hidden');
+          return;
+        }
+
+        document.getElementById('noActivity').classList.add('hidden');
+        document.getElementById('activityList').classList.remove('hidden');
+
+        const container = document.getElementById('activityList');
+        container.innerHTML = '';
+
+        const actionIcons = {
+          create: '➕',
+          update: '✏️',
+          delete: '🗑️',
+          login: '🔑',
+          logout: '🚪',
+          status_change: '🔄'
+        };
+
+        snapshot.forEach(doc => {
+          const log = doc.data();
+          const item = document.createElement('div');
+          item.className = 'flex items-start gap-3 p-3 border-b';
+          item.innerHTML = `
+            <div class="text-lg">${actionIcons[log.action] || '📝'}</div>
+            <div class="flex-1">
+              <div class="text-sm">
+                <span class="font-semibold">${log.adminName}</span>
+                <span class="text-gray-500">${i18n.t(`auditActions.${log.action}`) || log.action}</span>
+                ${log.targetName ? `<span class="font-semibold">${log.targetName}</span>` : ''}
+              </div>
+              <div class="text-xs text-gray-400">
+                ${log.timestamp?.toDate ? formatDateTime(log.timestamp.toDate()) : ''}
+              </div>
+            </div>
+          `;
+          container.appendChild(item);
+        });
+
+      } catch (error) {
+        console.error('Error loading activity:', error);
+      }
+    }
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    async function getClientsMap() {
+      const map = {};
+      const snapshot = await getDocs(collection(db, 'clients'));
+      snapshot.forEach(doc => {
+        map[doc.id] = { id: doc.id, ...doc.data() };
+      });
+      return map;
+    }
+
+    async function getTeamsMap() {
+      const map = {};
+      const snapshot = await getDocs(collection(db, 'teams'));
+      snapshot.forEach(doc => {
+        map[doc.id] = { id: doc.id, ...doc.data() };
+      });
+      return map;
+    }
+
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    function setupEventListeners() {
+      // Mobile menu toggle
+      document.getElementById('menuToggle').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+      });
+
+      document.getElementById('sidebarOverlay').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+      });
+
+      // Language toggle
+      document.getElementById('langToggle').addEventListener('click', () => {
+        i18n.toggleLanguage();
+        updateLanguage();
+        // Reload data with new language
+        loadTodaySchedule();
+        loadPendingPayments();
+        loadRecentActivity();
+      });
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        try {
+          await signOut(auth);
+          window.location.href = 'index.html';
+        } catch (error) {
+          console.error('Error signing out:', error);
+          showToast('error', 'Error', 'Failed to sign out');
+        }
+      });
+
+      // Global search
+      document.getElementById('globalSearch').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const query = e.target.value.trim();
+          if (query) {
+            // Navigate to clients page with search
+            window.location.href = `clients.html?search=${encodeURIComponent(query)}`;
+          }
+        }
+      });
+    }
+
+    function updateLanguage() {
+      const lang = i18n.getLanguage();
+      document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN';
+      i18n.updatePageTranslations();
+      
+      // Update date display
+      document.getElementById('todayDate').textContent = i18n.formatDate(new Date(), {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+  </script>
+</body>
+</html>

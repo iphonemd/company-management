@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanPro - Audit Log</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+  <style>
+    /* Audit log specific styles */
+    .audit-filters {
+      display: flex;
+      gap: var(--space-4);
+      margin-bottom: var(--space-4);
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    
+    .audit-filters .form-group {
+      margin-bottom: 0;
+      min-width: 150px;
+    }
+    
+    .audit-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
+    }
+    
+    @media (max-width: 1024px) {
+      .audit-stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 640px) {
+      .audit-stats {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .audit-stat-card {
+      background: white;
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      border: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+    
+    .audit-stat-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-xl);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    
+    .audit-stat-icon.total {
+      background: var(--primary-100);
+    }
+    
+    .audit-stat-icon.create {
+      background: var(--success-100);
+    }
+    
+    .audit-stat-icon.update {
+      background: var(--warning-100);
+    }
+    
+    .audit-stat-icon.delete {
+      background: var(--danger-100);
+    }
+    
+    .audit-stat-value {
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      line-height: 1;
+    }
+    
+    .audit-stat-label {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+      margin-top: var(--space-1);
+    }
+    
+    /* Activity timeline */
+    .activity-timeline {
+      position: relative;
+    }
+    
+    .activity-timeline::before {
+      content: '';
+      position: absolute;
+      left: 24px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--gray-200);
+    }
+    
+    .activity-item {
+      position: relative;
+      padding-left: 64px;
+      padding-bottom: var(--space-4);
+    }
+    
+    .activity-item:last-child {
+      padding-bottom: 0;
+    }
+    
+    .activity-icon {
+      position: absolute;
+      left: 8px;
+      top: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-sm);
+      z-index: 1;
+    }
+    
+    .activity-icon.create {
+      background: var(--success-100);
+      color: var(--success-600);
+    }
+    
+    .activity-icon.update {
+      background: var(--warning-100);
+      color: var(--warning-600);
+    }
+    
+    .activity-icon.delete {
+      background: var(--danger-100);
+      color: var(--danger-600);
+    }
+    
+    .activity-icon.login {
+      background: var(--primary-100);
+      color: var(--primary-600);
+    }
+    
+    .activity-icon.view {
+      background: var(--info-100);
+      color: var(--info-600);
+    }
+    
+    .activity-icon.export {
+      background: var(--secondary-100);
+      color: var(--secondary-600);
+    }
+    
+    .activity-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--gray-200);
+      padding: var(--space-4);
+      transition: box-shadow var(--transition-fast);
+    }
+    
+    .activity-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    
+    .activity-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--space-2);
+    }
+    
+    .activity-title {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .activity-time {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+      white-space: nowrap;
+    }
+    
+    .activity-description {
+      color: var(--gray-600);
+      font-size: var(--text-sm);
+      margin-bottom: var(--space-2);
+    }
+    
+    .activity-meta {
+      display: flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+    
+    .activity-meta-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--text-xs);
+      color: var(--gray-500);
+    }
+    
+    .activity-changes {
+      margin-top: var(--space-3);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--gray-100);
+    }
+    
+    .activity-changes-title {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      margin-bottom: var(--space-2);
+    }
+    
+    .change-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-sm);
+      margin-bottom: var(--space-1);
+    }
+    
+    .change-field {
+      font-weight: 500;
+      color: var(--gray-700);
+      min-width: 100px;
+    }
+    
+    .change-old {
+      color: var(--danger-600);
+      text-decoration: line-through;
+      background: var(--danger-50);
+      padding: 0 var(--space-1);
+      border-radius: var(--radius-sm);
+    }
+    
+    .change-new {
+      color: var(--success-600);
+      background: var(--success-50);
+      padding: 0 var(--space-1);
+      border-radius: var(--radius-sm);
+    }
+    
+    .change-arrow {
+      color: var(--gray-400);
+    }
+    
+    /* Entity badges */
+    .entity-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      font-weight: 500;
+    }
+    
+    .entity-badge.client {
+      background: var(--info-100);
+      color: var(--info-700);
+    }
+    
+    .entity-badge.employee {
+      background: var(--primary-100);
+      color: var(--primary-700);
+    }
+    
+    .entity-badge.team {
+      background: var(--secondary-100);
+      color: var(--secondary-700);
+    }
+    
+    .entity-badge.schedule {
+      background: var(--warning-100);
+      color: var(--warning-700);
+    }
+    
+    .entity-badge.payment {
+      background: var(--success-100);
+      color: var(--success-700);
+    }
+    
+    .entity-badge.expense {
+      background: var(--danger-100);
+      color: var(--danger-700);
+    }
+    
+    .entity-badge.invoice {
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+    
+    .entity-badge.system {
+      background: var(--gray-800);
+      color: white;
+    }
+    
+    /* Action badges */
+    .action-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-md);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .action-badge.create {
+      background: var(--success-100);
+      color: var(--success-700);
+    }
+    
+    .action-badge.update {
+      background: var(--warning-100);
+      color: var(--warning-700);
+    }
+    
+    .action-badge.delete {
+      background: var(--danger-100);
+      color: var(--danger-700);
+    }
+    
+    .action-badge.login {
+      background: var(--primary-100);
+      color: var(--primary-700);
+    }
+    
+    .action-badge.export {
+      background: var(--info-100);
+      color: var(--info-700);
+    }
+    
+    /* Table view */
+    .view-toggle {
+      display: flex;
+      gap: var(--space-1);
+      background: var(--gray-100);
+      padding: var(--space-1);
+      border-radius: var(--radius-lg);
+    }
+    
+    .view-toggle-btn {
+      padding: var(--space-2) var(--space-3);
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: var(--text-sm);
+      transition: all var(--transition-fast);
+    }
+    
+    .view-toggle-btn.active {
+      background: white;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: var(--space-2);
+      margin-top: var(--space-6);
+    }
+    
+    .pagination-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--gray-300);
+      background: white;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .pagination-btn:hover:not(:disabled) {
+      background: var(--gray-50);
+      border-color: var(--primary-500);
+    }
+    
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .pagination-btn.active {
+      background: var(--primary-600);
+      border-color: var(--primary-600);
+      color: white;
+    }
+    
+    .pagination-info {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+      margin: 0 var(--space-4);
+    }
+    
+    /* Empty state */
+    .audit-empty {
+      text-align: center;
+      padding: var(--space-12);
+    }
+    
+    .audit-empty-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-4);
+    }
+    
+    .audit-empty-title {
+      font-size: var(--text-xl);
+      font-weight: 600;
+      margin-bottom: var(--space-2);
+    }
+    
+    .audit-empty-text {
+      color: var(--gray-500);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🧹</div>
+        <span class="sidebar-title">CleanPro</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">
+            <span class="nav-item-icon">📊</span>
+            <span class="nav-item-text" data-i18n="dashboard">Dashboard</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="employees.html" class="nav-item">
+            <span class="nav-item-icon">👥</span>
+            <span class="nav-item-text" data-i18n="employees">Employees</span>
+          </a>
+          <a href="clients.html" class="nav-item">
+            <span class="nav-item-icon">🏠</span>
+            <span class="nav-item-text" data-i18n="clients">Clients</span>
+          </a>
+          <a href="scheduling.html" class="nav-item">
+            <span class="nav-item-icon">📅</span>
+            <span class="nav-item-text" data-i18n="scheduling">Scheduling</span>
+          </a>
+          <a href="timeclock.html" class="nav-item">
+            <span class="nav-item-icon">⏱️</span>
+            <span class="nav-item-text" data-i18n="timeClock">Time Clock</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title" data-i18n="finances">Finance</div>
+          <a href="finances.html" class="nav-item">
+            <span class="nav-item-icon">💰</span>
+            <span class="nav-item-text" data-i18n="finances">Finances</span>
+          </a>
+          <a href="reports.html" class="nav-item">
+            <span class="nav-item-icon">📈</span>
+            <span class="nav-item-text" data-i18n="reports">Reports</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="audit-log.html" class="nav-item active">
+            <span class="nav-item-icon">📋</span>
+            <span class="nav-item-text" data-i18n="auditLog">Audit Log</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar" id="userAvatar">AD</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="userName">Admin</div>
+            <div class="sidebar-user-role" id="userRole">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <button class="header-menu-btn" id="menuToggle">☰</button>
+        
+        <div class="header-search">
+          <span class="header-search-icon">🔍</span>
+          <input type="text" class="header-search-input" placeholder="Search activity..." id="searchInput">
+        </div>
+
+        <div class="header-actions">
+          <button class="header-btn lang-toggle" id="langToggle">
+            🌐 <span id="langLabel">ES</span>
+          </button>
+          <button class="header-btn" id="logoutBtn" title="Logout">🚪</button>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="auditLog">Audit Log</h1>
+            <p class="text-gray-500">Track all system activity and changes</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-secondary" id="exportLogBtn">
+              <span>📥</span>
+              <span>Export Log</span>
+            </button>
+            <button class="btn btn-secondary" id="refreshBtn">
+              <span>🔄</span>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="audit-stats">
+          <div class="audit-stat-card">
+            <div class="audit-stat-icon total">📋</div>
+            <div>
+              <div class="audit-stat-value" id="statTotal">0</div>
+              <div class="audit-stat-label">Total Actions</div>
+            </div>
+          </div>
+          <div class="audit-stat-card">
+            <div class="audit-stat-icon create">➕</div>
+            <div>
+              <div class="audit-stat-value" id="statCreates">0</div>
+              <div class="audit-stat-label">Creates</div>
+            </div>
+          </div>
+          <div class="audit-stat-card">
+            <div class="audit-stat-icon update">✏️</div>
+            <div>
+              <div class="audit-stat-value" id="statUpdates">0</div>
+              <div class="audit-stat-label">Updates</div>
+            </div>
+          </div>
+          <div class="audit-stat-card">
+            <div class="audit-stat-icon delete">🗑️</div>
+            <div>
+              <div class="audit-stat-value" id="statDeletes">0</div>
+              <div class="audit-stat-label">Deletes</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="audit-filters">
+              <div class="form-group">
+                <label class="form-label">Date Range</label>
+                <select class="form-select" id="dateRangeFilter">
+                  <option value="today">Today</option>
+                  <option value="week" selected>This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="all">All Time</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Action Type</label>
+                <select class="form-select" id="actionFilter">
+                  <option value="">All Actions</option>
+                  <option value="create">Create</option>
+                  <option value="update">Update</option>
+                  <option value="delete">Delete</option>
+                  <option value="login">Login</option>
+                  <option value="export">Export</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Entity Type</label>
+                <select class="form-select" id="entityFilter">
+                  <option value="">All Entities</option>
+                  <option value="client">Clients</option>
+                  <option value="employee">Employees</option>
+                  <option value="team">Teams</option>
+                  <option value="schedule">Schedules</option>
+                  <option value="payment">Payments</option>
+                  <option value="expense">Expenses</option>
+                  <option value="invoice">Invoices</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">User</label>
+                <select class="form-select" id="userFilter">
+                  <option value="">All Users</option>
+                </select>
+              </div>
+              
+              <div class="form-group" style="flex: 1; min-width: 200px;">
+                <label class="form-label">Search</label>
+                <input type="text" class="form-input" id="searchFilter" placeholder="Search descriptions...">
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">&nbsp;</label>
+                <button class="btn btn-secondary" id="clearFiltersBtn">Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- View Toggle -->
+        <div class="flex justify-between items-center mb-4">
+          <div class="text-sm text-gray-500">
+            Showing <span id="showingCount">0</span> of <span id="totalCount">0</span> entries
+          </div>
+          <div class="view-toggle">
+            <button class="view-toggle-btn active" data-view="timeline" id="timelineViewBtn">
+              📜 Timeline
+            </button>
+            <button class="view-toggle-btn" data-view="table" id="tableViewBtn">
+              📊 Table
+            </button>
+          </div>
+        </div>
+
+        <!-- Timeline View -->
+        <div id="timelineView">
+          <div class="activity-timeline" id="activityTimeline">
+            <!-- Populated by JS -->
+          </div>
+          
+          <div class="audit-empty hidden" id="emptyState">
+            <div class="audit-empty-icon">📋</div>
+            <div class="audit-empty-title">No Activity Found</div>
+            <p class="audit-empty-text">No matching activity records for the selected filters</p>
+          </div>
+        </div>
+
+        <!-- Table View -->
+        <div id="tableView" class="hidden">
+          <div class="card">
+            <div class="table-container">
+              <table class="table" id="auditTable">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Entity</th>
+                    <th>Description</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination">
+          <button class="pagination-btn" id="prevPageBtn" disabled>◀</button>
+          <div id="paginationNumbers"></div>
+          <button class="pagination-btn" id="nextPageBtn">▶</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div class="modal-backdrop" id="sidebarOverlay"></div>
+
+  <!-- Modal Backdrop -->
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+
+  <!-- Activity Detail Modal -->
+  <div class="modal modal-lg" id="detailModal">
+    <div class="modal-header">
+      <h3 class="modal-title">Activity Details</h3>
+      <button class="modal-close" id="closeDetailModal">✕</button>
+    </div>
+    <div class="modal-body" id="detailContent">
+      <!-- Populated by JS -->
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="closeDetailBtn">Close</button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script type="module">
+    import { 
+      auth, db, onAuthStateChanged, signOut,
+      collection, doc, getDoc, getDocs, 
+      query, where, orderBy, limit, Timestamp
+    } from './js/firebase-config.js';
+    import { i18n } from './js/i18n.js';
+    import { 
+      showToast, openModal, closeModal, formatDate, getInitials, debounce
+    } from './js/utils.js';
+
+    // ============================================
+    // STATE
+    // ============================================
+    let currentUser = null;
+    let currentAdmin = null;
+    let auditLogs = [];
+    let filteredLogs = [];
+    let admins = {};
+    
+    let currentView = 'timeline';
+    let currentPage = 1;
+    const pageSize = 20;
+    
+    // Filters
+    let filters = {
+      dateRange: 'week',
+      action: '',
+      entity: '',
+      user: '',
+      search: ''
+    };
+
+    // ============================================
+    // AUTHENTICATION CHECK
+    // ============================================
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        try {
+          const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+          if (adminDoc.exists()) {
+            currentAdmin = { id: adminDoc.id, ...adminDoc.data() };
+            initializePage();
+          } else {
+            window.location.href = 'index.html';
+          }
+        } catch (error) {
+          console.error('Error fetching admin:', error);
+          window.location.href = 'index.html';
+        }
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // ============================================
+    // INITIALIZE PAGE
+    // ============================================
+    async function initializePage() {
+      document.getElementById('userName').textContent = currentAdmin.name;
+      document.getElementById('userAvatar').textContent = getInitials(
+        currentAdmin.name.split(' ')[0], 
+        currentAdmin.name.split(' ')[1] || ''
+      );
+
+      i18n.updatePageTranslations();
+      updateLanguage();
+
+      await loadAdmins();
+      await loadAuditLogs();
+
+      applyFilters();
+      setupEventListeners();
+    }
+
+    // ============================================
+    // LOAD DATA
+    // ============================================
+    async function loadAdmins() {
+      try {
+        const snapshot = await getDocs(collection(db, 'admins'));
+        snapshot.forEach(doc => {
+          admins[doc.id] = { id: doc.id, ...doc.data() };
+        });
+        
+        // Populate user filter
+        const userFilter = document.getElementById('userFilter');
+        userFilter.innerHTML = '<option value="">All Users</option>' +
+          Object.values(admins).map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+      } catch (error) {
+        console.error('Error loading admins:', error);
+      }
+    }
+
+    async function loadAuditLogs() {
+      try {
+        const q = query(
+          collection(db, 'auditLogs'),
+          orderBy('timestamp', 'desc'),
+          limit(1000)
+        );
+        const snapshot = await getDocs(q);
+        
+        auditLogs = [];
+        snapshot.forEach(doc => {
+          auditLogs.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // If no logs exist, generate sample data for demo
+        if (auditLogs.length === 0) {
+          generateSampleLogs();
+        }
+        
+        updateStats();
+      } catch (error) {
+        console.error('Error loading audit logs:', error);
+        generateSampleLogs();
+      }
+    }
+
+    function generateSampleLogs() {
+      const actions = ['create', 'update', 'delete', 'login', 'export'];
+      const entities = ['client', 'employee', 'team', 'schedule', 'payment', 'expense', 'invoice'];
+      const descriptions = {
+        client: ['John Smith', 'Maria Garcia', 'James Wilson', 'Sarah Johnson', 'Michael Brown'],
+        employee: ['Carlos Rodriguez', 'Ana Martinez', 'David Lee', 'Lisa Chen'],
+        team: ['Team Alpha', 'Team Beta', 'Morning Crew', 'Afternoon Squad'],
+        schedule: ['Dec 5 - Johnson', 'Dec 6 - Smith', 'Dec 7 - Garcia'],
+        payment: ['$150 - Cash', '$200 - Card', '$175 - Venmo'],
+        expense: ['Cleaning supplies', 'Vehicle gas', 'Equipment repair'],
+        invoice: ['INV-001', 'INV-002', 'INV-003']
+      };
+      
+      const now = new Date();
+      
+      for (let i = 0; i < 100; i++) {
+        const action = actions[Math.floor(Math.random() * actions.length)];
+        const entity = entities[Math.floor(Math.random() * entities.length)];
+        const desc = descriptions[entity][Math.floor(Math.random() * descriptions[entity].length)];
+        
+        const timestamp = new Date(now);
+        timestamp.setHours(timestamp.getHours() - Math.floor(Math.random() * 168)); // Last week
+        
+        const log = {
+          id: `log_${i}`,
+          action,
+          entityType: entity,
+          entityId: `${entity}_${Math.floor(Math.random() * 100)}`,
+          description: `${action === 'create' ? 'Created' : action === 'update' ? 'Updated' : action === 'delete' ? 'Deleted' : action === 'login' ? 'Logged in' : 'Exported'} ${entity}: ${desc}`,
+          userId: currentAdmin.id,
+          userName: currentAdmin.name,
+          timestamp: { toDate: () => timestamp },
+          changes: action === 'update' ? generateSampleChanges() : null,
+          ipAddress: '192.168.1.' + Math.floor(Math.random() * 255),
+          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'
+        };
+        
+        auditLogs.push(log);
+      }
+      
+      // Sort by timestamp descending
+      auditLogs.sort((a, b) => {
+        const aDate = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp);
+        const bDate = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp);
+        return bDate - aDate;
+      });
+    }
+
+    function generateSampleChanges() {
+      const fields = ['status', 'price', 'phone', 'email', 'notes', 'scheduleType'];
+      const field = fields[Math.floor(Math.random() * fields.length)];
+      
+      const changes = {};
+      
+      if (field === 'status') {
+        changes[field] = { old: 'scheduled', new: 'completed' };
+      } else if (field === 'price') {
+        changes[field] = { old: '$150', new: '$175' };
+      } else if (field === 'phone') {
+        changes[field] = { old: '555-1234', new: '555-5678' };
+      } else if (field === 'scheduleType') {
+        changes[field] = { old: 'weekly', new: 'biweekly' };
+      } else {
+        changes[field] = { old: 'Old value', new: 'New value' };
+      }
+      
+      return changes;
+    }
+
+    // ============================================
+    // FILTER & RENDER
+    // ============================================
+    function applyFilters() {
+      const now = new Date();
+      let startDate = null;
+      
+      // Date range filter
+      switch (filters.dateRange) {
+        case 'today':
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+          break;
+        case 'week':
+          startDate = new Date(now);
+          startDate.setDate(startDate.getDate() - 7);
+          break;
+        case 'month':
+          startDate = new Date(now);
+          startDate.setMonth(startDate.getMonth() - 1);
+          break;
+        case 'all':
+          startDate = null;
+          break;
+      }
+      
+      filteredLogs = auditLogs.filter(log => {
+        const logDate = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
+        
+        // Date filter
+        if (startDate && logDate < startDate) return false;
+        
+        // Action filter
+        if (filters.action && log.action !== filters.action) return false;
+        
+        // Entity filter
+        if (filters.entity && log.entityType !== filters.entity) return false;
+        
+        // User filter
+        if (filters.user && log.userId !== filters.user) return false;
+        
+        // Search filter
+        if (filters.search) {
+          const searchLower = filters.search.toLowerCase();
+          const desc = (log.description || '').toLowerCase();
+          const entity = (log.entityType || '').toLowerCase();
+          if (!desc.includes(searchLower) && !entity.includes(searchLower)) return false;
+        }
+        
+        return true;
+      });
+      
+      // Reset to page 1
+      currentPage = 1;
+      
+      updateStats();
+      render();
+    }
+
+    function updateStats() {
+      const creates = filteredLogs.filter(l => l.action === 'create').length;
+      const updates = filteredLogs.filter(l => l.action === 'update').length;
+      const deletes = filteredLogs.filter(l => l.action === 'delete').length;
+      
+      document.getElementById('statTotal').textContent = filteredLogs.length;
+      document.getElementById('statCreates').textContent = creates;
+      document.getElementById('statUpdates').textContent = updates;
+      document.getElementById('statDeletes').textContent = deletes;
+    }
+
+    function render() {
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      const pageLogs = filteredLogs.slice(start, end);
+      
+      document.getElementById('showingCount').textContent = pageLogs.length;
+      document.getElementById('totalCount').textContent = filteredLogs.length;
+      
+      if (currentView === 'timeline') {
+        renderTimeline(pageLogs);
+      } else {
+        renderTable(pageLogs);
+      }
+      
+      renderPagination();
+    }
+
+    function renderTimeline(logs) {
+      const container = document.getElementById('activityTimeline');
+      const emptyState = document.getElementById('emptyState');
+      
+      if (logs.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      
+      emptyState.classList.add('hidden');
+      
+      container.innerHTML = logs.map(log => {
+        const timestamp = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
+        const timeAgo = getTimeAgo(timestamp);
+        const fullTime = formatDate(timestamp, { 
+          weekday: 'short', 
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const actionIcons = {
+          create: '➕',
+          update: '✏️',
+          delete: '🗑️',
+          login: '🔑',
+          export: '📥',
+          view: '👁️'
+        };
+        
+        const entityIcons = {
+          client: '🏠',
+          employee: '👤',
+          team: '👥',
+          schedule: '📅',
+          payment: '💳',
+          expense: '💸',
+          invoice: '📄',
+          system: '⚙️'
+        };
+        
+        return `
+          <div class="activity-item">
+            <div class="activity-icon ${log.action}">
+              ${actionIcons[log.action] || '📋'}
+            </div>
+            <div class="activity-card">
+              <div class="activity-header">
+                <div class="activity-title">
+                  <span class="action-badge ${log.action}">${log.action}</span>
+                  <span class="entity-badge ${log.entityType}">
+                    ${entityIcons[log.entityType] || '📋'} ${log.entityType}
+                  </span>
+                </div>
+                <div class="activity-time" title="${fullTime}">${timeAgo}</div>
+              </div>
+              <div class="activity-description">${log.description || 'No description'}</div>
+              <div class="activity-meta">
+                <div class="activity-meta-item">
+                  <span>👤</span>
+                  <span>${log.userName || 'System'}</span>
+                </div>
+                ${log.ipAddress ? `
+                  <div class="activity-meta-item">
+                    <span>🌐</span>
+                    <span>${log.ipAddress}</span>
+                  </div>
+                ` : ''}
+              </div>
+              ${log.changes ? renderChanges(log.changes) : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderChanges(changes) {
+      if (!changes || Object.keys(changes).length === 0) return '';
+      
+      return `
+        <div class="activity-changes">
+          <div class="activity-changes-title">Changes</div>
+          ${Object.entries(changes).map(([field, change]) => `
+            <div class="change-item">
+              <span class="change-field">${field}:</span>
+              <span class="change-old">${change.old || 'empty'}</span>
+              <span class="change-arrow">→</span>
+              <span class="change-new">${change.new || 'empty'}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderTable(logs) {
+      const tbody = document.getElementById('auditTableBody');
+      
+      if (logs.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center text-gray-500 p-8">No activity found</td>
+          </tr>
+        `;
+        return;
+      }
+      
+      tbody.innerHTML = logs.map(log => {
+        const timestamp = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
+        
+        return `
+          <tr>
+            <td>
+              <div class="font-semibold">${formatDate(timestamp, { month: 'short', day: 'numeric' })}</div>
+              <div class="text-sm text-gray-500">${formatDate(timestamp, { hour: '2-digit', minute: '2-digit' })}</div>
+            </td>
+            <td>${log.userName || 'System'}</td>
+            <td><span class="action-badge ${log.action}">${log.action}</span></td>
+            <td><span class="entity-badge ${log.entityType}">${log.entityType}</span></td>
+            <td class="max-w-xs truncate">${log.description || '-'}</td>
+            <td>
+              <button class="btn btn-ghost btn-sm" onclick="viewDetail('${log.id}')">
+                View
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderPagination() {
+      const totalPages = Math.ceil(filteredLogs.length / pageSize);
+      const container = document.getElementById('paginationNumbers');
+      
+      document.getElementById('prevPageBtn').disabled = currentPage === 1;
+      document.getElementById('nextPageBtn').disabled = currentPage === totalPages || totalPages === 0;
+      
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+      
+      let html = '';
+      const maxButtons = 5;
+      let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+      let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+      
+      if (endPage - startPage < maxButtons - 1) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        html += `
+          <button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">
+            ${i}
+          </button>
+        `;
+      }
+      
+      container.innerHTML = html;
+    }
+
+    // ============================================
+    // VIEW DETAIL
+    // ============================================
+    window.viewDetail = function(logId) {
+      const log = auditLogs.find(l => l.id === logId);
+      if (!log) return;
+      
+      const timestamp = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
+      
+      document.getElementById('detailContent').innerHTML = `
+        <div class="mb-6">
+          <div class="flex gap-2 mb-4">
+            <span class="action-badge ${log.action}">${log.action}</span>
+            <span class="entity-badge ${log.entityType}">${log.entityType}</span>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">${log.description || 'No description'}</h3>
+          <div class="text-gray-500">
+            ${formatDate(timestamp, { 
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            })}
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="card">
+            <div class="card-body">
+              <div class="text-sm text-gray-500 mb-1">User</div>
+              <div class="font-semibold">${log.userName || 'System'}</div>
+              <div class="text-sm text-gray-500">${log.userId || '-'}</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <div class="text-sm text-gray-500 mb-1">Entity</div>
+              <div class="font-semibold capitalize">${log.entityType}</div>
+              <div class="text-sm text-gray-500">${log.entityId || '-'}</div>
+            </div>
+          </div>
+        </div>
+        
+        ${log.changes ? `
+          <div class="card mb-6">
+            <div class="card-header">
+              <h4 class="font-semibold">Changes Made</h4>
+            </div>
+            <div class="card-body">
+              ${Object.entries(log.changes).map(([field, change]) => `
+                <div class="flex items-center gap-4 py-2 border-b last:border-0">
+                  <div class="font-medium w-32">${field}</div>
+                  <div class="flex-1">
+                    <span class="text-danger line-through">${change.old || 'empty'}</span>
+                  </div>
+                  <div class="text-gray-400">→</div>
+                  <div class="flex-1">
+                    <span class="text-success">${change.new || 'empty'}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+        
+        <div class="card">
+          <div class="card-header">
+            <h4 class="font-semibold">Technical Details</h4>
+          </div>
+          <div class="card-body">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <div class="text-gray-500">Log ID</div>
+                <div class="font-mono">${log.id}</div>
+              </div>
+              <div>
+                <div class="text-gray-500">IP Address</div>
+                <div class="font-mono">${log.ipAddress || 'N/A'}</div>
+              </div>
+              <div class="col-span-2">
+                <div class="text-gray-500">User Agent</div>
+                <div class="font-mono text-xs truncate">${log.userAgent || 'N/A'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      openModal('detailModal');
+    };
+
+    // ============================================
+    // PAGINATION
+    // ============================================
+    window.goToPage = function(page) {
+      currentPage = page;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // ============================================
+    // EXPORT
+    // ============================================
+    function exportLog() {
+      const data = filteredLogs.map(log => {
+        const timestamp = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
+        return {
+          Timestamp: timestamp.toISOString(),
+          User: log.userName || 'System',
+          Action: log.action,
+          Entity: log.entityType,
+          EntityID: log.entityId || '-',
+          Description: log.description || '-',
+          IPAddress: log.ipAddress || '-',
+          Changes: log.changes ? JSON.stringify(log.changes) : '-'
+        };
+      });
+      
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Audit Log');
+      XLSX.writeFile(wb, `CleanPro_AuditLog_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      showToast('success', 'Export Complete', 'Audit log downloaded');
+    }
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    function getTimeAgo(date) {
+      const now = new Date();
+      const diff = now - date;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 7) return `${days}d ago`;
+      
+      return formatDate(date, { month: 'short', day: 'numeric' });
+    }
+
+    function updateLanguage() {
+      const lang = i18n.getLanguage();
+      document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN';
+      i18n.updatePageTranslations();
+    }
+
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    function setupEventListeners() {
+      // Mobile menu
+      document.getElementById('menuToggle').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+      });
+
+      document.getElementById('sidebarOverlay').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+      });
+
+      // Language
+      document.getElementById('langToggle').addEventListener('click', () => {
+        i18n.toggleLanguage();
+        updateLanguage();
+      });
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await signOut(auth);
+        window.location.href = 'index.html';
+      });
+
+      // Filters
+      document.getElementById('dateRangeFilter').addEventListener('change', (e) => {
+        filters.dateRange = e.target.value;
+        applyFilters();
+      });
+
+      document.getElementById('actionFilter').addEventListener('change', (e) => {
+        filters.action = e.target.value;
+        applyFilters();
+      });
+
+      document.getElementById('entityFilter').addEventListener('change', (e) => {
+        filters.entity = e.target.value;
+        applyFilters();
+      });
+
+      document.getElementById('userFilter').addEventListener('change', (e) => {
+        filters.user = e.target.value;
+        applyFilters();
+      });
+
+      document.getElementById('searchFilter').addEventListener('input', debounce((e) => {
+        filters.search = e.target.value;
+        applyFilters();
+      }, 300));
+
+      document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+        filters = { dateRange: 'week', action: '', entity: '', user: '', search: '' };
+        document.getElementById('dateRangeFilter').value = 'week';
+        document.getElementById('actionFilter').value = '';
+        document.getElementById('entityFilter').value = '';
+        document.getElementById('userFilter').value = '';
+        document.getElementById('searchFilter').value = '';
+        applyFilters();
+      });
+
+      // View toggle
+      document.getElementById('timelineViewBtn').addEventListener('click', () => {
+        currentView = 'timeline';
+        document.getElementById('timelineViewBtn').classList.add('active');
+        document.getElementById('tableViewBtn').classList.remove('active');
+        document.getElementById('timelineView').classList.remove('hidden');
+        document.getElementById('tableView').classList.add('hidden');
+        render();
+      });
+
+      document.getElementById('tableViewBtn').addEventListener('click', () => {
+        currentView = 'table';
+        document.getElementById('tableViewBtn').classList.add('active');
+        document.getElementById('timelineViewBtn').classList.remove('active');
+        document.getElementById('tableView').classList.remove('hidden');
+        document.getElementById('timelineView').classList.add('hidden');
+        render();
+      });
+
+      // Pagination
+      document.getElementById('prevPageBtn').addEventListener('click', () => {
+        if (currentPage > 1) {
+          goToPage(currentPage - 1);
+        }
+      });
+
+      document.getElementById('nextPageBtn').addEventListener('click', () => {
+        const totalPages = Math.ceil(filteredLogs.length / pageSize);
+        if (currentPage < totalPages) {
+          goToPage(currentPage + 1);
+        }
+      });
+
+      // Export
+      document.getElementById('exportLogBtn').addEventListener('click', exportLog);
+
+      // Refresh
+      document.getElementById('refreshBtn').addEventListener('click', async () => {
+        showToast('info', 'Refreshing', 'Loading latest activity...');
+        await loadAuditLogs();
+        applyFilters();
+        showToast('success', 'Refreshed', 'Activity log updated');
+      });
+
+      // Detail modal
+      document.getElementById('closeDetailModal').addEventListener('click', () => closeModal('detailModal'));
+      document.getElementById('closeDetailBtn').addEventListener('click', () => closeModal('detailModal'));
+      document.getElementById('modalBackdrop').addEventListener('click', () => closeModal('detailModal'));
+    }
+  </script>
+</body>
+</html>

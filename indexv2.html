@@ -1,0 +1,4290 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ciber Developers | Your Idea, Our Code</title>
+    <style>
+      :root {
+        --primary-color: #00c8ff;
+        --secondary-color: #0a1929;
+        --accent-color: #9c27b0;
+        --text-color: #ffffff;
+        --gradient-1: linear-gradient(
+          135deg,
+          rgba(0, 200, 255, 1) 0%,
+          rgba(156, 39, 176, 0.8) 100%
+        );
+        --gradient-2: linear-gradient(
+          135deg,
+          rgba(10, 25, 41, 0.95) 0%,
+          rgba(156, 39, 176, 0.3) 100%
+        );
+        --font-main: "Outfit", sans-serif;
+        --font-code: "JetBrains Mono", monospace;
+      }
+
+      @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: var(--font-main);
+        background-color: var(--secondary-color);
+        color: var(--text-color);
+        overflow-x: hidden;
+        line-height: 1.6;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--secondary-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--primary-color);
+        border-radius: 3px;
+      }
+
+      /* Utilities */
+      .container {
+        width: 100%;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
+      }
+
+      /* Background Elements */
+      .bg-grid {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: linear-gradient(
+            var(--secondary-color) 1px,
+            transparent 1px
+          ),
+          linear-gradient(90deg, var(--secondary-color) 1px, transparent 1px);
+        background-size: 40px 40px;
+        background-position: center center;
+        opacity: 0.05;
+        z-index: -1;
+        will-change: transform;
+      }
+
+      .bg-glow {
+        position: fixed;
+        top: -40%;
+        right: -20%;
+        width: 80vw;
+        height: 80vh;
+        background: radial-gradient(
+          circle,
+          rgba(0, 200, 255, 0.15) 0%,
+          transparent 70%
+        );
+        z-index: -1;
+        filter: blur(40px);
+        will-change: transform;
+      }
+
+      .bg-glow-2 {
+        position: fixed;
+        bottom: -30%;
+        left: -20%;
+        width: 70vw;
+        height: 70vh;
+        background: radial-gradient(
+          circle,
+          rgba(156, 39, 176, 0.1) 0%,
+          transparent 70%
+        );
+        z-index: -1;
+        filter: blur(40px);
+        will-change: transform;
+      }
+
+      /* Language Switcher Styles */
+      .language-switcher {
+        display: flex;
+        align-items: center;
+        margin-left: 1.5rem;
+      }
+      
+      .language-btn {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        font-family: var(--font-main);
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        opacity: 0.7;
+        transition: all 0.3s ease;
+      }
+      
+      .language-btn.active {
+        opacity: 1;
+        font-weight: 600;
+        text-decoration: underline;
+      }
+      
+      .language-separator {
+        height: 15px;
+        width: 1px;
+        background-color: var(--text-color);
+        opacity: 0.5;
+        margin: 0 0.5rem;
+      }
+      
+      @media (max-width: 768px) {
+        .language-switcher {
+          margin-left: 0;
+          margin-top: 1rem;
+          justify-content: center;
+        }
+      }
+
+      /* Navbar */
+      .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        padding: 1.5rem 0;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        background: rgba(10, 25, 41, 0.8);
+      }
+
+      .navbar.scrolled {
+        padding: 1rem 0;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .nav-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .logo {
+        height: 40px;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 2.5rem;
+      }
+
+      .nav-link {
+        color: var(--text-color);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 1rem;
+        position: relative;
+        transition: all 0.3s ease;
+      }
+
+      .nav-link:after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--primary-color);
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover:after {
+        width: 100%;
+      }
+
+      .mobile-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-color);
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+
+      /* Hero Section */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        padding: 8rem 0;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 2;
+      }
+
+      .hero h1 {
+        font-size: 4.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        line-height: 1.2;
+      }
+
+      .hero h1 span {
+        background: var(--gradient-1);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .hero p {
+        font-size: 1.25rem;
+        margin-bottom: 2.5rem;
+        max-width: 600px;
+        opacity: 0.9;
+      }
+
+      .cta-buttons {
+        display: flex;
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.75rem;
+        border-radius: 50px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      .btn-primary {
+        background: var(--gradient-1);
+        color: var(--text-color);
+        box-shadow: 0 8px 15px rgba(0, 200, 255, 0.3);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--text-color);
+        border: 2px solid var(--primary-color);
+      }
+
+      .btn:hover {
+        transform: translateY(-3px);
+      }
+
+      .btn-primary:hover {
+        box-shadow: 0 12px 20px rgba(0, 200, 255, 0.4);
+      }
+
+      .btn-secondary:hover {
+        background: rgba(0, 200, 255, 0.1);
+      }
+
+      .code-display {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        font-family: var(--font-code);
+        font-size: 0.9rem;
+        opacity: 0.6;
+        background: var(--secondary-color);
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        width: 400px;
+        max-width: 90%;
+        height: 400px;
+        overflow: hidden;
+        border-left: 3px solid var(--primary-color);
+        line-height: 1.5;
+      }
+
+      .code-display pre {
+        margin: 0;
+        height: 100%;
+      }
+
+      .code-display .keyword {
+        color: var(--primary-color);
+      }
+
+      .code-display .string {
+        color: #ff7b72;
+      }
+
+      .code-display .function {
+        color: #d2a8ff;
+      }
+
+      .code-display .comment {
+        color: #8b949e;
+      }
+
+      /* Services Section */
+      .services {
+        padding: 8rem 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .section-header {
+        text-align: center;
+        margin-bottom: 5rem;
+      }
+
+      .section-header h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        position: relative;
+        display: inline-block;
+      }
+
+      .section-header h2:after {
+        content: "";
+        position: absolute;
+        bottom: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 4px;
+        background: var(--gradient-1);
+        border-radius: 2px;
+      }
+
+      .section-header p {
+        font-size: 1.1rem;
+        max-width: 700px;
+        margin: 0 auto;
+        opacity: 0.9;
+      }
+
+      .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2.5rem;
+        margin-top: 3rem;
+      }
+
+      .service-card {
+        background: var(--gradient-2);
+        border-radius: 20px;
+        padding: 2rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        height: 100%;
+        cursor: pointer;
+        transform-style: preserve-3d;
+      }
+
+      .service-card:before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--gradient-1);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+      }
+
+      .service-card:hover:before {
+        opacity: 0.05;
+      }
+
+      .service-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 60px;
+        height: 60px;
+        border-radius: 15px;
+        margin-bottom: 1.5rem;
+        background: rgba(0, 200, 255, 0.1);
+        color: var(--primary-color);
+        font-size: 1.75rem;
+      }
+
+      .service-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+      }
+
+      .service-card p {
+        opacity: 0.9;
+        margin-bottom: 1.5rem;
+      }
+
+      .learn-more {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .learn-more:hover {
+        gap: 0.75rem;
+      }
+
+      /* Portfolio Section */
+      .portfolio {
+        padding: 8rem 0;
+        position: relative;
+        background: rgba(10, 25, 41, 0.5);
+      }
+
+      .portfolio-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 2.5rem;
+        margin-top: 3rem;
+      }
+
+      .portfolio-item {
+        border-radius: 20px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        aspect-ratio: 16/10;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .portfolio-item:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 25px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .portfolio-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: all 0.5s ease;
+      }
+
+      .portfolio-item:hover .portfolio-image {
+        transform: scale(1.05);
+      }
+
+      .portfolio-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 2rem;
+        background: linear-gradient(
+          0deg,
+          rgba(10, 25, 41, 0.9) 0%,
+          rgba(10, 25, 41, 0) 100%
+        );
+        transform: translateY(20%);
+        opacity: 0;
+        transition: all 0.3s ease;
+      }
+
+      .portfolio-item:hover .portfolio-overlay {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      .portfolio-overlay h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .portfolio-overlay p {
+        font-size: 0.95rem;
+        opacity: 0.9;
+        margin-bottom: 1rem;
+      }
+
+      .portfolio-tags {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .portfolio-tag {
+        background: rgba(0, 200, 255, 0.1);
+        color: var(--primary-color);
+        padding: 0.25rem 0.75rem;
+        border-radius: 30px;
+        font-size: 0.8rem;
+      }
+
+      /* Quote Section */
+      .quote-section {
+        padding: 8rem 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .quote-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .quote-form {
+        background: var(--gradient-2);
+        border-radius: 20px;
+        padding: 3rem;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      .quote-form:before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: var(--gradient-1);
+        z-index: 2;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-group.full-width {
+        grid-column: 1 / 3;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+
+      .form-control {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 0.875rem 1rem;
+        color: var(--text-color);
+        font-family: var(--font-main);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.1);
+      }
+
+      textarea.form-control {
+        resize: vertical;
+        min-height: 150px;
+      }
+
+      .budget-slider {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.1);
+        outline: none;
+        margin-top: 1rem;
+      }
+
+      .budget-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .budget-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+      }
+
+      .budget-value {
+        margin-top: 0.5rem;
+        font-weight: 500;
+        color: var(--primary-color);
+      }
+
+      .submit-btn {
+        background: var(--gradient-1);
+        color: var(--text-color);
+        border: none;
+        padding: 1rem 2rem;
+        font-family: var(--font-main);
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 15px rgba(0, 200, 255, 0.3);
+      }
+
+      .submit-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 20px rgba(0, 200, 255, 0.4);
+      }
+
+      /* Contact Section */
+      .contact {
+        padding: 8rem 0;
+        position: relative;
+        background: rgba(10, 25, 41, 0.5);
+      }
+
+      .contact-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4rem;
+        align-items: center;
+      }
+
+      .contact-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .contact-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+
+      .contact-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+        background: rgba(0, 200, 255, 0.1);
+        color: var(--primary-color);
+        font-size: 1.25rem;
+        flex-shrink: 0;
+      }
+
+      .contact-details h3 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+
+      .contact-details p,
+      .contact-details a {
+        color: var(--text-color);
+        opacity: 0.9;
+        text-decoration: none;
+        transition: all 0.3s ease;
+      }
+
+      .contact-details a:hover {
+        color: var(--primary-color);
+        opacity: 1;
+      }
+
+      .contact-map {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        height: 400px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      /* Footer */
+      .footer {
+        padding: 5rem 0 2rem;
+        position: relative;
+        background: var(--secondary-color);
+      }
+
+      .footer-top {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 4rem;
+        margin-bottom: 4rem;
+      }
+
+      .footer-logo {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .footer-logo img {
+        height: 35px;
+      }
+
+      .footer-about p {
+        opacity: 0.8;
+        margin-bottom: 1.5rem;
+      }
+
+      .social-links {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .social-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-color);
+        text-decoration: none;
+        transition: all 0.3s ease;
+      }
+
+      .social-link:hover {
+        background: var(--primary-color);
+        transform: translateY(-3px);
+      }
+
+      .footer-title {
+        font-size: 1.25rem;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+      }
+
+      .footer-links {
+        list-style: none;
+      }
+
+      .footer-links li {
+        margin-bottom: 0.75rem;
+      }
+
+      .footer-links a {
+        color: var(--text-color);
+        opacity: 0.8;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .footer-links a:hover {
+        color: var(--primary-color);
+        opacity: 1;
+        gap: 0.75rem;
+      }
+
+      .footer-bottom {
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        text-align: center;
+        opacity: 0.7;
+        font-size: 0.9rem;
+      }
+
+      /* Animations */
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-20px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 0.5;
+        }
+        50% {
+          opacity: 0.8;
+        }
+        100% {
+          opacity: 0.5;
+        }
+      }
+
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
+
+      .animate-pulse {
+        animation: pulse 3s ease-in-out infinite;
+      }
+
+      /* Service Modal */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .modal-container {
+        background: var(--secondary-color);
+        border-radius: 20px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 3rem;
+        position: relative;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transform: scale(0.9);
+        transition: all 0.3s ease;
+      }
+
+      .modal-overlay.active .modal-container {
+        transform: scale(1);
+      }
+
+      .modal-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: none;
+        border: none;
+        color: var(--text-color);
+        font-size: 1.5rem;
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .modal-close:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: rotate(90deg);
+      }
+
+      .modal-header {
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .modal-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .modal-subtitle {
+        color: var(--primary-color);
+        font-size: 1.1rem;
+        opacity: 0.9;
+      }
+
+      .modal-content {
+        margin-bottom: 2rem;
+      }
+
+      .modal-content p {
+        margin-bottom: 1.5rem;
+        line-height: 1.8;
+      }
+
+      .modal-features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .feature-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+
+      .feature-icon {
+        color: var(--primary-color);
+        font-size: 1.25rem;
+      }
+
+      .feature-text {
+        font-size: 0.95rem;
+      }
+
+      .modal-action {
+        text-align: center;
+      }
+
+      /* Responsive styles */
+      @media (max-width: 1200px) {
+        .hero h1 {
+          font-size: 3.5rem;
+        }
+
+        .code-display {
+          width: 350px;
+        }
+
+        .footer-top {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 3rem;
+        }
+      }
+
+      @media (max-width: 992px) {
+        .hero h1 {
+          font-size: 3rem;
+        }
+
+        .code-display {
+          position: relative;
+          top: auto;
+          transform: none;
+          margin-top: 3rem;
+          width: 100%;
+        }
+
+        .contact-container {
+          grid-template-columns: 1fr;
+          gap: 3rem;
+        }
+
+        .contact-map {
+          height: 350px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .hero h1 {
+          font-size: 2.5rem;
+        }
+
+        .hero p {
+          font-size: 1.1rem;
+        }
+
+        .section-header h2 {
+          font-size: 2rem;
+        }
+
+        .cta-buttons {
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .cta-buttons .btn {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .portfolio-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .form-group.full-width {
+          grid-column: 1;
+        }
+
+        .mobile-toggle {
+          display: block;
+        }
+
+        .nav-links {
+          position: fixed;
+          top: 80px;
+          left: 0;
+          width: 100%;
+          flex-direction: column;
+          align-items: center;
+          background: rgba(10, 25, 41, 0.95);
+          backdrop-filter: blur(10px);
+          padding: 2rem 0;
+          gap: 1.5rem;
+          transform: translateY(-200%);
+          transition: transform 0.3s ease;
+        }
+
+        .nav-links.active {
+          transform: translateY(0);
+        }
+
+        .footer-top {
+          grid-template-columns: 1fr;
+          gap: 2rem;
+          text-align: center;
+        }
+
+        .footer-logo {
+          justify-content: center;
+        }
+
+        .social-links {
+          justify-content: center;
+        }
+      }
+
+      /* Particle System */
+      .particles-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+        overflow: hidden;
+      }
+
+      .particle {
+        position: absolute;
+        background: rgba(0, 200, 255, 0.2);
+        border-radius: 50%;
+        box-shadow: 0 0 10px rgba(0, 200, 255, 0.5);
+        pointer-events: none;
+        will-change: transform;
+      }
+
+      /* Loading animations */
+      .loading-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          var(--primary-color),
+          transparent
+        );
+        z-index: 9999;
+        animation: loading 1.5s ease-in-out infinite;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .loading .loading-bar {
+        opacity: 1;
+      }
+
+      @keyframes loading {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+    <div class="bg-glow-2"></div>
+    <div class="particles-container"></div>
+
+    <!-- Loading Bar -->
+    <div class="loading-bar"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="container nav-content">
+        <div class="logo-container">
+          <img src="/api/placeholder/120/40" alt="Ciber Developers Logo" class="logo" />
+        </div>
+        <div class="nav-links">
+          <a href="#home" class="nav-link" data-en="Home" data-es="Inicio">Home</a>
+          <a href="#services" class="nav-link" data-en="Services" data-es="Servicios">Services</a>
+          <a href="#portfolio" class="nav-link" data-en="Portfolio" data-es="Portafolio">Portfolio</a>
+          <a href="#quote" class="nav-link" data-en="Get a Quote" data-es="Solicitar Presupuesto">Get a Quote</a>
+          <a href="#contact" class="nav-link" data-en="Contact" data-es="Contacto">Contact</a>
+          <div class="language-switcher">
+            <button id="en-btn" class="language-btn active" title="English">EN</button>
+            <div class="language-separator"></div>
+            <button id="es-btn" class="language-btn" title="Español">ES</button>
+          </div>
+        </div>
+        <button class="mobile-toggle">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h1 data-en="Your <span>Idea</span>, Our <span>Code</span>" data-es="Tu <span>Idea</span>, Nuestro <span>Código</span>">Your <span>Idea</span>, Our <span>Code</span></h1>
+          <p data-en="We transform complex business challenges into elegant digital solutions. Delivering cutting-edge web applications with futuristic design and flawless functionality." 
+             data-es="Transformamos complejos desafíos empresariales en elegantes soluciones digitales. Entregamos aplicaciones web de vanguardia con diseño futurista y funcionalidad impecable.">
+            We transform complex business challenges into elegant digital
+            solutions. Delivering cutting-edge web applications with futuristic
+            design and flawless functionality.
+          </p>
+          <div class="cta-buttons">
+            <a href="#quote" class="btn btn-primary" data-en="Get a Free Quote" data-es="Obtén un Presupuesto Gratis">
+              Get a Free Quote
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+            <a href="#portfolio" class="btn btn-secondary" data-en="View Our Work" data-es="Ver Nuestro Trabajo">
+              View Our Work
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+            </a>
+          </div>
+
+          <!-- Code display remains in English as it's programming code -->
+          <div class="code-display animate-float">
+            <pre>
+<span class="keyword">const</span> <span class="function">createAmazingWebsite</span> = <span class="keyword">async</span> () => {
+  <span class="keyword">const</span> clientIdea = <span class="string">'Your brilliant concept'</span>;
+  <span class="keyword">const</span> ourExpertise = <span class="keyword">await</span> ciberDev.getTeam();
+  
+  <span class="comment">// Transform idea into reality</span>
+  <span class="keyword">const</span> amazingProduct = <span class="keyword">await</span> ourExpertise
+    .design(clientIdea)
+    .develop()
+    .optimize();
+    
+  <span class="keyword">return</span> amazingProduct;
+};</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="services">
+      <div class="container">
+        <div class="section-header">
+          <h2 data-en="Our Services" data-es="Nuestros Servicios">Our Services</h2>
+          <p data-en=  "We offer comprehensive web development solutions tailored to your specific business needs. From concept to deployment, we handle every aspect of your digital journey." data-es="Ofrecemos soluciones completas de desarrollo web adaptadas a las necesidades específicas de tu negocio. Desde el concepto hasta la implementación, nos encargamos de cada aspecto de tu viaje digital.">
+            We offer comprehensive web development solutions tailored to your
+            specific business needs. From concept to deployment, we handle every
+            aspect of your digital journey.
+          </p>
+        </div>
+
+        <div class="services-grid">
+          <div class="service-card" data-service="web-development">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+            </div>
+            <h3 data-en="Web Development" data-es="Desarrollo Web">Web Development</h3>
+            <p data-en=  "Custom web applications built with the latest technologies. We create responsive, high-performance websites that deliver exceptional user experiences." data-es=    "Aplicaciones web personalizadas construidas con las últimas tecnologías. Creamos sitios web responsivos y de alto rendimiento que ofrecen experiencias de usuario excepcionales.">
+              Custom web applications built with the latest technologies. We
+              create responsive, high-performance websites that deliver
+              exceptional user experiences.
+            </p>
+            <span class="learn-more" data-en="Learn More" data-es="Más Información">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </span>
+          </div>
+
+          <div class="service-card" data-service="ui-ux-design">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+            </div>
+            <h3 data-en="UI/UX Design" data-es="Diseño UI/UX">UI/UX Design</h3>
+            <p data-en="Stunning, intuitive interfaces designed with user experience at the forefront. We craft designs that not only look amazing but also drive conversions." data-es=    "Interfaces impresionantes e intuitivas diseñadas con la experiencia del usuario en primer plano. Creamos diseños que no solo lucen increíbles sino que también impulsan conversiones.">
+              Stunning, intuitive interfaces designed with user experience at
+              the forefront. We craft designs that not only look amazing but
+              also drive conversions.
+            </p>
+            <span class="learn-more" data-en="Learn More" data-es="Más Información">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </span>
+          </div>
+
+          <div class="service-card" data-service="ecommerce">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                <path d="M2 2l7.586 7.586"></path>
+                <circle cx="11" cy="11" r="2"></circle>
+              </svg>
+            </div>
+            <h3 data-en="E-commerce Solutions" data-es="Soluciones de Comercio Electrónico">E-commerce Solutions</h3>
+            <p data-en="Complete online store development with secure payment gateways,inventory management, and customer-friendly shopping experiences." data-es="Desarrollo completo de tiendas en línea con pasarelas de pago seguras, gestión de inventario y experiencias de compra amigables para el cliente.">
+              Complete online store development with secure payment gateways,
+              inventory management, and customer-friendly shopping experiences.
+            </p>
+            <span class="learn-more" data-en="Learn More" data-es="Más Información">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </span>
+          </div>
+
+          <div class="service-card" data-service="pwa">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"
+                ></path>
+                <line x1="2" y1="20" x2="2" y2="20"></line>
+              </svg>
+            </div>
+            <h3 data-en="Progressive Web Apps" data-es="Aplicaciones Web Progresivas">Progressive Web Apps</h3>
+            <p data-en="Develop fast, reliable, and engaging web applications that work offline and deliver app-like experiences to your users across all devices." data-es="Desarrollamos aplicaciones web rápidas, confiables y atractivas que funcionan sin conexión y ofrecen experiencias similares a las aplicaciones nativas en todos los dispositivos.">
+              Develop fast, reliable, and engaging web applications that work
+              offline and deliver app-like experiences to your users across all
+              devices.
+            </p>
+            <span class="learn-more" data-en="Learn More" data-es="Más Información">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </span>
+          </div>
+
+          <div class="service-card" data-service="cms">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+            </div>
+            <h3 data-en="Custom CMS Solutions" data-es="Soluciones CMS Personalizadas">Custom CMS Solutions</h3>
+            <p data-en="Tailor-made content management systems that give you complete control over your website content with user-friendly interfaces." data-es="Sistemas de gestión de contenido a medida que te dan control completo sobre el contenido de tu sitio web con interfaces fáciles de usar.">
+              Tailor-made content management systems that give you complete
+              control over your website content with user-friendly interfaces.
+            </p>
+            <span class="learn-more" data-en="Learn More" data-es="Más Información">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </span>
+          </div>
+
+          <div class="service-card" data-service="api">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M18 10h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v6H2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
+                ></path>
+              </svg>
+            </div>
+            <h3 data-en="API Development & Integration" data-es="Desarrollo e Integración de API">API Development & Integration</h3>
+            <p data-en="Building robust APIs and seamlessly integrating third-party services to enhance your web application's functionality and features." data-es="Construimos APIs robustas e integramos perfectamente servicios de terceros para mejorar la funcionalidad y características de tu aplicación web.">
+              Building robust APIs and seamlessly integrating third-party
+              services to enhance your web application's functionality and
+              features.
+            </p>
+            <span class="learn-more" data-en="Learn More" data-es="Más Información">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Portfolio Section -->
+    <section id="portfolio" class="portfolio">
+      <div class="container">
+        <div class="section-header">
+          <h2>Our Work</h2>
+          <p>
+            Explore our latest projects and see how we've helped businesses
+            across industries achieve their digital goals with innovative web
+            solutions.
+          </p>
+        </div>
+
+        <div class="portfolio-grid">
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="E-commerce Website"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>LuxuryMart</h3>
+              <p>
+                A premium e-commerce platform with advanced filtering and
+                payment options.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">React</span>
+                <span class="portfolio-tag">Node.js</span>
+                <span class="portfolio-tag">MongoDB</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="Real Estate App"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>PropertyFinder</h3>
+              <p>
+                Real estate platform with interactive maps and virtual tours.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">Vue.js</span>
+                <span class="portfolio-tag">Express</span>
+                <span class="portfolio-tag">PostgreSQL</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="Health & Fitness App"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>FitTrack</h3>
+              <p>
+                Fitness tracking application with personalized workout plans and
+                nutrition guides.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">React Native</span>
+                <span class="portfolio-tag">Firebase</span>
+                <span class="portfolio-tag">GraphQL</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="Finance Dashboard"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>FinVision</h3>
+              <p>
+                Financial analytics dashboard with real-time data visualization.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">Angular</span>
+                <span class="portfolio-tag">D3.js</span>
+                <span class="portfolio-tag">Python</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="Educational Platform"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>EduHub</h3>
+              <p>
+                Online learning platform with course management and interactive
+                content.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">Next.js</span>
+                <span class="portfolio-tag">Strapi</span>
+                <span class="portfolio-tag">AWS</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="Travel Booking App"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>TravelEase</h3>
+              <p>
+                Travel booking platform with personalized recommendations and
+                itinerary planning.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">Svelte</span>
+                <span class="portfolio-tag">Go</span>
+                <span class="portfolio-tag">MySQL</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Service Modals -->
+    <div class="modal-overlay" id="web-development-modal">
+      <div class="modal-container">
+        <button class="modal-close">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <div class="modal-header">
+          <div class="service-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h2 class="modal-title">Web Development</h2>
+            <p class="modal-subtitle">Expert web solutions for your business</p>
+          </div>
+        </div>
+        <div class="modal-content">
+          <p>
+            Our web development services are designed to create powerful, scalable, and responsive websites that deliver exceptional user experiences. We combine cutting-edge technologies with creative design to build websites that not only look great but also perform flawlessly.
+          </p>
+          <p>
+            Whether you need a simple informational website, a complex web application, or anything in between, our team of experienced developers will work closely with you to understand your unique requirements and deliver a solution that exceeds your expectations.
+          </p>
+          <h3 style="margin-bottom: 1rem; font-size: 1.25rem">Our Web Development Process</h3>
+          <p>
+            We follow a proven methodology to ensure your project is completed on time, within budget, and to your complete satisfaction:
+          </p>
+          <ol style="margin-left: 1.5rem; margin-bottom: 1.5rem">
+            <li style="margin-bottom: 0.5rem"><strong>Discovery:</strong> We start by understanding your business goals, target audience, and specific requirements.</li>
+            <li style="margin-bottom: 0.5rem"><strong>Planning:</strong> We create a detailed project plan, including timeline, milestones, and deliverables.</li>
+            <li style="margin-bottom: 0.5rem"><strong>Design:</strong> Our designers create wireframes and mockups for your approval.</li>
+            <li style="margin-bottom: 0.5rem"><strong>Development:</strong> Our developers bring the designs to life using the latest technologies.</li>
+            <li style="margin-bottom: 0.5rem"><strong>Testing:</strong> We rigorously test the website to ensure it works flawlessly across all devices and browsers.</li>
+            <li style="margin-bottom: 0.5rem"><strong>Deployment:</strong> We launch your website and provide training on how to use it.</li>
+            <li><strong>Maintenance:</strong> We offer ongoing support and maintenance to keep your website running smoothly.</li>
+          </ol>
+        </div>
+        <div class="modal-features">
+          <div class="feature-item">
+            <div class="feature-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="feature-text">Responsive Design</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="feature-text">Cross-Browser Compatible</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="feature-text">SEO-Friendly Code</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="feature-text">Fast Loading Speed</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="feature-text">Secure Hosting</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="feature-text">Regular Backups</div>
+          </div>
+        </div>
+        <div class="modal-action">
+          <a href="#quote" class="btn btn-primary modal-quote-btn">
+            Get a Quote
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- More modals for other services would go here (UI/UX, E-commerce, PWA, CMS, API) with similar structure but different content -->
+
+    <!-- UI/UX Design Modal -->
+<div class="modal-overlay" id="ui-ux-design-modal">
+    <div class="modal-container">
+      <button class="modal-close">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="modal-header">
+        <div class="service-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h2 class="modal-title">UI/UX Design</h2>
+          <p class="modal-subtitle">Creating exceptional user experiences</p>
+        </div>
+      </div>
+      <div class="modal-content">
+        <p>
+          Our UI/UX design services focus on creating interfaces that are not only visually stunning but also intuitive and user-friendly. We combine aesthetics with functionality to design digital experiences that captivate your users and drive engagement.
+        </p>
+        <p>
+          Through extensive research, user testing, and iterative design processes, we ensure that every element of your interface is purposeful and aligned with your business goals while meeting the needs of your target audience.
+        </p>
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem">Our Design Philosophy</h3>
+        <p>
+          We believe that great design is invisible. When users interact with a well-designed interface, they should be able to accomplish their goals effortlessly, without confusion or frustration. Our design process is guided by these principles:
+        </p>
+        <ul style="margin-left: 1.5rem; margin-bottom: 1.5rem">
+          <li style="margin-bottom: 0.5rem"><strong>User-Centered:</strong> We place your users at the heart of every design decision.</li>
+          <li style="margin-bottom: 0.5rem"><strong>Research-Driven:</strong> We base our designs on solid research and data, not assumptions.</li>
+          <li style="margin-bottom: 0.5rem"><strong>Iterative:</strong> We continuously refine and improve our designs based on feedback and testing.</li>
+          <li style="margin-bottom: 0.5rem"><strong>Consistent:</strong> We maintain visual and functional consistency throughout your product.</li>
+          <li><strong>Accessible:</strong> We design for all users, including those with disabilities.</li>
+        </ul>
+      </div>
+      <div class="modal-features">
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">User Research</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Wireframing & Prototyping</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Visual Design</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Usability Testing</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Interaction Design</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Design Systems</div>
+        </div>
+      </div>
+      <div class="modal-action">
+        <a href="#quote" class="btn btn-primary modal-quote-btn">
+          Get a Quote
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- E-commerce Solutions Modal -->
+  <div class="modal-overlay" id="ecommerce-modal">
+    <div class="modal-container">
+      <button class="modal-close">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="modal-header">
+        <div class="service-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+            <path d="M2 2l7.586 7.586"></path>
+            <circle cx="11" cy="11" r="2"></circle>
+          </svg>
+        </div>
+        <div>
+          <h2 class="modal-title">E-commerce Solutions</h2>
+          <p class="modal-subtitle">Sell online with powerful e-commerce platforms</p>
+        </div>
+      </div>
+      <div class="modal-content">
+        <p>
+          Our e-commerce solutions empower businesses to establish and grow their online retail presence. We build robust, secure, and scalable online stores that provide seamless shopping experiences for your customers and efficient management for your team.
+        </p>
+        <p>
+          Whether you're launching a new online store or upgrading an existing one, we create custom e-commerce solutions that align with your brand, optimize for conversions, and scale with your business growth.
+        </p>
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem">Comprehensive E-commerce Features</h3>
+        <p>
+          Our e-commerce platforms include everything you need to sell products or services online:
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <div>
+            <h4 style="font-size: 1rem; margin-bottom: 0.5rem">Store Management</h4>
+            <ul style="margin-left: 1rem;">
+              <li>Product catalog management</li>
+              <li>Inventory tracking</li>
+              <li>Order processing</li>
+              <li>Customer management</li>
+            </ul>
+          </div>
+          <div>
+            <h4 style="font-size: 1rem; margin-bottom: 0.5rem">Payment & Shipping</h4>
+            <ul style="margin-left: 1rem;">
+              <li>Multiple payment gateways</li>
+              <li>Tax calculation</li>
+              <li>Shipping integration</li>
+              <li>Discount management</li>
+            </ul>
+          </div>
+          <div>
+            <h4 style="font-size: 1rem; margin-bottom: 0.5rem">Customer Experience</h4>
+            <ul style="margin-left: 1rem;">
+              <li>Responsive design</li>
+              <li>Product search & filtering</li>
+              <li>Wishlists & favorites</li>
+              <li>Account management</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="modal-features">
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Secure Payment Processing</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Mobile Optimization</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Inventory Management</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">SEO Optimization</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Analytics & Reporting</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Marketing Integrations</div>
+        </div>
+      </div>
+      <div class="modal-action">
+        <a href="#quote" class="btn btn-primary modal-quote-btn">
+          Get a Quote
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+            <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+          <!-- Progressive Web Apps Modal -->
+<div class="modal-overlay" id="pwa-modal">
+    <div class="modal-container">
+      <button class="modal-close">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="modal-header">
+        <div class="service-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"
+            ></path>
+            <line x1="2" y1="20" x2="2" y2="20"></line>
+          </svg>
+        </div>
+        <div>
+          <h2 class="modal-title">Progressive Web Apps</h2>
+          <p class="modal-subtitle">App-like experiences for the modern web</p>
+        </div>
+      </div>
+      <div class="modal-content">
+        <p>
+          Progressive Web Apps (PWAs) combine the best of web and mobile applications, delivering fast, reliable, and engaging user experiences. We develop PWAs that work across all devices and platforms, providing native app-like functionality without the need for app store downloads.
+        </p>
+        <p>
+          With features like offline functionality, push notifications, and home screen installation, our PWAs offer a compelling alternative to traditional mobile apps, with lower development costs and broader reach.
+        </p>
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem">Key Benefits of PWAs</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-bottom: 1.5rem;">
+          <div>
+            <h4 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--primary-color);">Enhanced Performance</h4>
+            <p style="font-size: 0.95rem;">PWAs load instantly and respond quickly to user interactions, even on slow networks. They utilize caching strategies to minimize data usage and provide seamless experiences.</p>
+          </div>
+          <div>
+            <h4 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--primary-color);">Increased Engagement</h4>
+            <p style="font-size: 0.95rem;">With features like push notifications, home screen installation, and full-screen mode, PWAs keep users engaged and encourage return visits, resulting in higher conversion rates.</p>
+          </div>
+          <div>
+            <h4 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--primary-color);">Cost-Effective Development</h4>
+            <p style="font-size: 0.95rem;">Develop once and deploy everywhere. PWAs eliminate the need for separate iOS and Android development, reducing costs and maintenance while reaching users across all platforms.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-features">
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Offline Functionality</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Push Notifications</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Home Screen Installation</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Responsive Design</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">App-Like Navigation</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Cross-Platform Compatibility</div>
+        </div>
+      </div>
+      <div class="modal-action">
+        <a href="#quote" class="btn btn-primary modal-quote-btn">
+          Get a Quote
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Custom CMS Solutions Modal -->
+  <div class="modal-overlay" id="cms-modal">
+    <div class="modal-container">
+      <button class="modal-close">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="modal-header">
+        <div class="service-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </div>
+        <div>
+          <h2 class="modal-title">Custom CMS Solutions</h2>
+          <p class="modal-subtitle">Tailored content management for your business</p>
+        </div>
+      </div>
+      <div class="modal-content">
+        <p>
+          Our custom Content Management System (CMS) solutions provide you with complete control over your website content through intuitive, user-friendly interfaces. We design and develop tailored CMS platforms that match your specific business workflows and content requirements.
+        </p>
+        <p>
+          Unlike off-the-shelf CMS platforms, our custom solutions eliminate unnecessary features while adding specialized functionality that your business needs, resulting in a streamlined, efficient content management experience.
+        </p>
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem">Why Choose a Custom CMS?</h3>
+        <div style="margin-bottom: 1.5rem;">
+          <p style="margin-bottom: 1rem;">A custom CMS offers several advantages over generic solutions:</p>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <div style="background: rgba(0, 200, 255, 0.05); padding: 1.5rem; border-radius: 10px;">
+              <h4 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--primary-color);">Tailored to Your Needs</h4>
+              <p style="font-size: 0.95rem;">Custom CMS solutions are built specifically for your business workflows and content types, making content management more efficient and intuitive.</p>
+            </div>
+            
+            <div style="background: rgba(0, 200, 255, 0.05); padding: 1.5rem; border-radius: 10px;">
+              <h4 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--primary-color);">Enhanced Security</h4>
+              <p style="font-size: 0.95rem;">Custom CMS platforms can be built with security as a priority, reducing common vulnerabilities found in popular CMS platforms.</p>
+            </div>
+            
+            <div style="background: rgba(0, 200, 255, 0.05); padding: 1.5rem; border-radius: 10px;">
+              <h4 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--primary-color);">Scalability</h4>
+              <p style="font-size: 0.95rem;">As your business grows, your custom CMS can evolve with you, adding new features and capabilities as needed without major overhauls.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-features">
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Intuitive User Interface</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Custom Content Types</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Role-Based Access Control</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Media Management</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Workflow Automation</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Version Control</div>
+        </div>
+      </div>
+      <div class="modal-action">
+        <a href="#quote" class="btn btn-primary modal-quote-btn">
+          Get a Quote
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- API Development & Integration Modal -->
+  <div class="modal-overlay" id="api-modal">
+    <div class="modal-container">
+      <button class="modal-close">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="modal-header">
+        <div class="service-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M18 10h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v6H2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
+            ></path>
+          </svg>
+        </div>
+        <div>
+          <h2 class="modal-title">API Development & Integration</h2>
+          <p class="modal-subtitle">Connect systems and services seamlessly</p>
+        </div>
+      </div>
+      <div class="modal-content">
+        <p>
+          Our API development and integration services help businesses connect their systems, services, and applications for seamless data exchange and functionality. We build robust, secure, and well-documented APIs that enable your business to leverage the power of interconnected systems.
+        </p>
+        <p>
+          Whether you need to develop custom APIs for your applications, integrate with third-party services, or create a unified ecosystem for your business operations, our team has the expertise to deliver reliable solutions that meet your specific requirements.
+        </p>
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem">Our API Services</h3>
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; gap: 1rem; align-items: flex-start;">
+              <div style="background: rgba(0, 200, 255, 0.1); min-width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--primary-color);">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+              <div>
+                <h4 style="font-size: 1rem; margin-bottom: 0.25rem; color: var(--primary-color);">Custom API Development</h4>
+                <p style="font-size: 0.95rem;">We design and build custom APIs that expose your application's functionality and data in a secure, controlled manner. Our APIs follow RESTful or GraphQL principles and include thorough documentation.</p>
+              </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; align-items: flex-start;">
+              <div style="background: rgba(0, 200, 255, 0.1); min-width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--primary-color);">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+              </div>
+              <div>
+                <h4 style="font-size: 1rem; margin-bottom: 0.25rem; color: var(--primary-color);">Third-Party API Integration</h4>
+                <p style="font-size: 0.95rem;">We seamlessly integrate your applications with third-party services like payment gateways, social media platforms, marketing tools, and more, enhancing your application's capabilities.</p>
+              </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; align-items: flex-start;">
+              <div style="background: rgba(0, 200, 255, 0.1); min-width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--primary-color);">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="4 17 10 11 4 5"></polyline>
+                  <line x1="12" y1="19" x2="20" y2="19"></line>
+                </svg>
+              </div>
+              <div>
+                <h4 style="font-size: 1rem; margin-bottom: 0.25rem; color: var(--primary-color);">API Testing & Documentation</h4>
+                <p style="font-size: 0.95rem;">We provide comprehensive testing and documentation for APIs, ensuring they perform reliably under various conditions and are easy for developers to understand and implement.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-features">
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">RESTful API Design</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">GraphQL Solutions</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">API Authentication</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Webhook Implementation</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">Microservices Architecture</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="feature-text">API Performance Optimization</div>
+        </div>
+      </div>
+      <div class="modal-action">
+        <a href="#quote" class="btn btn-primary modal-quote-btn">
+          Get a Quote
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+    <!-- The rest of the HTML (Quote section, Contact, Footer) remains the same -->
+    
+    <!-- Quote Section -->
+    <section id="quote" class="quote-section">
+      <div class="container">
+        <div class="section-header">
+          <h2>Get a Quote</h2>
+          <p>
+            Tell us about your project and get a free consultation and price
+            estimate. We'll help turn your idea into reality.
+          </p>
+        </div>
+
+        <div class="quote-container">
+          <form class="quote-form">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="name" class="form-label">Your Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  class="form-control"
+                  placeholder="John Doe"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <input
+                  type="email"
+                  id="email"
+                  class="form-control"
+                  placeholder="john@example.com"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input
+                  type="tel"
+                  id="phone"
+                  class="form-control"
+                  placeholder="(123) 456-7890"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="company" class="form-label">Company Name</label>
+                <input
+                  type="text"
+                  id="company"
+                  class="form-control"
+                  placeholder="Your Company"
+                />
+              </div>
+
+              <div class="form-group full-width">
+                <label for="project-type" class="form-label"
+                  >Project Type</label
+                >
+                <select id="project-type" class="form-control">
+                  <option value="" disabled selected>
+                    Select project type
+                  </option>
+                  <option value="website">Website Development</option>
+                  <option value="ecommerce">E-commerce Development</option>
+                  <option value="webapp">Web Application</option>
+                  <option value="mobile">Mobile App Development</option>
+                  <option value="redesign">Website Redesign</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="budget" class="form-label">Project Budget</label>
+                <input
+                  type="range"
+                  id="budget"
+                  class="budget-slider"
+                  min="500"
+                  max="50000"
+                  step="100"
+                  value="2500"
+                />
+                <div class="budget-value">$2,500</div>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="description" class="form-label"
+                  >Project Description</label
+                >
+                <textarea
+                  id="description"
+                  class="form-control"
+                  rows="6"
+                  placeholder="Tell us about your project, goals, and specific requirements..."
+                ></textarea>
+              </div>
+
+              <div class="form-group full-width">
+                <button type="submit" class="submit-btn">
+                  Request Quote
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+      <div class="container">
+        <div class="section-header">
+          <h2>Contact Us</h2>
+          <p>
+            Have questions or want to discuss your project? Get in touch with
+            our team and we'll get back to you as soon as possible.
+          </p>
+        </div>
+
+        <div class="contact-container">
+          <div class="contact-info">
+            <div class="contact-item">
+              <div class="contact-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                  ></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+              </div>
+              <div class="contact-details">
+                <h3>Our Location</h3>
+                <p>1234 Tech Boulevard, Silicon Valley, CA 94110</p>
+              </div>
+            </div>
+
+            <div class="contact-item">
+              <div class="contact-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                  ></path>
+                </svg>
+              </div>
+              <div class="contact-details">
+                <h3>Phone Number</h3>
+                <p>[Phone Number Placeholder]</p>
+              </div>
+            </div>
+
+            <div class="contact-item">
+              <div class="contact-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                  ></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </div>
+              <div class="contact-details">
+                <h3>Email Address</h3>
+                <a href="mailto:david@ciberdevelopers.com"
+                  >david@ciberdevelopers.com</a
+                >
+              </div>
+            </div>
+
+            <div class="contact-item">
+              <div class="contact-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+              <div class="contact-details">
+                <h3>Working Hours</h3>
+                <p>Monday - Friday: 9AM - 6PM<br />Weekend: By Appointment</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-map">
+            <img
+              src="/api/placeholder/800/400"
+              alt="Map"
+              style="width: 100%; height: 100%; object-fit: cover"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-top">
+          <div class="footer-about">
+            <div class="footer-logo">
+              <img src="/api/placeholder/120/40" alt="Ciber Developers Logo" />
+            </div>
+            <p>
+              Ciber Developers is a leading web development company specializing
+              in creating innovative, high-performance digital solutions for
+              businesses of all sizes.
+            </p>
+            <div class="social-links">
+              <a href="#" class="social-link">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"
+                  ></path>
+                </svg>
+              </a>
+              <a href="#" class="social-link">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"
+                  ></path>
+                </svg>
+              </a>
+              <a href="#" class="social-link">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path
+                    d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"
+                  ></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+              </a>
+              <a href="#" class="social-link">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"
+                  ></path>
+                  <rect x="2" y="9" width="4" height="12"></rect>
+                  <circle cx="4" cy="4" r="2"></circle>
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <div class="footer-nav">
+            <h3 class="footer-title">Quick Links</h3>
+            <ul class="footer-links">
+              <li>
+                <a href="#home">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Home
+                </a>
+              </li>
+              <li>
+                <a href="#services">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Services
+                </a>
+              </li>
+              <li>
+                <a href="#portfolio">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                  viewBox="<svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Portfolio
+                </a>
+              </li>
+              <li>
+                <a href="#quote">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Get a Quote
+                </a>
+              </li>
+              <li>
+                <a href="#contact">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Contact
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="footer-services">
+            <h3 class="footer-title">Services</h3>
+            <ul class="footer-links">
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Web Development
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  UI/UX Design
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  E-commerce Solutions
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Progressive Web Apps
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  API Development
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="footer-contact">
+            <h3 class="footer-title">Contact</h3>
+            <ul class="footer-links">
+              <li>
+                <a href="mailto:david@ciberdevelopers.com">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                    ></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                  david@ciberdevelopers.com
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                    ></path>
+                  </svg>
+                  [Phone Number Placeholder]
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                    ></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  1234 Tech Boulevard, Silicon Valley, CA 94110
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p>
+            &copy; 2025 Ciber Developers. All rights reserved | Your idea, our
+            code.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+      // DOM Elements
+      const navbar = document.querySelector(".navbar");
+      const mobileToggle = document.querySelector(".mobile-toggle");
+      const navLinks = document.querySelector(".nav-links");
+      const body = document.body;
+      const budgetSlider = document.getElementById("budget");
+      const budgetValue = document.querySelector(".budget-value");
+
+      // Navbar Scroll Effect
+      window.addEventListener("scroll", () => {
+        if (window.scrollY > 50) {
+          navbar.classList.add("scrolled");
+        } else {
+          navbar.classList.remove("scrolled");
+        }
+      });
+
+      // Mobile Menu Toggle
+      mobileToggle.addEventListener("click", () => {
+        navLinks.classList.toggle("active");
+      });
+
+      // Close mobile menu when clicking on a link
+      document.querySelectorAll(".nav-link").forEach((link) => {
+        link.addEventListener("click", () => {
+          navLinks.classList.remove("active");
+        });
+      });
+
+      // Budget slider
+      if (budgetSlider) {
+        budgetSlider.addEventListener("input", () => {
+          const value = budgetSlider.value;
+          budgetValue.textContent = `$${parseInt(value).toLocaleString()}`;
+        });
+      }
+
+      // Smooth scroll for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+  anchor.addEventListener("click", function (e) {
+    e.preventDefault();
+    const target = document.querySelector(this.getAttribute("href"));
+    if (target) {
+      window.scrollTo({
+        top: target.offsetTop - 80,
+        behavior: "smooth",
+      });
+    }
+  });
+});
+
+// Improved 3D Card Effect
+const cards = document.querySelectorAll('.service-card, .portfolio-item');
+cards.forEach(card => {
+  card.addEventListener('mousemove', handleCardMovement);
+  card.addEventListener('mouseleave', resetCardPosition);
+});
+
+function handleCardMovement(e) {
+  const card = this;
+  const rect = card.getBoundingClientRect();
+  
+  // Calculate mouse position relative to card
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  // Calculate rotation based on mouse position
+  const centerX = rect.width / 2;
+  const centerY = rect.height / 2;
+  
+  // Calculate rotation (limited to max 10 degrees)
+  const rotateY = ((x - centerX) / centerX) * 5;
+  const rotateX = ((centerY - y) / centerY) * 5;
+  
+  // Apply transformation with hardware acceleration
+  card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+  
+  // Add subtle shadow effect
+  card.style.boxShadow = `
+    0 15px 35px rgba(0, 0, 0, 0.2),
+    ${rotateY / 3}px ${-rotateX / 3}px 10px rgba(0, 0, 0, 0.1)
+  `;
+  
+  // Add light reflection effect
+  const shine = card.querySelector('.card-shine') || createShineElement(card);
+  const shineSizePercent = 100;
+  
+  // Position shine based on mouse
+  const xPercent = (x / rect.width) * 100;
+  const yPercent = (y / rect.height) * 100;
+  
+  shine.style.background = `radial-gradient(
+    circle at ${xPercent}% ${yPercent}%, 
+    rgba(255, 255, 255, 0.2) 0%, 
+    rgba(255, 255, 255, 0) ${shineSizePercent}%
+  )`;
+}
+
+function createShineElement(card) {
+  const shine = document.createElement('div');
+  shine.classList.add('card-shine');
+  
+  shine.style.position = 'absolute';
+  shine.style.top = '0';
+  shine.style.left = '0';
+  shine.style.width = '100%';
+  shine.style.height = '100%';
+  shine.style.borderRadius = 'inherit';
+  shine.style.pointerEvents = 'none';
+  shine.style.zIndex = '1';
+  
+  card.style.position = 'relative';
+  card.style.overflow = 'hidden';
+  card.appendChild(shine);
+  
+  return shine;
+}
+
+function resetCardPosition() {
+  this.style.transform = '';
+  this.style.boxShadow = '';
+  
+  const shine = this.querySelector('.card-shine');
+  if (shine) {
+    shine.style.background = 'none';
+  }
+}
+
+// Service Modals
+const serviceCards = document.querySelectorAll('.service-card');
+const modalOverlays = document.querySelectorAll('.modal-overlay');
+const modalCloseBtns = document.querySelectorAll('.modal-close');
+const modalQuoteBtns = document.querySelectorAll('.modal-quote-btn');
+
+// Open modal when clicking on service card
+serviceCards.forEach(card => {
+  card.addEventListener('click', () => {
+    const serviceId = card.getAttribute('data-service');
+    const modal = document.getElementById(`${serviceId}-modal`);
+    
+    if (modal) {
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden'; // Prevent scrolling
+      
+      // Apply entrance animation
+      const modalContainer = modal.querySelector('.modal-container');
+      modalContainer.style.transform = 'scale(0.9)';
+      setTimeout(() => {
+        modalContainer.style.transform = 'scale(1)';
+      }, 50);
+    }
+  });
+});
+
+// Close modal when clicking on close button
+modalCloseBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const modal = btn.closest('.modal-overlay');
+    closeModal(modal);
+  });
+});
+
+// Close modal when clicking outside of modal content
+modalOverlays.forEach(modal => {
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeModal(modal);
+    }
+  });
+});
+
+// Close modal when clicking on quote button
+modalQuoteBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const modal = btn.closest('.modal-overlay');
+    closeModal(modal);
+  });
+});
+
+// Close modal with escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    modalOverlays.forEach(modal => {
+      if (modal.classList.contains('active')) {
+        closeModal(modal);
+      }
+    });
+  }
+});
+
+function closeModal(modal) {
+  const modalContainer = modal.querySelector('.modal-container');
+  
+  // Apply exit animation
+  modalContainer.style.transform = 'scale(0.9)';
+  
+  setTimeout(() => {
+    modal.classList.remove('active');
+    document.body.style.overflow = ''; // Re-enable scrolling
+  }, 200);
+}
+
+// Optimized Particle System
+function initializeParticles() {
+  const container = document.querySelector('.particles-container');
+  const particleCount = window.innerWidth < 768 ? 20 : 50; // Fewer particles on mobile
+  
+  // Create particles only if container exists
+  if (!container) return;
+  
+  // Clear any existing particles
+  container.innerHTML = '';
+  
+  // Create particles
+  for (let i = 0; i < particleCount; i++) {
+    createParticle(container);
+  }
+}
+
+function createParticle(container) {
+  const particle = document.createElement('div');
+  particle.classList.add('particle');
+  
+  // Random size (smaller on mobile)
+  const size = window.innerWidth < 768
+    ? Math.random() * 3 + 1
+    : Math.random() * 4 + 1;
+  
+  particle.style.width = `${size}px`;
+  particle.style.height = `${size}px`;
+  
+  // Random position
+  particle.style.top = `${Math.random() * 100}vh`;
+  particle.style.left = `${Math.random() * 100}vw`;
+  
+  // Random opacity
+  particle.style.opacity = Math.random() * 0.5 + 0.1;
+  
+  // Set data attributes for movement
+  particle.dataset.speedX = (Math.random() * 0.2 - 0.1).toFixed(3);
+  particle.dataset.speedY = (Math.random() * 0.2 - 0.1).toFixed(3);
+  
+  container.appendChild(particle);
+  
+  // Apply animation with transform for better performance
+  if (window.innerWidth > 768) {
+    animateParticle(particle);
+  }
+}
+
+function animateParticle(particle) {
+  let x = parseFloat(particle.style.left);
+  let y = parseFloat(particle.style.top);
+  const speedX = parseFloat(particle.dataset.speedX);
+  const speedY = parseFloat(particle.dataset.speedY);
+  
+  // Animation function
+  function moveParticle() {
+    x += speedX;
+    y += speedY;
+    
+    // Loop around screen
+    if (x > 100) x = 0;
+    if (x < 0) x = 100;
+    if (y > 100) y = 0;
+    if (y < 0) y = 100;
+    
+    // Use translate for better performance
+    particle.style.transform = `translate(${x}vw, ${y}vh)`;
+    
+    // Request next frame only if particle is still in the DOM
+    if (particle.isConnected) {
+      requestAnimationFrame(moveParticle);
+    }
+  }
+  
+  requestAnimationFrame(moveParticle);
+}
+
+// Initialize particles on load and resize
+window.addEventListener('load', initializeParticles);
+window.addEventListener('resize', debounce(initializeParticles, 200));
+
+// Debounce function to prevent frequent execution
+function debounce(func, wait) {
+  let timeout;
+  return function() {
+    const context = this;
+    const args = arguments;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+}
+
+// Intersection Observer for animations
+function initAnimations() {
+  const elements = document.querySelectorAll(
+    '.service-card, .portfolio-item, .quote-form, .contact-item'
+  );
+  
+  const options = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+        observer.unobserve(entry.target); // Stop observing after animating
+      }
+    });
+  }, options);
+  
+  elements.forEach((element) => {
+    element.style.opacity = '0';
+    element.style.transform = 'translateY(20px)';
+    element.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(element);
+  });
+}
+
+// Initialize animations when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  initAnimations();
+  
+  // Simulate page loading (this is for UX, not actual loading)
+  body.classList.add('loading');
+  setTimeout(() => {
+    body.classList.remove('loading');
+  }, 1000);
+  
+  // Initialize page transition effects
+  initPageTransitions();
+});
+
+// Page transition effects
+function initPageTransitions() {
+  const links = document.querySelectorAll('a:not([href^="#"])');
+  
+  links.forEach((link) => {
+    link.addEventListener('click', (e) => {
+      if (
+        !link.hasAttribute('target') &&
+        link.hostname === window.location.hostname
+      ) {
+        e.preventDefault();
+        body.classList.add('loading');
+        
+        setTimeout(() => {
+          window.location = link.href;
+        }, 500);
+      }
+    });
+  });
+}
+
+// Form validation
+const form = document.querySelector('.quote-form');
+if (form) {
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    // Simple validation
+    let valid = true;
+    const inputs = form.querySelectorAll('input[required], textarea[required]');
+    
+    inputs.forEach((input) => {
+      if (!input.value.trim()) {
+        input.style.borderColor = 'red';
+        valid = false;
+      } else {
+        input.style.borderColor = '';
+      }
+    });
+    
+    if (valid) {
+      // Success message
+      const submitBtn = form.querySelector('.submit-btn');
+      const originalText = submitBtn.innerHTML;
+      
+      submitBtn.innerHTML = 'Sending...';
+      submitBtn.disabled = true;
+      
+      // Simulate form submission
+      setTimeout(() => {
+        submitBtn.innerHTML = 'Request Sent!';
+        submitBtn.style.background = '#4CAF50';
+        
+        // Reset form
+        setTimeout(() => {
+          form.reset();
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+          submitBtn.style.background = '';
+        }, 3000);
+      }, 1500);
+    }
+  });
+}
+
+
+// Simplified Interactive Code Display
+function initCodeDisplay() {
+  const codeDisplay = document.querySelector('.code-display');
+  if (!codeDisplay) return;
+  
+  // Get the existing code
+  const codeContent = codeDisplay.querySelector('pre').innerHTML;
+  
+  // Add a subtle animation effect
+  let opacity = 0.5;
+  let increasing = true;
+  
+  function pulseCode() {
+    if (increasing) {
+      opacity += 0.005;
+      if (opacity >= 0.9) increasing = false;
+    } else {
+      opacity -= 0.005;
+      if (opacity <= 0.5) increasing = true;
+    }
+    
+    codeDisplay.style.opacity = opacity;
+    requestAnimationFrame(pulseCode);
+  }
+  
+  // Start the animation
+  requestAnimationFrame(pulseCode);
+}
+
+// Initialize code display effects
+document.addEventListener('DOMContentLoaded', initCodeDisplay);
+
+// Add parallax effect to background elements (optimized)
+function initParallax() {
+  const bgElements = document.querySelectorAll('.bg-glow, .bg-glow-2');
+  
+  // Use passive event listener for better scroll performance
+  window.addEventListener('scroll', () => {
+    const scrollY = window.scrollY;
+    
+    // Use requestAnimationFrame for smooth animation
+    requestAnimationFrame(() => {
+      bgElements.forEach(element => {
+        const speed = element.classList.contains('bg-glow') ? 0.3 : 0.2;
+        element.style.transform = `translateY(${scrollY * speed}px)`;
+      });
+    });
+  }, { passive: true });
+}
+
+// Initialize parallax effect
+document.addEventListener('DOMContentLoaded', initParallax);
+
+// Spanish translations for the website
+const translations = {
+  // Navbar
+  "Home": "Inicio",
+  "Services": "Servicios",
+  "Portfolio": "Portafolio",
+  "Get a Quote": "Solicitar Presupuesto",
+  "Contact": "Contacto",
+  
+  // Hero Section
+  "Your <span>Idea</span>, Our <span>Code</span>": "Tu <span>Idea</span>, Nuestro <span>Código</span>",
+  "We transform complex business challenges into elegant digital solutions. Delivering cutting-edge web applications with futuristic design and flawless functionality.": 
+    "Transformamos complejos desafíos empresariales en elegantes soluciones digitales. Entregamos aplicaciones web de vanguardia con diseño futurista y funcionalidad impecable.",
+  "Get a Free Quote": "Obtén un Presupuesto Gratis",
+  "View Our Work": "Ver Nuestro Trabajo",
+  
+  // Services Section
+  "Our Services": "Nuestros Servicios",
+  "We offer comprehensive web development solutions tailored to your specific business needs. From concept to deployment, we handle every aspect of your digital journey.":
+    "Ofrecemos soluciones completas de desarrollo web adaptadas a las necesidades específicas de tu negocio. Desde el concepto hasta la implementación, nos encargamos de cada aspecto de tu viaje digital.",
+  "Web Development": "Desarrollo Web",
+  "Custom web applications built with the latest technologies. We create responsive, high-performance websites that deliver exceptional user experiences.":
+    "Aplicaciones web personalizadas construidas con las últimas tecnologías. Creamos sitios web responsivos y de alto rendimiento que ofrecen experiencias de usuario excepcionales.",
+  "UI/UX Design": "Diseño UI/UX",
+  "Stunning, intuitive interfaces designed with user experience at the forefront. We craft designs that not only look amazing but also drive conversions.":
+    "Interfaces impresionantes e intuitivas diseñadas con la experiencia del usuario en primer plano. Creamos diseños que no solo lucen increíbles sino que también impulsan conversiones.",
+  "E-commerce Solutions": "Soluciones de Comercio Electrónico",
+  "Complete online store development with secure payment gateways, inventory management, and customer-friendly shopping experiences.":
+    "Desarrollo completo de tiendas en línea con pasarelas de pago seguras, gestión de inventario y experiencias de compra amigables para el cliente.",
+  "Progressive Web Apps": "Aplicaciones Web Progresivas",
+  "Develop fast, reliable, and engaging web applications that work offline and deliver app-like experiences to your users across all devices.":
+    "Desarrollamos aplicaciones web rápidas, confiables y atractivas que funcionan sin conexión y ofrecen experiencias similares a las de aplicaciones nativas en todos los dispositivos.",
+  "Custom CMS Solutions": "Soluciones CMS Personalizadas",
+  "Tailor-made content management systems that give you complete control over your website content with user-friendly interfaces.":
+    "Sistemas de gestión de contenido a medida que te dan control completo sobre el contenido de tu sitio web con interfaces fáciles de usar.",
+  "API Development & Integration": "Desarrollo e Integración de API",
+  "Building robust APIs and seamlessly integrating third-party services to enhance your web application's functionality and features.":
+    "Construimos APIs robustas e integramos perfectamente servicios de terceros para mejorar la funcionalidad y características de tu aplicación web.",
+  "Learn More": "Saber Más",
+  
+  // Portfolio Section
+  "Our Work": "Nuestro Trabajo",
+  "Explore our latest projects and see how we've helped businesses across industries achieve their digital goals with innovative web solutions.":
+    "Explora nuestros últimos proyectos y descubre cómo hemos ayudado a empresas de diversos sectores a alcanzar sus objetivos digitales con soluciones web innovadoras.",
+  
+  // Portfolio Items
+  "A premium e-commerce platform with advanced filtering and payment options.": 
+    "Una plataforma premium de comercio electrónico con opciones avanzadas de filtrado y pago.",
+  "Real estate platform with interactive maps and virtual tours.": 
+    "Plataforma inmobiliaria con mapas interactivos y recorridos virtuales.",
+  "Fitness tracking application with personalized workout plans and nutrition guides.": 
+    "Aplicación de seguimiento fitness con planes de entrenamiento personalizados y guías nutricionales.",
+  "Financial analytics dashboard with real-time data visualization.":
+    "Panel de análisis financiero con visualización de datos en tiempo real.",
+  "Online learning platform with course management and interactive content.":
+    "Plataforma de aprendizaje en línea con gestión de cursos y contenido interactivo.",
+  "Travel booking platform with personalized recommendations and itinerary planning.":
+    "Plataforma de reservas de viajes con recomendaciones personalizadas y planificación de itinerarios.",
+  
+  // Quote Section
+  "Get a Quote": "Solicitar Presupuesto",
+  "Tell us about your project and get a free consultation and price estimate. We'll help turn your idea into reality.":
+    "Cuéntanos sobre tu proyecto y obtén una consulta gratuita y un presupuesto. Te ayudaremos a convertir tu idea en realidad.",
+  "Your Name": "Tu Nombre",
+  "Email Address": "Correo Electrónico",
+  "Phone Number": "Número de Teléfono",
+  "Company Name": "Nombre de la Empresa",
+  "Project Type": "Tipo de Proyecto",
+  "Select project type": "Selecciona el tipo de proyecto",
+  "Website Development": "Desarrollo de Sitio Web",
+  "E-commerce Development": "Desarrollo de Comercio Electrónico",
+  "Web Application": "Aplicación Web",
+  "Mobile App Development": "Desarrollo de Aplicación Móvil",
+  "Website Redesign": "Rediseño de Sitio Web",
+  "Other": "Otro",
+  "Project Budget": "Presupuesto del Proyecto",
+  "Project Description": "Descripción del Proyecto",
+  "Tell us about your project, goals, and specific requirements...": 
+    "Cuéntanos sobre tu proyecto, objetivos y requisitos específicos...",
+  "Request Quote": "Solicitar Presupuesto",
+  
+  // Contact Section
+  "Contact Us": "Contáctanos",
+  "Have questions or want to discuss your project? Get in touch with our team and we'll get back to you as soon as possible.":
+    "¿Tienes preguntas o quieres discutir tu proyecto? Ponte en contacto con nuestro equipo y te responderemos lo antes posible.",
+  "Our Location": "Nuestra Ubicación",
+  "Phone Number": "Número de Teléfono",
+  "Email Address": "Correo Electrónico",
+  "Working Hours": "Horario Laboral",
+  "Monday - Friday: 9AM - 6PM": "Lunes - Viernes: 9AM - 6PM",
+  "Weekend: By Appointment": "Fin de semana: Con cita previa",
+  
+  // Footer
+  "Ciber Developers is a leading web development company specializing in creating innovative, high-performance digital solutions for businesses of all sizes.":
+    "Ciber Developers es una empresa líder en desarrollo web especializada en crear soluciones digitales innovadoras y de alto rendimiento para empresas de todos los tamaños.",
+  "Quick Links": "Enlaces Rápidos",
+  "Services": "Servicios",
+  "&copy; 2025 Ciber Developers. All rights reserved | Your idea, our code.":
+    "&copy; 2025 Ciber Developers. Todos los derechos reservados | Tu idea, nuestro código."
+};
+
+// Language switcher functionality
+document.addEventListener('DOMContentLoaded', () => {
+  // Add language switcher to the navbar if it doesn't exist
+  if (!document.querySelector('.language-switcher')) {
+    const navLinks = document.querySelector('.nav-links');
+    
+    const langSwitcher = document.createElement('div');
+    langSwitcher.className = 'language-switcher';
+    langSwitcher.innerHTML = `
+      <button id="en-btn" class="language-btn active">EN</button>
+      <div class="language-separator"></div>
+      <button id="es-btn" class="language-btn">ES</button>
+    `;
+    
+    navLinks.appendChild(langSwitcher);
+    
+    // Add language switcher styles if not already present
+    if (!document.querySelector('style[data-id="language-switcher-styles"]')) {
+      const styleElement = document.createElement('style');
+      styleElement.setAttribute('data-id', 'language-switcher-styles');
+      styleElement.textContent = `
+        .language-switcher {
+          display: flex;
+          align-items: center;
+          margin-left: 1.5rem;
+        }
+        
+        .language-btn {
+          background: none;
+          border: none;
+          color: var(--text-color);
+          font-family: var(--font-main);
+          font-size: 0.9rem;
+          font-weight: 500;
+          cursor: pointer;
+          padding: 0.25rem 0.5rem;
+          opacity: 0.7;
+          transition: all 0.3s ease;
+        }
+        
+        .language-btn.active {
+          opacity: 1;
+          font-weight: 600;
+          text-decoration: underline;
+        }
+        
+        .language-separator {
+          height: 15px;
+          width: 1px;
+          background-color: var(--text-color);
+          opacity: 0.5;
+          margin: 0 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+          .language-switcher {
+            margin-left: 0;
+            margin-top: 1rem;
+            justify-content: center;
+          }
+        }
+      `;
+      
+      document.head.appendChild(styleElement);
+    }
+  }
+  
+  const enBtn = document.getElementById('en-btn');
+  const esBtn = document.getElementById('es-btn');
+  
+  // Store the current language
+  let currentLang = localStorage.getItem('preferred-lang') || 'en';
+  
+  // Function to add data attributes to elements
+  function addLanguageAttributes() {
+    // Process main elements with text content that needs translation
+    const elementsToTranslate = document.querySelectorAll('h1, h2, h3, h4, h5, p, a, button, label, option, .btn');
+    
+    elementsToTranslate.forEach(elem => {
+      const textContent = elem.innerHTML.trim();
+      
+      // Skip elements with no text or those already with data attributes
+      if (!textContent || elem.hasAttribute('data-en') || elem.hasAttribute('data-es')) {
+        return;
+      }
+      
+      // Skip elements with only icons or images
+      if (textContent.indexOf('<svg') === 0 || textContent.indexOf('<img') === 0) {
+        return;
+      }
+      
+      // Add English attribute (original content)
+      elem.setAttribute('data-en', textContent);
+      
+      // Add Spanish translation if available
+      if (translations[textContent]) {
+        elem.setAttribute('data-es', translations[textContent]);
+      } else {
+        // Check for partial matches that include HTML
+        for (const [enText, esText] of Object.entries(translations)) {
+          if (textContent.includes(enText)) {
+            const esContent = textContent.replace(enText, esText);
+            elem.setAttribute('data-es', esContent);
+            break;
+          }
+        }
+      }
+    });
+  }
+  
+  // Function to switch language
+  function switchLanguage(lang) {
+    currentLang = lang;
+    
+    // Update language buttons
+    if (lang === 'en') {
+      enBtn.classList.add('active');
+      esBtn.classList.remove('active');
+      document.documentElement.setAttribute('lang', 'en');
+    } else {
+      esBtn.classList.add('active');
+      enBtn.classList.remove('active');
+      document.documentElement.setAttribute('lang', 'es');
+    }
+    
+    // Update all elements with data-en and data-es attributes
+    document.querySelectorAll('[data-' + lang + ']').forEach(elem => {
+      // Check if the element has HTML content that needs to be preserved
+      elem.innerHTML = elem.getAttribute('data-' + lang);
+    });
+    
+    // Update form placeholders
+    document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(input => {
+      const placeholder = input.getAttribute('placeholder');
+      const translatedPlaceholder = translations[placeholder];
+      
+      if (lang === 'es' && translatedPlaceholder) {
+        input.setAttribute('placeholder', translatedPlaceholder);
+      } else if (lang === 'en' && input.hasAttribute('data-original-placeholder')) {
+        input.setAttribute('placeholder', input.getAttribute('data-original-placeholder'));
+      }
+    });
+    
+    // Save preference to localStorage
+    localStorage.setItem('preferred-lang', lang);
+  }
+  
+  // Add language attributes on page load
+  addLanguageAttributes();
+  
+  // Apply the saved language
+  if (currentLang) {
+    switchLanguage(currentLang);
+  }
+  
+  // Event listeners for language buttons
+  enBtn.addEventListener('click', () => switchLanguage('en'));
+  esBtn.addEventListener('click', () => switchLanguage('es'));
+});
+</script>
+</body>
+</html>

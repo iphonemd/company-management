@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CleanPro - Time Clock</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+  <style>
+    /* Mobile-optimized time clock styles */
+    .timeclock-layout {
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%);
+    }
+    
+    .timeclock-header {
+      padding: var(--space-4) var(--space-5);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+    
+    .timeclock-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-xl);
+      font-weight: 700;
+    }
+    
+    .timeclock-header-actions {
+      display: flex;
+      gap: var(--space-2);
+    }
+    
+    .timeclock-header-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      font-size: var(--text-lg);
+      transition: background var(--transition-fast);
+    }
+    
+    .timeclock-header-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    
+    .timeclock-content {
+      padding: 0 var(--space-4) var(--space-6);
+    }
+    
+    /* Current Time Display */
+    .current-time-card {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-2xl);
+      padding: var(--space-6);
+      text-align: center;
+      color: white;
+      margin-bottom: var(--space-4);
+    }
+    
+    .current-date {
+      font-size: var(--text-lg);
+      opacity: 0.9;
+      margin-bottom: var(--space-2);
+    }
+    
+    .current-time {
+      font-size: 4rem;
+      font-weight: 700;
+      line-height: 1;
+      font-family: 'Outfit', sans-serif;
+    }
+    
+    .current-time-seconds {
+      font-size: var(--text-2xl);
+      opacity: 0.7;
+      vertical-align: super;
+    }
+    
+    /* Status Card */
+    .status-card {
+      background: white;
+      border-radius: var(--radius-2xl);
+      padding: var(--space-5);
+      margin-bottom: var(--space-4);
+      box-shadow: var(--shadow-xl);
+    }
+    
+    .status-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-4);
+    }
+    
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    .status-dot.clocked-out {
+      background: var(--gray-400);
+      animation: none;
+    }
+    
+    .status-dot.clocked-in {
+      background: var(--success-500);
+    }
+    
+    .status-dot.on-job {
+      background: var(--warning-500);
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.1); }
+    }
+    
+    .status-text {
+      font-weight: 600;
+      font-size: var(--text-lg);
+    }
+    
+    .status-text.clocked-out { color: var(--gray-500); }
+    .status-text.clocked-in { color: var(--success-600); }
+    .status-text.on-job { color: var(--warning-600); }
+    
+    .hours-today {
+      text-align: right;
+    }
+    
+    .hours-today-label {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+    }
+    
+    .hours-today-value {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      color: var(--primary-600);
+    }
+    
+    /* Clock Button */
+    .clock-btn-container {
+      display: flex;
+      justify-content: center;
+      margin: var(--space-6) 0;
+    }
+    
+    .clock-btn {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      border: none;
+      font-size: var(--text-xl);
+      font-weight: 700;
+      cursor: pointer;
+      transition: all var(--transition-base);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      box-shadow: var(--shadow-xl);
+    }
+    
+    .clock-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .clock-btn.clock-in {
+      background: linear-gradient(135deg, var(--success-500) 0%, var(--success-600) 100%);
+      color: white;
+    }
+    
+    .clock-btn.clock-out {
+      background: linear-gradient(135deg, var(--danger-500) 0%, var(--danger-600) 100%);
+      color: white;
+    }
+    
+    .clock-btn-icon {
+      font-size: 3rem;
+    }
+    
+    /* Current Job Card */
+    .current-job-card {
+      background: linear-gradient(135deg, var(--warning-50) 0%, var(--warning-100) 100%);
+      border: 2px solid var(--warning-300);
+      border-radius: var(--radius-xl);
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+    
+    .current-job-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--space-3);
+    }
+    
+    .current-job-label {
+      font-size: var(--text-sm);
+      color: var(--warning-700);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .current-job-timer {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      color: var(--warning-700);
+      font-family: 'Outfit', monospace;
+    }
+    
+    .current-job-client {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: var(--space-1);
+    }
+    
+    .current-job-address {
+      color: var(--gray-600);
+      font-size: var(--text-sm);
+      margin-bottom: var(--space-3);
+    }
+    
+    .current-job-actions {
+      display: flex;
+      gap: var(--space-2);
+    }
+    
+    .job-action-btn {
+      flex: 1;
+      padding: var(--space-3);
+      border-radius: var(--radius-lg);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      border: none;
+      font-size: var(--text-sm);
+    }
+    
+    .job-action-btn.complete {
+      background: var(--success-500);
+      color: white;
+    }
+    
+    .job-action-btn.pause {
+      background: white;
+      color: var(--gray-700);
+      border: 1px solid var(--gray-300);
+    }
+    
+    /* Today's Schedule */
+    .schedule-card {
+      background: white;
+      border-radius: var(--radius-2xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: var(--space-4);
+    }
+    
+    .schedule-header {
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--gray-100);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .schedule-title {
+      font-weight: 700;
+      font-size: var(--text-lg);
+    }
+    
+    .schedule-count {
+      background: var(--primary-100);
+      color: var(--primary-700);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      font-size: var(--text-sm);
+      font-weight: 600;
+    }
+    
+    .schedule-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .schedule-item {
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--gray-100);
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    
+    .schedule-item:hover {
+      background: var(--gray-50);
+    }
+    
+    .schedule-item:last-child {
+      border-bottom: none;
+    }
+    
+    .schedule-item.completed {
+      opacity: 0.6;
+    }
+    
+    .schedule-item.active {
+      background: var(--warning-50);
+      border-left: 4px solid var(--warning-500);
+    }
+    
+    .schedule-time {
+      text-align: center;
+      min-width: 60px;
+    }
+    
+    .schedule-time-slot {
+      font-size: var(--text-2xl);
+    }
+    
+    .schedule-time-label {
+      font-size: var(--text-xs);
+      color: var(--gray-500);
+      text-transform: uppercase;
+    }
+    
+    .schedule-info {
+      flex: 1;
+    }
+    
+    .schedule-client {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    
+    .schedule-address {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+    }
+    
+    .schedule-status {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: var(--space-1);
+    }
+    
+    .schedule-price {
+      font-weight: 700;
+      color: var(--primary-600);
+    }
+    
+    /* Team Member Selection */
+    .team-card {
+      background: white;
+      border-radius: var(--radius-2xl);
+      padding: var(--space-5);
+      margin-bottom: var(--space-4);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .team-title {
+      font-weight: 700;
+      font-size: var(--text-lg);
+      margin-bottom: var(--space-4);
+    }
+    
+    .team-member {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-2);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    
+    .team-member:hover {
+      background: var(--gray-50);
+    }
+    
+    .team-member.selected {
+      background: var(--primary-50);
+      border: 2px solid var(--primary-500);
+    }
+    
+    .team-member-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      font-size: var(--text-sm);
+    }
+    
+    .team-member-info {
+      flex: 1;
+    }
+    
+    .team-member-name {
+      font-weight: 600;
+    }
+    
+    .team-member-role {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+    }
+    
+    .team-member-status {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--gray-300);
+    }
+    
+    .team-member-status.active {
+      background: var(--success-500);
+    }
+    
+    /* Empty State */
+    .empty-schedule {
+      text-align: center;
+      padding: var(--space-8);
+      color: var(--gray-500);
+    }
+    
+    .empty-schedule-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-3);
+    }
+    
+    /* Start Job Modal Specific */
+    .job-details-preview {
+      background: var(--gray-50);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+    
+    .job-preview-client {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      margin-bottom: var(--space-1);
+    }
+    
+    .job-preview-address {
+      color: var(--gray-600);
+      margin-bottom: var(--space-3);
+    }
+    
+    .job-preview-details {
+      display: flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+    
+    .job-preview-detail {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-sm);
+    }
+    
+    /* Time Entry History */
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .history-item:last-child {
+      border-bottom: none;
+    }
+    
+    .history-info {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    
+    .history-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-lg);
+    }
+    
+    .history-icon.clock-in {
+      background: var(--success-100);
+    }
+    
+    .history-icon.clock-out {
+      background: var(--danger-100);
+    }
+    
+    .history-icon.job {
+      background: var(--primary-100);
+    }
+    
+    .history-text {
+      font-weight: 500;
+    }
+    
+    .history-time {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+    }
+    
+    /* Navigation tabs at bottom */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      padding: var(--space-2) var(--space-4);
+      padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+      z-index: 100;
+    }
+    
+    .bottom-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: var(--space-2);
+      color: var(--gray-500);
+      text-decoration: none;
+      font-size: var(--text-xs);
+      border-radius: var(--radius-lg);
+      transition: all var(--transition-fast);
+    }
+    
+    .bottom-nav-item.active {
+      color: var(--primary-600);
+    }
+    
+    .bottom-nav-item:hover {
+      background: var(--gray-100);
+    }
+    
+    .bottom-nav-icon {
+      font-size: var(--text-xl);
+    }
+    
+    /* Add padding to content for bottom nav */
+    .timeclock-content {
+      padding-bottom: 100px;
+    }
+    
+    /* Desktop sidebar toggle */
+    @media (min-width: 768px) {
+      .timeclock-layout {
+        display: flex;
+      }
+      
+      .timeclock-main {
+        flex: 1;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      
+      .bottom-nav {
+        display: none;
+      }
+      
+      .timeclock-content {
+        padding-bottom: var(--space-6);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="timeclock-layout">
+    <!-- Main Time Clock Interface -->
+    <div class="timeclock-main">
+      <!-- Header -->
+      <header class="timeclock-header">
+        <div class="timeclock-logo">
+          <span>🧹</span>
+          <span>CleanPro</span>
+        </div>
+        <div class="timeclock-header-actions">
+          <button class="timeclock-header-btn" id="langToggle" title="Language">🌐</button>
+          <button class="timeclock-header-btn" id="historyBtn" title="History">📋</button>
+          <button class="timeclock-header-btn" id="logoutBtn" title="Logout">🚪</button>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <div class="timeclock-content">
+        <!-- Current Time -->
+        <div class="current-time-card">
+          <div class="current-date" id="currentDate">Thursday, December 5, 2024</div>
+          <div class="current-time">
+            <span id="currentTime">09:45</span>
+            <span class="current-time-seconds" id="currentSeconds">:32</span>
+          </div>
+        </div>
+
+        <!-- Status Card -->
+        <div class="status-card">
+          <div class="status-header">
+            <div class="status-indicator">
+              <div class="status-dot clocked-out" id="statusDot"></div>
+              <span class="status-text clocked-out" id="statusText">Clocked Out</span>
+            </div>
+            <div class="hours-today">
+              <div class="hours-today-label" data-i18n="hoursToday">Hours Today</div>
+              <div class="hours-today-value" id="hoursToday">0:00</div>
+            </div>
+          </div>
+
+          <!-- Clock In/Out Button -->
+          <div class="clock-btn-container">
+            <button class="clock-btn clock-in" id="clockBtn">
+              <span class="clock-btn-icon">▶</span>
+              <span data-i18n="clockIn">Clock In</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Current Job (shown when working on a job) -->
+        <div class="current-job-card hidden" id="currentJobCard">
+          <div class="current-job-header">
+            <div class="current-job-label">🏠 Currently Working</div>
+            <div class="current-job-timer" id="jobTimer">0:00:00</div>
+          </div>
+          <div class="current-job-client" id="currentJobClient">Johnson Family</div>
+          <div class="current-job-address" id="currentJobAddress">123 Oak Street, Springfield</div>
+          <div class="current-job-actions">
+            <button class="job-action-btn pause" id="pauseJobBtn">⏸️ Pause</button>
+            <button class="job-action-btn complete" id="completeJobBtn">✓ Complete</button>
+          </div>
+        </div>
+
+        <!-- Today's Schedule -->
+        <div class="schedule-card">
+          <div class="schedule-header">
+            <div class="schedule-title" data-i18n="todaySchedule">Today's Schedule</div>
+            <div class="schedule-count" id="scheduleCount">0 jobs</div>
+          </div>
+          <div class="schedule-list" id="scheduleList">
+            <!-- Populated by JS -->
+            <div class="empty-schedule" id="emptySchedule">
+              <div class="empty-schedule-icon">📅</div>
+              <div>No jobs scheduled for today</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Members (if team leader) -->
+        <div class="team-card hidden" id="teamCard">
+          <div class="team-title">👥 Team Members</div>
+          <div id="teamMembersList">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="bottom-nav">
+      <a href="timeclock.html" class="bottom-nav-item active">
+        <span class="bottom-nav-icon">⏱️</span>
+        <span>Time Clock</span>
+      </a>
+      <a href="scheduling.html" class="bottom-nav-item">
+        <span class="bottom-nav-icon">📅</span>
+        <span>Schedule</span>
+      </a>
+      <a href="dashboard.html" class="bottom-nav-item">
+        <span class="bottom-nav-icon">📊</span>
+        <span>Dashboard</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Modal Backdrop -->
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+
+  <!-- Start Job Modal -->
+  <div class="modal" id="startJobModal">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="startJob">Start Job</h3>
+      <button class="modal-close" id="closeStartJobModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="job-details-preview" id="jobPreview">
+        <div class="job-preview-client" id="previewClient">Client Name</div>
+        <div class="job-preview-address" id="previewAddress">Address</div>
+        <div class="job-preview-details">
+          <div class="job-preview-detail">
+            <span>🏠</span>
+            <span id="previewService">Full House</span>
+          </div>
+          <div class="job-preview-detail">
+            <span>⏱️</span>
+            <span id="previewDuration">2 hours</span>
+          </div>
+          <div class="job-preview-detail">
+            <span>💰</span>
+            <span id="previewPrice">$150</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Confirm Team Members Working</label>
+        <div id="jobTeamMembers">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="notes">Notes</label>
+        <textarea class="form-input" id="startJobNotes" rows="2" placeholder="Any notes before starting..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelStartJobBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-success" id="confirmStartJobBtn">▶ Start Job</button>
+    </div>
+  </div>
+
+  <!-- Complete Job Modal -->
+  <div class="modal" id="completeJobModal">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="completeJob">Complete Job</h3>
+      <button class="modal-close" id="closeCompleteJobModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="card mb-4" style="background: var(--success-50); border-color: var(--success-200);">
+        <div class="card-body text-center">
+          <div class="text-4xl mb-2">✓</div>
+          <div class="font-semibold" id="completeJobClient">Johnson Family</div>
+          <div class="text-gray-500" id="completeJobAddress">123 Oak Street</div>
+          <div class="mt-3">
+            <span class="text-3xl font-bold text-success" id="completeJobTime">1:45:30</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="serviceCompleted">Service Completed</label>
+        <select class="form-select" id="completeServiceType">
+          <option value="full">Full House</option>
+          <option value="half">Half House</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Add-ons Completed</label>
+        <div class="flex gap-4">
+          <label class="form-check">
+            <input type="checkbox" class="form-check-input" id="completedBasement" value="basement">
+            <span class="form-check-label">Basement</span>
+          </label>
+          <label class="form-check">
+            <input type="checkbox" class="form-check-input" id="completedGarage" value="garage">
+            <span class="form-check-label">Garage</span>
+          </label>
+          <label class="form-check">
+            <input type="checkbox" class="form-check-input" id="completedAttic" value="attic">
+            <span class="form-check-label">Attic</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="paymentCollected">Payment Collected</label>
+        <select class="form-select" id="paymentMethod">
+          <option value="">No payment collected</option>
+          <option value="cash">Cash</option>
+          <option value="check">Check</option>
+          <option value="card">Card</option>
+          <option value="venmo">Venmo</option>
+          <option value="zelle">Zelle</option>
+        </select>
+      </div>
+
+      <div class="form-group hidden" id="paymentAmountGroup">
+        <label class="form-label" data-i18n="amount">Amount</label>
+        <div class="input-group">
+          <span class="input-group-prepend">$</span>
+          <input type="number" class="form-input" id="paymentAmount" step="0.01" min="0">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="completionNotes">Completion Notes</label>
+        <textarea class="form-input" id="completeJobNotes" rows="2" placeholder="Any issues or notes..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelCompleteJobBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-success" id="confirmCompleteJobBtn">✓ Mark Complete</button>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div class="modal modal-lg" id="historyModal">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="todayHistory">Today's Activity</h3>
+      <button class="modal-close" id="closeHistoryModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="historyList">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="closeHistoryBtn" data-i18n="close">Close</button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script type="module">
+    import { 
+      auth, db, onAuthStateChanged, signOut,
+      collection, doc, getDoc, getDocs, addDoc, updateDoc, 
+      query, where, orderBy, Timestamp
+    } from './js/firebase-config.js';
+    import { i18n } from './js/i18n.js';
+    import { 
+      showToast, openModal, closeModal, closeAllModals,
+      formatCurrency, getInitials
+    } from './js/utils.js';
+    import { logScheduleAction, AuditActions } from './js/audit.js';
+
+    // ============================================
+    // STATE
+    // ============================================
+    let currentUser = null;
+    let currentAdmin = null;
+    let currentEmployee = null;
+    let currentTeam = null;
+    let teamMembers = [];
+    let todaySchedules = [];
+    let clients = {};
+    
+    // Time tracking state
+    let isClockedIn = false;
+    let clockInTime = null;
+    let currentJob = null;
+    let jobStartTime = null;
+    let timeEntries = [];
+    
+    // Timers
+    let clockInterval = null;
+    let jobTimerInterval = null;
+
+    // ============================================
+    // AUTHENTICATION CHECK
+    // ============================================
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        try {
+          const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+          if (adminDoc.exists()) {
+            currentAdmin = { id: adminDoc.id, ...adminDoc.data() };
+            await initializePage();
+          } else {
+            window.location.href = 'index.html';
+          }
+        } catch (error) {
+          console.error('Error fetching admin:', error);
+          window.location.href = 'index.html';
+        }
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // ============================================
+    // INITIALIZE PAGE
+    // ============================================
+    async function initializePage() {
+      i18n.updatePageTranslations();
+      
+      // Start clock
+      updateClock();
+      clockInterval = setInterval(updateClock, 1000);
+      
+      // Load data
+      await loadClients();
+      await loadTodaySchedules();
+      await loadTimeEntries();
+      await loadTeamInfo();
+      
+      // Restore state from localStorage
+      restoreState();
+      
+      // Setup event listeners
+      setupEventListeners();
+      
+      // Update UI
+      updateStatusUI();
+      renderSchedule();
+    }
+
+    // ============================================
+    // LOAD DATA
+    // ============================================
+    async function loadClients() {
+      try {
+        const snapshot = await getDocs(collection(db, 'clients'));
+        snapshot.forEach(doc => {
+          clients[doc.id] = { id: doc.id, ...doc.data() };
+        });
+      } catch (error) {
+        console.error('Error loading clients:', error);
+      }
+    }
+
+    async function loadTodaySchedules() {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const q = query(
+          collection(db, 'schedules'),
+          where('date', '==', today),
+          orderBy('timeSlot')
+        );
+        const snapshot = await getDocs(q);
+        
+        todaySchedules = [];
+        snapshot.forEach(doc => {
+          todaySchedules.push({ id: doc.id, ...doc.data() });
+        });
+        
+        document.getElementById('scheduleCount').textContent = `${todaySchedules.length} jobs`;
+      } catch (error) {
+        console.error('Error loading schedules:', error);
+      }
+    }
+
+    async function loadTimeEntries() {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const q = query(
+          collection(db, 'timeEntries'),
+          where('date', '==', today)
+        );
+        const snapshot = await getDocs(q);
+        
+        timeEntries = [];
+        snapshot.forEach(doc => {
+          timeEntries.push({ id: doc.id, ...doc.data() });
+        });
+      } catch (error) {
+        console.error('Error loading time entries:', error);
+      }
+    }
+
+    async function loadTeamInfo() {
+      try {
+        // For now, load all teams and employees
+        // In a real app, you'd filter by the current user's team
+        const teamsSnapshot = await getDocs(collection(db, 'teams'));
+        const teams = [];
+        teamsSnapshot.forEach(doc => {
+          teams.push({ id: doc.id, ...doc.data() });
+        });
+        
+        if (teams.length > 0) {
+          currentTeam = teams[0]; // For demo, use first team
+          
+          // Load team members
+          const employeesSnapshot = await getDocs(
+            query(collection(db, 'employees'), where('teamId', '==', currentTeam.id))
+          );
+          
+          teamMembers = [];
+          employeesSnapshot.forEach(doc => {
+            teamMembers.push({ id: doc.id, ...doc.data() });
+          });
+          
+          if (teamMembers.length > 0) {
+            document.getElementById('teamCard').classList.remove('hidden');
+            renderTeamMembers();
+          }
+        }
+      } catch (error) {
+        console.error('Error loading team info:', error);
+      }
+    }
+
+    // ============================================
+    // CLOCK FUNCTIONS
+    // ============================================
+    function updateClock() {
+      const now = new Date();
+      
+      // Update date
+      document.getElementById('currentDate').textContent = i18n.formatDate(now, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      // Update time
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const seconds = now.getSeconds().toString().padStart(2, '0');
+      
+      document.getElementById('currentTime').textContent = `${hours}:${minutes}`;
+      document.getElementById('currentSeconds').textContent = `:${seconds}`;
+      
+      // Update hours worked today
+      if (isClockedIn && clockInTime) {
+        updateHoursWorked();
+      }
+    }
+
+    function updateHoursWorked() {
+      const now = new Date();
+      let totalMs = 0;
+      
+      // Add completed time entries
+      timeEntries.forEach(entry => {
+        if (entry.clockOut) {
+          const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
+          const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
+          totalMs += clockOut - clockIn;
+        }
+      });
+      
+      // Add current session if clocked in
+      if (isClockedIn && clockInTime) {
+        totalMs += now - clockInTime;
+      }
+      
+      const hours = Math.floor(totalMs / (1000 * 60 * 60));
+      const minutes = Math.floor((totalMs % (1000 * 60 * 60)) / (1000 * 60));
+      
+      document.getElementById('hoursToday').textContent = `${hours}:${minutes.toString().padStart(2, '0')}`;
+    }
+
+    function updateJobTimer() {
+      if (!jobStartTime) return;
+      
+      const now = new Date();
+      const elapsed = now - jobStartTime;
+      
+      const hours = Math.floor(elapsed / (1000 * 60 * 60));
+      const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+      
+      document.getElementById('jobTimer').textContent = 
+        `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // ============================================
+    // CLOCK IN/OUT
+    // ============================================
+    async function clockIn() {
+      clockInTime = new Date();
+      isClockedIn = true;
+      
+      // Save to database
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const entryData = {
+          date: today,
+          employeeId: currentAdmin.id,
+          clockIn: Timestamp.fromDate(clockInTime),
+          clockOut: null,
+          hoursWorked: null,
+          clientId: null,
+          scheduleId: null,
+          createdAt: Timestamp.now()
+        };
+        
+        const docRef = await addDoc(collection(db, 'timeEntries'), entryData);
+        timeEntries.push({ id: docRef.id, ...entryData, clockIn: clockInTime });
+        
+        showToast('success', i18n.t('success'), 'Clocked in successfully');
+      } catch (error) {
+        console.error('Error clocking in:', error);
+        showToast('error', i18n.t('error'), 'Failed to clock in');
+      }
+      
+      saveState();
+      updateStatusUI();
+    }
+
+    async function clockOut() {
+      if (currentJob) {
+        showToast('warning', 'Warning', 'Please complete or pause current job before clocking out');
+        return;
+      }
+      
+      const clockOutTime = new Date();
+      
+      // Find current time entry and update it
+      const currentEntry = timeEntries.find(e => !e.clockOut);
+      
+      if (currentEntry) {
+        try {
+          const hoursWorked = (clockOutTime - (currentEntry.clockIn?.toDate ? currentEntry.clockIn.toDate() : clockInTime)) / (1000 * 60 * 60);
+          
+          await updateDoc(doc(db, 'timeEntries', currentEntry.id), {
+            clockOut: Timestamp.fromDate(clockOutTime),
+            hoursWorked: hoursWorked
+          });
+          
+          currentEntry.clockOut = clockOutTime;
+          currentEntry.hoursWorked = hoursWorked;
+          
+          showToast('success', i18n.t('success'), 'Clocked out successfully');
+        } catch (error) {
+          console.error('Error clocking out:', error);
+          showToast('error', i18n.t('error'), 'Failed to clock out');
+        }
+      }
+      
+      isClockedIn = false;
+      clockInTime = null;
+      
+      saveState();
+      updateStatusUI();
+    }
+
+    // ============================================
+    // JOB FUNCTIONS
+    // ============================================
+    let selectedScheduleId = null;
+
+    function showStartJobModal(scheduleId) {
+      if (!isClockedIn) {
+        showToast('warning', 'Warning', 'Please clock in first before starting a job');
+        return;
+      }
+      
+      selectedScheduleId = scheduleId;
+      const schedule = todaySchedules.find(s => s.id === scheduleId);
+      if (!schedule) return;
+      
+      const client = clients[schedule.clientId];
+      if (!client) return;
+      
+      document.getElementById('previewClient').textContent = `${client.firstName} ${client.lastName}`;
+      document.getElementById('previewAddress').textContent = 
+        `${client.address?.street || ''}, ${client.address?.city || ''}`;
+      document.getElementById('previewService').textContent = 
+        schedule.serviceDetails?.type === 'full' ? 'Full House' : 'Half House';
+      document.getElementById('previewDuration').textContent = 
+        `${schedule.estimatedDuration || 2} hours`;
+      document.getElementById('previewPrice').textContent = 
+        formatCurrency(schedule.serviceDetails?.totalPrice || 0);
+      
+      // Populate team members
+      const container = document.getElementById('jobTeamMembers');
+      container.innerHTML = teamMembers.map(m => `
+        <label class="form-check" style="margin-bottom: 8px;">
+          <input type="checkbox" class="form-check-input" value="${m.id}" checked>
+          <span class="form-check-label">${m.firstName} ${m.lastName}</span>
+        </label>
+      `).join('') || '<p class="text-gray-500">No team members assigned</p>';
+      
+      openModal('startJobModal');
+    }
+
+    async function startJob() {
+      const schedule = todaySchedules.find(s => s.id === selectedScheduleId);
+      if (!schedule) return;
+      
+      const client = clients[schedule.clientId];
+      
+      currentJob = {
+        scheduleId: selectedScheduleId,
+        schedule,
+        client
+      };
+      
+      jobStartTime = new Date();
+      
+      // Update schedule status
+      try {
+        await updateDoc(doc(db, 'schedules', selectedScheduleId), {
+          status: 'in_progress',
+          actualStartTime: Timestamp.fromDate(jobStartTime)
+        });
+        
+        schedule.status = 'in_progress';
+        
+        // Start job timer
+        jobTimerInterval = setInterval(updateJobTimer, 1000);
+        
+        closeModal('startJobModal');
+        showToast('success', 'Job Started', `Working on ${client.firstName} ${client.lastName}`);
+      } catch (error) {
+        console.error('Error starting job:', error);
+        showToast('error', i18n.t('error'), 'Failed to start job');
+      }
+      
+      saveState();
+      updateStatusUI();
+      renderSchedule();
+    }
+
+    function showCompleteJobModal() {
+      if (!currentJob) return;
+      
+      const client = currentJob.client;
+      const schedule = currentJob.schedule;
+      
+      document.getElementById('completeJobClient').textContent = `${client.firstName} ${client.lastName}`;
+      document.getElementById('completeJobAddress').textContent = client.address?.street || '';
+      
+      // Calculate elapsed time
+      const elapsed = new Date() - jobStartTime;
+      const hours = Math.floor(elapsed / (1000 * 60 * 60));
+      const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+      document.getElementById('completeJobTime').textContent = 
+        `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      
+      // Set defaults from schedule
+      document.getElementById('completeServiceType').value = schedule.serviceDetails?.type || 'full';
+      document.getElementById('paymentAmount').value = schedule.serviceDetails?.totalPrice || '';
+      
+      // Reset checkboxes
+      document.getElementById('completedBasement').checked = schedule.serviceDetails?.addOns?.includes('basement');
+      document.getElementById('completedGarage').checked = schedule.serviceDetails?.addOns?.includes('garage');
+      document.getElementById('completedAttic').checked = schedule.serviceDetails?.addOns?.includes('attic');
+      
+      openModal('completeJobModal');
+    }
+
+    async function completeJob() {
+      if (!currentJob) return;
+      
+      const endTime = new Date();
+      const schedule = currentJob.schedule;
+      const client = currentJob.client;
+      
+      try {
+        // Update schedule
+        await updateDoc(doc(db, 'schedules', currentJob.scheduleId), {
+          status: 'completed',
+          actualEndTime: Timestamp.fromDate(endTime),
+          notes: document.getElementById('completeJobNotes').value
+        });
+        
+        schedule.status = 'completed';
+        
+        // Create payment record if payment collected
+        const paymentMethod = document.getElementById('paymentMethod').value;
+        if (paymentMethod) {
+          const paymentData = {
+            scheduleId: currentJob.scheduleId,
+            clientId: schedule.clientId,
+            date: Timestamp.now(),
+            amount: parseFloat(document.getElementById('paymentAmount').value) || schedule.serviceDetails?.totalPrice || 0,
+            paymentMethod,
+            status: 'paid',
+            createdAt: Timestamp.now()
+          };
+          
+          await addDoc(collection(db, 'payments'), paymentData);
+        }
+        
+        // Stop timer
+        if (jobTimerInterval) {
+          clearInterval(jobTimerInterval);
+          jobTimerInterval = null;
+        }
+        
+        // Log completion
+        await logScheduleAction(AuditActions.UPDATE, currentJob.scheduleId, 
+          `Completed: ${client.firstName} ${client.lastName}`);
+        
+        currentJob = null;
+        jobStartTime = null;
+        
+        closeModal('completeJobModal');
+        showToast('success', 'Job Completed', 'Great work! Job marked as complete.');
+        
+      } catch (error) {
+        console.error('Error completing job:', error);
+        showToast('error', i18n.t('error'), 'Failed to complete job');
+      }
+      
+      saveState();
+      updateStatusUI();
+      renderSchedule();
+    }
+
+    function pauseJob() {
+      // For now, just stop tracking but keep the job
+      showToast('info', 'Job Paused', 'Timer paused. Resume when ready.');
+    }
+
+    // ============================================
+    // UI UPDATES
+    // ============================================
+    function updateStatusUI() {
+      const statusDot = document.getElementById('statusDot');
+      const statusText = document.getElementById('statusText');
+      const clockBtn = document.getElementById('clockBtn');
+      const currentJobCard = document.getElementById('currentJobCard');
+      
+      // Remove all status classes
+      statusDot.className = 'status-dot';
+      statusText.className = 'status-text';
+      
+      if (!isClockedIn) {
+        statusDot.classList.add('clocked-out');
+        statusText.classList.add('clocked-out');
+        statusText.textContent = i18n.t('clockedOut') || 'Clocked Out';
+        
+        clockBtn.className = 'clock-btn clock-in';
+        clockBtn.innerHTML = `
+          <span class="clock-btn-icon">▶</span>
+          <span>${i18n.t('clockIn') || 'Clock In'}</span>
+        `;
+        
+        currentJobCard.classList.add('hidden');
+        document.getElementById('hoursToday').textContent = '0:00';
+        
+      } else if (currentJob) {
+        statusDot.classList.add('on-job');
+        statusText.classList.add('on-job');
+        statusText.textContent = i18n.t('onJob') || 'On Job';
+        
+        clockBtn.className = 'clock-btn clock-out';
+        clockBtn.innerHTML = `
+          <span class="clock-btn-icon">⏹</span>
+          <span>${i18n.t('clockOut') || 'Clock Out'}</span>
+        `;
+        
+        currentJobCard.classList.remove('hidden');
+        document.getElementById('currentJobClient').textContent = 
+          `${currentJob.client.firstName} ${currentJob.client.lastName}`;
+        document.getElementById('currentJobAddress').textContent = 
+          `${currentJob.client.address?.street || ''}, ${currentJob.client.address?.city || ''}`;
+        
+      } else {
+        statusDot.classList.add('clocked-in');
+        statusText.classList.add('clocked-in');
+        statusText.textContent = i18n.t('clockedIn') || 'Clocked In';
+        
+        clockBtn.className = 'clock-btn clock-out';
+        clockBtn.innerHTML = `
+          <span class="clock-btn-icon">⏹</span>
+          <span>${i18n.t('clockOut') || 'Clock Out'}</span>
+        `;
+        
+        currentJobCard.classList.add('hidden');
+      }
+    }
+
+    function renderSchedule() {
+      const container = document.getElementById('scheduleList');
+      const emptyState = document.getElementById('emptySchedule');
+      
+      if (todaySchedules.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      
+      emptyState.classList.add('hidden');
+      
+      container.innerHTML = todaySchedules.map(schedule => {
+        const client = clients[schedule.clientId];
+        if (!client) return '';
+        
+        const isActive = currentJob?.scheduleId === schedule.id;
+        const isCompleted = schedule.status === 'completed';
+        
+        const statusBadge = {
+          scheduled: `<span class="badge badge-primary">Scheduled</span>`,
+          in_progress: `<span class="badge badge-warning">In Progress</span>`,
+          completed: `<span class="badge badge-success">Completed</span>`,
+          cancelled: `<span class="badge badge-secondary">Cancelled</span>`
+        }[schedule.status] || '';
+        
+        return `
+          <div class="schedule-item ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''}"
+               onclick="${!isCompleted && !isActive ? `window.showStartJob('${schedule.id}')` : ''}">
+            <div class="schedule-time">
+              <div class="schedule-time-slot">${schedule.timeSlot === 'morning' ? '🌅' : '🌆'}</div>
+              <div class="schedule-time-label">${schedule.timeSlot === 'morning' ? 'AM' : 'PM'}</div>
+            </div>
+            <div class="schedule-info">
+              <div class="schedule-client">${client.firstName} ${client.lastName}</div>
+              <div class="schedule-address">${client.address?.street || ''}</div>
+            </div>
+            <div class="schedule-status">
+              <div class="schedule-price">${formatCurrency(schedule.serviceDetails?.totalPrice || 0)}</div>
+              ${statusBadge}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTeamMembers() {
+      const container = document.getElementById('teamMembersList');
+      
+      container.innerHTML = teamMembers.map(member => {
+        const isLeader = currentTeam?.leaderId === member.id;
+        return `
+          <div class="team-member">
+            <div class="team-member-avatar" style="background-color: ${getAvatarColor(member.firstName + member.lastName)}">
+              ${getInitials(member.firstName, member.lastName)}
+            </div>
+            <div class="team-member-info">
+              <div class="team-member-name">${member.firstName} ${member.lastName}</div>
+              <div class="team-member-role">${isLeader ? '⭐ Team Leader' : 'Team Member'}</div>
+            </div>
+            <div class="team-member-status ${member.isActive ? 'active' : ''}"></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function showHistory() {
+      const container = document.getElementById('historyList');
+      
+      // Build history from time entries and completed jobs
+      let history = [];
+      
+      timeEntries.forEach(entry => {
+        if (entry.clockIn) {
+          const time = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
+          history.push({
+            type: 'clock-in',
+            time,
+            text: 'Clocked In'
+          });
+        }
+        if (entry.clockOut) {
+          const time = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
+          history.push({
+            type: 'clock-out',
+            time,
+            text: 'Clocked Out'
+          });
+        }
+      });
+      
+      todaySchedules.filter(s => s.status === 'completed').forEach(schedule => {
+        const client = clients[schedule.clientId];
+        if (schedule.actualEndTime) {
+          const time = schedule.actualEndTime?.toDate ? schedule.actualEndTime.toDate() : new Date();
+          history.push({
+            type: 'job',
+            time,
+            text: `Completed: ${client?.firstName || ''} ${client?.lastName || ''}`
+          });
+        }
+      });
+      
+      // Sort by time
+      history.sort((a, b) => a.time - b.time);
+      
+      if (history.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 p-4">No activity recorded today</div>';
+      } else {
+        container.innerHTML = history.map(item => `
+          <div class="history-item">
+            <div class="history-info">
+              <div class="history-icon ${item.type}">
+                ${item.type === 'clock-in' ? '▶' : item.type === 'clock-out' ? '⏹' : '✓'}
+              </div>
+              <div>
+                <div class="history-text">${item.text}</div>
+                <div class="history-time">${formatTime(item.time)}</div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+      
+      openModal('historyModal');
+    }
+
+    // ============================================
+    // STATE PERSISTENCE
+    // ============================================
+    function saveState() {
+      const state = {
+        isClockedIn,
+        clockInTime: clockInTime?.toISOString(),
+        currentJob: currentJob ? {
+          scheduleId: currentJob.scheduleId
+        } : null,
+        jobStartTime: jobStartTime?.toISOString()
+      };
+      localStorage.setItem('timeclockState', JSON.stringify(state));
+    }
+
+    function restoreState() {
+      try {
+        const saved = localStorage.getItem('timeclockState');
+        if (!saved) return;
+        
+        const state = JSON.parse(saved);
+        
+        // Check if it's from today
+        const today = new Date().toISOString().split('T')[0];
+        
+        if (state.clockInTime) {
+          const clockInDate = state.clockInTime.split('T')[0];
+          if (clockInDate !== today) {
+            // Different day, reset state
+            localStorage.removeItem('timeclockState');
+            return;
+          }
+        }
+        
+        isClockedIn = state.isClockedIn || false;
+        clockInTime = state.clockInTime ? new Date(state.clockInTime) : null;
+        
+        if (state.currentJob && state.jobStartTime) {
+          const schedule = todaySchedules.find(s => s.id === state.currentJob.scheduleId);
+          if (schedule && schedule.status === 'in_progress') {
+            const client = clients[schedule.clientId];
+            currentJob = { scheduleId: state.currentJob.scheduleId, schedule, client };
+            jobStartTime = new Date(state.jobStartTime);
+            
+            // Restart job timer
+            jobTimerInterval = setInterval(updateJobTimer, 1000);
+            updateJobTimer();
+          }
+        }
+        
+      } catch (error) {
+        console.error('Error restoring state:', error);
+      }
+    }
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    function getAvatarColor(name) {
+      const colors = ['#0d9488', '#f97316', '#8b5cf6', '#ec4899', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
+    }
+
+    function formatTime(date) {
+      return date.toLocaleTimeString(i18n.getLanguage() === 'es' ? 'es-US' : 'en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    // Expose functions to window for onclick handlers
+    window.showStartJob = showStartJobModal;
+
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    function setupEventListeners() {
+      // Clock button
+      document.getElementById('clockBtn').addEventListener('click', () => {
+        if (isClockedIn) {
+          clockOut();
+        } else {
+          clockIn();
+        }
+      });
+      
+      // Language toggle
+      document.getElementById('langToggle').addEventListener('click', () => {
+        i18n.toggleLanguage();
+        i18n.updatePageTranslations();
+        updateClock();
+        updateStatusUI();
+        renderSchedule();
+      });
+      
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await signOut(auth);
+        window.location.href = 'index.html';
+      });
+      
+      // History button
+      document.getElementById('historyBtn').addEventListener('click', showHistory);
+      
+      // Current job actions
+      document.getElementById('pauseJobBtn').addEventListener('click', pauseJob);
+      document.getElementById('completeJobBtn').addEventListener('click', showCompleteJobModal);
+      
+      // Start Job Modal
+      document.getElementById('closeStartJobModal').addEventListener('click', () => closeModal('startJobModal'));
+      document.getElementById('cancelStartJobBtn').addEventListener('click', () => closeModal('startJobModal'));
+      document.getElementById('confirmStartJobBtn').addEventListener('click', startJob);
+      
+      // Complete Job Modal
+      document.getElementById('closeCompleteJobModal').addEventListener('click', () => closeModal('completeJobModal'));
+      document.getElementById('cancelCompleteJobBtn').addEventListener('click', () => closeModal('completeJobModal'));
+      document.getElementById('confirmCompleteJobBtn').addEventListener('click', completeJob);
+      
+      document.getElementById('paymentMethod').addEventListener('change', (e) => {
+        const amountGroup = document.getElementById('paymentAmountGroup');
+        if (e.target.value) {
+          amountGroup.classList.remove('hidden');
+        } else {
+          amountGroup.classList.add('hidden');
+        }
+      });
+      
+      // History Modal
+      document.getElementById('closeHistoryModal').addEventListener('click', () => closeModal('historyModal'));
+      document.getElementById('closeHistoryBtn').addEventListener('click', () => closeModal('historyModal'));
+      
+      // Modal backdrop
+      document.getElementById('modalBackdrop').addEventListener('click', closeAllModals);
+    }
+  </script>
+</body>
+</html>

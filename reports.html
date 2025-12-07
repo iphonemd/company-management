@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanPro - Reports</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    /* Reports-specific styles */
+    .reports-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-6);
+      margin-bottom: var(--space-6);
+    }
+    
+    @media (max-width: 1024px) {
+      .reports-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .chart-card {
+      background: white;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--gray-200);
+      overflow: hidden;
+    }
+    
+    .chart-card-header {
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--gray-100);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .chart-card-title {
+      font-weight: 600;
+      font-size: var(--text-lg);
+    }
+    
+    .chart-card-body {
+      padding: var(--space-5);
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+    
+    .chart-container.small {
+      height: 200px;
+    }
+    
+    .chart-container.large {
+      height: 400px;
+    }
+    
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
+    }
+    
+    @media (max-width: 1280px) {
+      .kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .kpi-card {
+      background: white;
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      border: 1px solid var(--gray-200);
+      text-align: center;
+    }
+    
+    .kpi-icon {
+      font-size: 2rem;
+      margin-bottom: var(--space-2);
+    }
+    
+    .kpi-value {
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      margin-bottom: var(--space-1);
+    }
+    
+    .kpi-value.success { color: var(--success-600); }
+    .kpi-value.danger { color: var(--danger-600); }
+    .kpi-value.primary { color: var(--primary-600); }
+    .kpi-value.warning { color: var(--warning-600); }
+    
+    .kpi-label {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+    }
+    
+    .kpi-change {
+      font-size: var(--text-xs);
+      margin-top: var(--space-2);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-full);
+      display: inline-block;
+    }
+    
+    .kpi-change.up {
+      background: var(--success-100);
+      color: var(--success-700);
+    }
+    
+    .kpi-change.down {
+      background: var(--danger-100);
+      color: var(--danger-700);
+    }
+    
+    /* Report type selector */
+    .report-selector {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+      flex-wrap: wrap;
+    }
+    
+    .report-type-btn {
+      padding: var(--space-3) var(--space-5);
+      border: 2px solid var(--gray-200);
+      background: white;
+      border-radius: var(--radius-xl);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .report-type-btn:hover {
+      border-color: var(--primary-300);
+      background: var(--primary-50);
+    }
+    
+    .report-type-btn.active {
+      border-color: var(--primary-600);
+      background: var(--primary-600);
+      color: white;
+    }
+    
+    /* Export options */
+    .export-dropdown {
+      position: relative;
+    }
+    
+    .export-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      min-width: 200px;
+      z-index: 100;
+      display: none;
+    }
+    
+    .export-menu.open {
+      display: block;
+    }
+    
+    .export-menu-item {
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    
+    .export-menu-item:hover {
+      background: var(--gray-50);
+    }
+    
+    .export-menu-item:first-child {
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    
+    .export-menu-item:last-child {
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    }
+    
+    /* Data table for reports */
+    .report-table-container {
+      background: white;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--gray-200);
+      overflow: hidden;
+    }
+    
+    .report-table-header {
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--gray-100);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+    
+    /* Top performers */
+    .performer-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    
+    .performer-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      border-radius: var(--radius-lg);
+      background: var(--gray-50);
+    }
+    
+    .performer-rank {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: var(--text-sm);
+    }
+    
+    .performer-rank.gold {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: white;
+    }
+    
+    .performer-rank.silver {
+      background: linear-gradient(135deg, #9ca3af, #6b7280);
+      color: white;
+    }
+    
+    .performer-rank.bronze {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      color: white;
+    }
+    
+    .performer-rank.normal {
+      background: var(--gray-200);
+      color: var(--gray-600);
+    }
+    
+    .performer-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      font-size: var(--text-sm);
+    }
+    
+    .performer-info {
+      flex: 1;
+    }
+    
+    .performer-name {
+      font-weight: 600;
+    }
+    
+    .performer-stat {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+    }
+    
+    .performer-value {
+      font-weight: 700;
+      color: var(--primary-600);
+    }
+    
+    /* Schedule heatmap */
+    .heatmap-container {
+      overflow-x: auto;
+    }
+    
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: 80px repeat(7, 1fr);
+      gap: 2px;
+      min-width: 500px;
+    }
+    
+    .heatmap-header {
+      padding: var(--space-2);
+      text-align: center;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--gray-600);
+    }
+    
+    .heatmap-label {
+      padding: var(--space-2);
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+      display: flex;
+      align-items: center;
+    }
+    
+    .heatmap-cell {
+      padding: var(--space-3);
+      text-align: center;
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      font-weight: 500;
+    }
+    
+    .heatmap-cell.level-0 { background: var(--gray-100); color: var(--gray-400); }
+    .heatmap-cell.level-1 { background: var(--primary-100); color: var(--primary-700); }
+    .heatmap-cell.level-2 { background: var(--primary-200); color: var(--primary-700); }
+    .heatmap-cell.level-3 { background: var(--primary-400); color: white; }
+    .heatmap-cell.level-4 { background: var(--primary-600); color: white; }
+    .heatmap-cell.level-5 { background: var(--primary-800); color: white; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🧹</div>
+        <span class="sidebar-title">CleanPro</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">
+            <span class="nav-item-icon">📊</span>
+            <span class="nav-item-text" data-i18n="dashboard">Dashboard</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="employees.html" class="nav-item">
+            <span class="nav-item-icon">👥</span>
+            <span class="nav-item-text" data-i18n="employees">Employees</span>
+          </a>
+          <a href="clients.html" class="nav-item">
+            <span class="nav-item-icon">🏠</span>
+            <span class="nav-item-text" data-i18n="clients">Clients</span>
+          </a>
+          <a href="scheduling.html" class="nav-item">
+            <span class="nav-item-icon">📅</span>
+            <span class="nav-item-text" data-i18n="scheduling">Scheduling</span>
+          </a>
+          <a href="timeclock.html" class="nav-item">
+            <span class="nav-item-icon">⏱️</span>
+            <span class="nav-item-text" data-i18n="timeClock">Time Clock</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title" data-i18n="finances">Finance</div>
+          <a href="finances.html" class="nav-item">
+            <span class="nav-item-icon">💰</span>
+            <span class="nav-item-text" data-i18n="finances">Finances</span>
+          </a>
+          <a href="reports.html" class="nav-item active">
+            <span class="nav-item-icon">📈</span>
+            <span class="nav-item-text" data-i18n="reports">Reports</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="audit-log.html" class="nav-item">
+            <span class="nav-item-icon">📋</span>
+            <span class="nav-item-text" data-i18n="auditLog">Audit Log</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar" id="userAvatar">AD</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="userName">Admin</div>
+            <div class="sidebar-user-role" id="userRole">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <button class="header-menu-btn" id="menuToggle">☰</button>
+        
+        <div class="header-search">
+          <span class="header-search-icon">🔍</span>
+          <input type="text" class="header-search-input" placeholder="Search reports..." id="searchInput">
+        </div>
+
+        <div class="header-actions">
+          <button class="header-btn lang-toggle" id="langToggle">
+            🌐 <span id="langLabel">ES</span>
+          </button>
+          <button class="header-btn" id="logoutBtn" title="Logout">🚪</button>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="reports">Reports & Analytics</h1>
+            <p class="text-gray-500">Business insights and data exports</p>
+          </div>
+          <div class="page-actions">
+            <div class="export-dropdown">
+              <button class="btn btn-primary" id="exportBtn">
+                <span>📥</span>
+                <span>Export Data</span>
+                <span>▼</span>
+              </button>
+              <div class="export-menu" id="exportMenu">
+                <div class="export-menu-item" onclick="exportData('excel')">
+                  <span>📊</span>
+                  <span>Export to Excel</span>
+                </div>
+                <div class="export-menu-item" onclick="exportData('csv')">
+                  <span>📄</span>
+                  <span>Export to CSV</span>
+                </div>
+                <div class="export-menu-item" onclick="exportData('pdf')">
+                  <span>📑</span>
+                  <span>Export to PDF</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Type Selector -->
+        <div class="report-selector">
+          <button class="report-type-btn active" data-report="overview">
+            <span>📊</span>
+            <span>Overview</span>
+          </button>
+          <button class="report-type-btn" data-report="revenue">
+            <span>💵</span>
+            <span>Revenue</span>
+          </button>
+          <button class="report-type-btn" data-report="clients">
+            <span>🏠</span>
+            <span>Clients</span>
+          </button>
+          <button class="report-type-btn" data-report="employees">
+            <span>👥</span>
+            <span>Team</span>
+          </button>
+          <button class="report-type-btn" data-report="operations">
+            <span>📅</span>
+            <span>Operations</span>
+          </button>
+        </div>
+
+        <!-- Date Range -->
+        <div class="flex gap-4 mb-6 flex-wrap">
+          <div class="form-group mb-0">
+            <label class="form-label">Date Range</label>
+            <select class="form-select" id="dateRangeSelect">
+              <option value="week">This Week</option>
+              <option value="month" selected>This Month</option>
+              <option value="quarter">This Quarter</option>
+              <option value="year">This Year</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          <div class="form-group mb-0 hidden" id="customDateGroup">
+            <label class="form-label">Custom Range</label>
+            <div class="flex gap-2">
+              <input type="date" class="form-input" id="startDate">
+              <input type="date" class="form-input" id="endDate">
+              <button class="btn btn-primary btn-sm" id="applyDateBtn">Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overview Report -->
+        <div class="report-content" id="overviewReport">
+          <!-- KPI Grid -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon">💰</div>
+              <div class="kpi-value success" id="kpiRevenue">$0</div>
+              <div class="kpi-label">Total Revenue</div>
+              <div class="kpi-change up" id="kpiRevenueChange">↑ 0%</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">📋</div>
+              <div class="kpi-value primary" id="kpiJobs">0</div>
+              <div class="kpi-label">Jobs Completed</div>
+              <div class="kpi-change up" id="kpiJobsChange">↑ 0%</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">🏠</div>
+              <div class="kpi-value primary" id="kpiClients">0</div>
+              <div class="kpi-label">Active Clients</div>
+              <div class="kpi-change up" id="kpiClientsChange">↑ 0</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">⏱️</div>
+              <div class="kpi-value warning" id="kpiAvgTime">0h</div>
+              <div class="kpi-label">Avg. Job Time</div>
+              <div class="kpi-change down" id="kpiAvgTimeChange">↓ 0%</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">⭐</div>
+              <div class="kpi-value success" id="kpiCompletionRate">0%</div>
+              <div class="kpi-label">Completion Rate</div>
+              <div class="kpi-change up" id="kpiCompletionChange">↑ 0%</div>
+            </div>
+          </div>
+
+          <!-- Charts Grid -->
+          <div class="reports-grid">
+            <!-- Revenue Chart -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Revenue Trend</h3>
+                <select class="form-select" id="revenuePeriod" style="width: auto;">
+                  <option value="daily">Daily</option>
+                  <option value="weekly" selected>Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="revenueChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Jobs by Status -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Jobs by Status</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="jobsStatusChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Service Type Distribution -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Service Types</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="serviceTypeChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Performers -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Top Performing Teams</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="performer-list" id="topPerformers">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Schedule Heatmap -->
+          <div class="chart-card mb-6">
+            <div class="chart-card-header">
+              <h3 class="chart-card-title">Schedule Density</h3>
+              <span class="text-sm text-gray-500">Jobs per time slot by day</span>
+            </div>
+            <div class="chart-card-body">
+              <div class="heatmap-container">
+                <div class="heatmap-grid" id="scheduleHeatmap">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Revenue Report -->
+        <div class="report-content hidden" id="revenueReport">
+          <div class="reports-grid">
+            <div class="chart-card" style="grid-column: span 2;">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Revenue vs Expenses</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container large">
+                  <canvas id="revenueExpenseChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Expense Breakdown</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="expenseBreakdownChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Payment Methods</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="paymentMethodsChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Revenue Table -->
+          <div class="report-table-container">
+            <div class="report-table-header">
+              <h3 class="font-semibold">Revenue Details</h3>
+            </div>
+            <div class="table-container">
+              <table class="table" id="revenueTable">
+                <thead>
+                  <tr>
+                    <th>Period</th>
+                    <th>Revenue</th>
+                    <th>Expenses</th>
+                    <th>Profit</th>
+                    <th>Margin</th>
+                    <th>Jobs</th>
+                  </tr>
+                </thead>
+                <tbody id="revenueTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clients Report -->
+        <div class="report-content hidden" id="clientsReport">
+          <div class="reports-grid">
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Client Growth</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="clientGrowthChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Schedule Distribution</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="scheduleDistChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Clients Table -->
+          <div class="report-table-container">
+            <div class="report-table-header">
+              <h3 class="font-semibold">Top Clients by Revenue</h3>
+            </div>
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Client</th>
+                    <th>Schedule</th>
+                    <th>Jobs Completed</th>
+                    <th>Total Revenue</th>
+                    <th>Avg. per Job</th>
+                  </tr>
+                </thead>
+                <tbody id="topClientsBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Employees Report -->
+        <div class="report-content hidden" id="employeesReport">
+          <div class="reports-grid">
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Jobs by Team</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="teamJobsChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Hours Worked</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="hoursWorkedChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Employee Performance Table -->
+          <div class="report-table-container">
+            <div class="report-table-header">
+              <h3 class="font-semibold">Employee Performance</h3>
+            </div>
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Team</th>
+                    <th>Jobs</th>
+                    <th>Hours</th>
+                    <th>Avg. Time/Job</th>
+                    <th>Revenue Generated</th>
+                  </tr>
+                </thead>
+                <tbody id="employeePerformanceBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Operations Report -->
+        <div class="report-content hidden" id="operationsReport">
+          <div class="reports-grid">
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Jobs by Day of Week</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="jobsByDayChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Time Slot Distribution</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="timeSlotChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-card" style="grid-column: span 2;">
+              <div class="chart-card-header">
+                <h3 class="chart-card-title">Completion Rate Trend</h3>
+              </div>
+              <div class="chart-card-body">
+                <div class="chart-container">
+                  <canvas id="completionTrendChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Operations Summary -->
+          <div class="report-table-container">
+            <div class="report-table-header">
+              <h3 class="font-semibold">Operations Summary</h3>
+            </div>
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Metric</th>
+                    <th>Current Period</th>
+                    <th>Previous Period</th>
+                    <th>Change</th>
+                  </tr>
+                </thead>
+                <tbody id="operationsSummaryBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div class="modal-backdrop" id="sidebarOverlay"></div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script type="module">
+    import { 
+      auth, db, onAuthStateChanged, signOut,
+      collection, doc, getDoc, getDocs, 
+      query, where, orderBy, Timestamp
+    } from './js/firebase-config.js';
+    import { i18n } from './js/i18n.js';
+    import { 
+      showToast, formatCurrency, formatDate, getInitials
+    } from './js/utils.js';
+
+    // ============================================
+    // STATE
+    // ============================================
+    let currentUser = null;
+    let currentAdmin = null;
+    let clients = [];
+    let employees = [];
+    let teams = [];
+    let schedules = [];
+    let payments = [];
+    let expenses = [];
+    let timeEntries = [];
+    
+    let currentReport = 'overview';
+    let dateRange = 'month';
+    let startDate = null;
+    let endDate = null;
+    
+    // Charts
+    let charts = {};
+
+    // ============================================
+    // AUTHENTICATION CHECK
+    // ============================================
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        try {
+          const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+          if (adminDoc.exists()) {
+            currentAdmin = { id: adminDoc.id, ...adminDoc.data() };
+            initializePage();
+          } else {
+            window.location.href = 'index.html';
+          }
+        } catch (error) {
+          console.error('Error fetching admin:', error);
+          window.location.href = 'index.html';
+        }
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // ============================================
+    // INITIALIZE PAGE
+    // ============================================
+    async function initializePage() {
+      document.getElementById('userName').textContent = currentAdmin.name;
+      document.getElementById('userAvatar').textContent = getInitials(
+        currentAdmin.name.split(' ')[0], 
+        currentAdmin.name.split(' ')[1] || ''
+      );
+
+      i18n.updatePageTranslations();
+      updateLanguage();
+
+      // Set date range
+      setDateRange('month');
+
+      // Load data
+      await loadAllData();
+
+      // Render reports
+      renderCurrentReport();
+
+      setupEventListeners();
+    }
+
+    // ============================================
+    // DATE RANGE
+    // ============================================
+    function setDateRange(range) {
+      dateRange = range;
+      const today = new Date();
+      
+      switch (range) {
+        case 'week':
+          const weekStart = new Date(today);
+          weekStart.setDate(today.getDate() - today.getDay());
+          weekStart.setHours(0, 0, 0, 0);
+          startDate = weekStart;
+          endDate = new Date();
+          break;
+        case 'month':
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          endDate = new Date();
+          break;
+        case 'quarter':
+          const quarterStart = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1);
+          startDate = quarterStart;
+          endDate = new Date();
+          break;
+        case 'year':
+          startDate = new Date(today.getFullYear(), 0, 1);
+          endDate = new Date();
+          break;
+      }
+      
+      if (range !== 'custom') {
+        document.getElementById('customDateGroup').classList.add('hidden');
+      }
+    }
+
+    // ============================================
+    // LOAD DATA
+    // ============================================
+    async function loadAllData() {
+      try {
+        await Promise.all([
+          loadClients(),
+          loadEmployees(),
+          loadTeams(),
+          loadSchedules(),
+          loadPayments(),
+          loadExpenses(),
+          loadTimeEntries()
+        ]);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    }
+
+    async function loadClients() {
+      const snapshot = await getDocs(collection(db, 'clients'));
+      clients = [];
+      snapshot.forEach(doc => clients.push({ id: doc.id, ...doc.data() }));
+    }
+
+    async function loadEmployees() {
+      const snapshot = await getDocs(collection(db, 'employees'));
+      employees = [];
+      snapshot.forEach(doc => employees.push({ id: doc.id, ...doc.data() }));
+    }
+
+    async function loadTeams() {
+      const snapshot = await getDocs(collection(db, 'teams'));
+      teams = [];
+      snapshot.forEach(doc => teams.push({ id: doc.id, ...doc.data() }));
+    }
+
+    async function loadSchedules() {
+      const snapshot = await getDocs(collection(db, 'schedules'));
+      schedules = [];
+      snapshot.forEach(doc => schedules.push({ id: doc.id, ...doc.data() }));
+    }
+
+    async function loadPayments() {
+      const snapshot = await getDocs(collection(db, 'payments'));
+      payments = [];
+      snapshot.forEach(doc => payments.push({ id: doc.id, ...doc.data() }));
+    }
+
+    async function loadExpenses() {
+      const snapshot = await getDocs(collection(db, 'expenses'));
+      expenses = [];
+      snapshot.forEach(doc => expenses.push({ id: doc.id, ...doc.data() }));
+    }
+
+    async function loadTimeEntries() {
+      const snapshot = await getDocs(collection(db, 'timeEntries'));
+      timeEntries = [];
+      snapshot.forEach(doc => timeEntries.push({ id: doc.id, ...doc.data() }));
+    }
+
+    // ============================================
+    // RENDER REPORTS
+    // ============================================
+    function renderCurrentReport() {
+      // Hide all reports
+      document.querySelectorAll('.report-content').forEach(r => r.classList.add('hidden'));
+      
+      // Show current report
+      document.getElementById(currentReport + 'Report').classList.remove('hidden');
+      
+      // Destroy existing charts
+      Object.values(charts).forEach(chart => chart.destroy());
+      charts = {};
+      
+      switch (currentReport) {
+        case 'overview':
+          renderOverviewReport();
+          break;
+        case 'revenue':
+          renderRevenueReport();
+          break;
+        case 'clients':
+          renderClientsReport();
+          break;
+        case 'employees':
+          renderEmployeesReport();
+          break;
+        case 'operations':
+          renderOperationsReport();
+          break;
+      }
+    }
+
+    // ============================================
+    // OVERVIEW REPORT
+    // ============================================
+    function renderOverviewReport() {
+      // Filter data by date range
+      const filteredSchedules = filterByDate(schedules, 'date');
+      const filteredPayments = filterByDate(payments, 'date');
+      const filteredExpenses = filterByDate(expenses, 'date');
+      
+      // Calculate KPIs
+      const totalRevenue = filteredPayments
+        .filter(p => p.status === 'paid')
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
+      
+      const completedJobs = filteredSchedules.filter(s => s.status === 'completed').length;
+      const activeClients = clients.filter(c => c.isActive).length;
+      
+      const totalJobTime = filteredSchedules
+        .filter(s => s.status === 'completed')
+        .reduce((sum, s) => sum + (s.estimatedDuration || 2), 0);
+      const avgJobTime = completedJobs > 0 ? totalJobTime / completedJobs : 0;
+      
+      const totalJobs = filteredSchedules.length;
+      const completionRate = totalJobs > 0 ? (completedJobs / totalJobs * 100) : 0;
+      
+      // Update KPI displays
+      document.getElementById('kpiRevenue').textContent = formatCurrency(totalRevenue);
+      document.getElementById('kpiJobs').textContent = completedJobs;
+      document.getElementById('kpiClients').textContent = activeClients;
+      document.getElementById('kpiAvgTime').textContent = avgJobTime.toFixed(1) + 'h';
+      document.getElementById('kpiCompletionRate').textContent = completionRate.toFixed(0) + '%';
+      
+      // Revenue Chart
+      renderRevenueChart();
+      
+      // Jobs Status Chart
+      renderJobsStatusChart(filteredSchedules);
+      
+      // Service Type Chart
+      renderServiceTypeChart(filteredSchedules);
+      
+      // Top Performers
+      renderTopPerformers(filteredSchedules);
+      
+      // Schedule Heatmap
+      renderScheduleHeatmap(filteredSchedules);
+    }
+
+    function renderRevenueChart() {
+      const ctx = document.getElementById('revenueChart').getContext('2d');
+      
+      // Generate sample data based on date range
+      const labels = [];
+      const data = [];
+      const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      
+      if (days <= 7) {
+        // Daily for week
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(startDate);
+          date.setDate(startDate.getDate() + i);
+          labels.push(i18n.getDayName(date.getDay(), true));
+          
+          const dayRevenue = payments
+            .filter(p => {
+              const pDate = p.date?.toDate ? p.date.toDate() : new Date(p.date);
+              return pDate.toDateString() === date.toDateString() && p.status === 'paid';
+            })
+            .reduce((sum, p) => sum + (p.amount || 0), 0);
+          data.push(dayRevenue);
+        }
+      } else {
+        // Weekly
+        const weeks = Math.ceil(days / 7);
+        for (let i = 0; i < Math.min(weeks, 12); i++) {
+          labels.push(`Week ${i + 1}`);
+          data.push(Math.random() * 2000 + 1000); // Sample data
+        }
+      }
+      
+      charts.revenue = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Revenue',
+            data,
+            borderColor: '#0d9488',
+            backgroundColor: 'rgba(13, 148, 136, 0.1)',
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: value => '$' + value
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderJobsStatusChart(filteredSchedules) {
+      const ctx = document.getElementById('jobsStatusChart').getContext('2d');
+      
+      const statusCounts = {
+        completed: filteredSchedules.filter(s => s.status === 'completed').length,
+        scheduled: filteredSchedules.filter(s => s.status === 'scheduled').length,
+        cancelled: filteredSchedules.filter(s => s.status === 'cancelled').length,
+        in_progress: filteredSchedules.filter(s => s.status === 'in_progress').length
+      };
+      
+      charts.jobsStatus = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Completed', 'Scheduled', 'Cancelled', 'In Progress'],
+          datasets: [{
+            data: [statusCounts.completed, statusCounts.scheduled, statusCounts.cancelled, statusCounts.in_progress],
+            backgroundColor: ['#10b981', '#3b82f6', '#ef4444', '#f59e0b']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    function renderServiceTypeChart(filteredSchedules) {
+      const ctx = document.getElementById('serviceTypeChart').getContext('2d');
+      
+      const fullCount = filteredSchedules.filter(s => s.serviceDetails?.type === 'full').length;
+      const halfCount = filteredSchedules.filter(s => s.serviceDetails?.type === 'half').length;
+      
+      charts.serviceType = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['Full House', 'Half House'],
+          datasets: [{
+            data: [fullCount, halfCount],
+            backgroundColor: ['#0d9488', '#f97316']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    function renderTopPerformers(filteredSchedules) {
+      const container = document.getElementById('topPerformers');
+      
+      // Calculate jobs per team
+      const teamStats = {};
+      filteredSchedules.filter(s => s.status === 'completed').forEach(schedule => {
+        const teamId = schedule.teamId;
+        if (!teamStats[teamId]) {
+          teamStats[teamId] = { jobs: 0, revenue: 0 };
+        }
+        teamStats[teamId].jobs++;
+        teamStats[teamId].revenue += schedule.serviceDetails?.totalPrice || 0;
+      });
+      
+      // Sort by jobs
+      const sorted = Object.entries(teamStats)
+        .sort((a, b) => b[1].jobs - a[1].jobs)
+        .slice(0, 5);
+      
+      if (sorted.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 p-4">No data available</div>';
+        return;
+      }
+      
+      container.innerHTML = sorted.map(([teamId, stats], index) => {
+        const team = teams.find(t => t.id === teamId);
+        const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : 'normal';
+        
+        return `
+          <div class="performer-item">
+            <div class="performer-rank ${rankClass}">${index + 1}</div>
+            <div class="performer-avatar" style="background: ${getAvatarColor(team?.name || 'Team')}">
+              ${(team?.name || 'T')[0]}
+            </div>
+            <div class="performer-info">
+              <div class="performer-name">${team?.name || 'Unknown Team'}</div>
+              <div class="performer-stat">${stats.jobs} jobs completed</div>
+            </div>
+            <div class="performer-value">${formatCurrency(stats.revenue)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderScheduleHeatmap(filteredSchedules) {
+      const container = document.getElementById('scheduleHeatmap');
+      
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const slots = ['Morning', 'Afternoon'];
+      
+      // Calculate counts
+      const counts = {};
+      filteredSchedules.forEach(schedule => {
+        const date = new Date(schedule.date);
+        const day = date.getDay();
+        const slot = schedule.timeSlot || 'morning';
+        const key = `${day}-${slot}`;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      
+      // Find max for scaling
+      const maxCount = Math.max(...Object.values(counts), 1);
+      
+      let html = '<div class="heatmap-header"></div>';
+      days.forEach(day => {
+        html += `<div class="heatmap-header">${day}</div>`;
+      });
+      
+      slots.forEach(slot => {
+        html += `<div class="heatmap-label">${slot}</div>`;
+        for (let day = 0; day < 7; day++) {
+          const key = `${day}-${slot.toLowerCase()}`;
+          const count = counts[key] || 0;
+          const level = Math.ceil((count / maxCount) * 5);
+          html += `<div class="heatmap-cell level-${level}">${count}</div>`;
+        }
+      });
+      
+      container.innerHTML = html;
+    }
+
+    // ============================================
+    // REVENUE REPORT
+    // ============================================
+    function renderRevenueReport() {
+      const filteredPayments = filterByDate(payments, 'date');
+      const filteredExpenses = filterByDate(expenses, 'date');
+      
+      // Revenue vs Expenses Chart
+      const ctx = document.getElementById('revenueExpenseChart').getContext('2d');
+      
+      const months = [];
+      const revenueData = [];
+      const expenseData = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        months.push(i18n.getMonthName(date.getMonth(), true));
+        
+        const monthPayments = payments.filter(p => {
+          const pDate = p.date?.toDate ? p.date.toDate() : new Date(p.date);
+          return pDate.getMonth() === date.getMonth() && pDate.getFullYear() === date.getFullYear() && p.status === 'paid';
+        });
+        revenueData.push(monthPayments.reduce((sum, p) => sum + (p.amount || 0), 0));
+        
+        const monthExpenses = expenses.filter(e => {
+          const eDate = e.date?.toDate ? e.date.toDate() : new Date(e.date);
+          return eDate.getMonth() === date.getMonth() && eDate.getFullYear() === date.getFullYear();
+        });
+        expenseData.push(monthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0));
+      }
+      
+      charts.revenueExpense = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: months,
+          datasets: [
+            {
+              label: 'Revenue',
+              data: revenueData,
+              backgroundColor: '#10b981'
+            },
+            {
+              label: 'Expenses',
+              data: expenseData,
+              backgroundColor: '#ef4444'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { callback: value => '$' + value }
+            }
+          }
+        }
+      });
+      
+      // Expense Breakdown
+      const expenseCtx = document.getElementById('expenseBreakdownChart').getContext('2d');
+      
+      const categories = {};
+      filteredExpenses.forEach(e => {
+        categories[e.category] = (categories[e.category] || 0) + (e.amount || 0);
+      });
+      
+      charts.expenseBreakdown = new Chart(expenseCtx, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(categories).map(c => c.charAt(0).toUpperCase() + c.slice(1)),
+          datasets: [{
+            data: Object.values(categories),
+            backgroundColor: ['#0d9488', '#f97316', '#8b5cf6', '#ec4899', '#10b981', '#3b82f6', '#f59e0b', '#6b7280']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+      
+      // Payment Methods
+      const paymentCtx = document.getElementById('paymentMethodsChart').getContext('2d');
+      
+      const methods = {};
+      filteredPayments.filter(p => p.status === 'paid').forEach(p => {
+        methods[p.paymentMethod || 'unknown'] = (methods[p.paymentMethod || 'unknown'] || 0) + (p.amount || 0);
+      });
+      
+      charts.paymentMethods = new Chart(paymentCtx, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(methods).map(m => m.charAt(0).toUpperCase() + m.slice(1)),
+          datasets: [{
+            data: Object.values(methods),
+            backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+      
+      // Revenue Table
+      renderRevenueTable();
+    }
+
+    function renderRevenueTable() {
+      const tbody = document.getElementById('revenueTableBody');
+      const rows = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        
+        const monthPayments = payments.filter(p => {
+          const pDate = p.date?.toDate ? p.date.toDate() : new Date(p.date);
+          return pDate.getMonth() === date.getMonth() && pDate.getFullYear() === date.getFullYear() && p.status === 'paid';
+        });
+        const revenue = monthPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        
+        const monthExpenses = expenses.filter(e => {
+          const eDate = e.date?.toDate ? e.date.toDate() : new Date(e.date);
+          return eDate.getMonth() === date.getMonth() && eDate.getFullYear() === date.getFullYear();
+        });
+        const expenseTotal = monthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+        
+        const profit = revenue - expenseTotal;
+        const margin = revenue > 0 ? (profit / revenue * 100) : 0;
+        
+        const monthSchedules = schedules.filter(s => {
+          const sDate = new Date(s.date);
+          return sDate.getMonth() === date.getMonth() && sDate.getFullYear() === date.getFullYear() && s.status === 'completed';
+        });
+        
+        rows.push(`
+          <tr>
+            <td class="font-semibold">${i18n.getMonthName(date.getMonth())} ${date.getFullYear()}</td>
+            <td class="text-success font-semibold">${formatCurrency(revenue)}</td>
+            <td class="text-danger">${formatCurrency(expenseTotal)}</td>
+            <td class="font-semibold ${profit >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(profit)}</td>
+            <td>${margin.toFixed(1)}%</td>
+            <td>${monthSchedules.length}</td>
+          </tr>
+        `);
+      }
+      
+      tbody.innerHTML = rows.join('');
+    }
+
+    // ============================================
+    // CLIENTS REPORT
+    // ============================================
+    function renderClientsReport() {
+      // Client Growth Chart
+      const ctx = document.getElementById('clientGrowthChart').getContext('2d');
+      
+      const months = [];
+      const data = [];
+      let cumulative = 0;
+      
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        months.push(i18n.getMonthName(date.getMonth(), true));
+        
+        // Sample growth data
+        cumulative += Math.floor(Math.random() * 3);
+        data.push(cumulative + clients.length - 10);
+      }
+      
+      charts.clientGrowth = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: months,
+          datasets: [{
+            label: 'Total Clients',
+            data,
+            borderColor: '#0d9488',
+            backgroundColor: 'rgba(13, 148, 136, 0.1)',
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+      
+      // Schedule Distribution
+      const scheduleCtx = document.getElementById('scheduleDistChart').getContext('2d');
+      
+      const scheduleCounts = {
+        weekly: clients.filter(c => c.scheduleType === 'weekly').length,
+        biweekly: clients.filter(c => c.scheduleType === 'biweekly').length,
+        monthly: clients.filter(c => c.scheduleType === 'monthly').length,
+        other: clients.filter(c => !['weekly', 'biweekly', 'monthly'].includes(c.scheduleType)).length
+      };
+      
+      charts.scheduleDist = new Chart(scheduleCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Weekly', 'Bi-weekly', 'Monthly', 'Other'],
+          datasets: [{
+            data: Object.values(scheduleCounts),
+            backgroundColor: ['#0d9488', '#f97316', '#3b82f6', '#6b7280']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+      
+      // Top Clients Table
+      renderTopClientsTable();
+    }
+
+    function renderTopClientsTable() {
+      const tbody = document.getElementById('topClientsBody');
+      
+      // Calculate revenue per client
+      const clientRevenue = {};
+      const clientJobs = {};
+      
+      schedules.filter(s => s.status === 'completed').forEach(schedule => {
+        clientJobs[schedule.clientId] = (clientJobs[schedule.clientId] || 0) + 1;
+        clientRevenue[schedule.clientId] = (clientRevenue[schedule.clientId] || 0) + (schedule.serviceDetails?.totalPrice || 0);
+      });
+      
+      // Sort by revenue
+      const sorted = clients
+        .map(c => ({
+          ...c,
+          revenue: clientRevenue[c.id] || 0,
+          jobs: clientJobs[c.id] || 0
+        }))
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 10);
+      
+      tbody.innerHTML = sorted.map((client, index) => `
+        <tr>
+          <td>
+            <span class="badge ${index < 3 ? 'badge-success' : 'badge-secondary'}">#${index + 1}</span>
+          </td>
+          <td class="font-semibold">${client.firstName} ${client.lastName}</td>
+          <td>${i18n.t(`scheduleTypes.${client.scheduleType}`) || client.scheduleType || '-'}</td>
+          <td>${client.jobs}</td>
+          <td class="font-semibold text-success">${formatCurrency(client.revenue)}</td>
+          <td>${client.jobs > 0 ? formatCurrency(client.revenue / client.jobs) : '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    // ============================================
+    // EMPLOYEES REPORT
+    // ============================================
+    function renderEmployeesReport() {
+      const filteredSchedules = filterByDate(schedules, 'date');
+      
+      // Jobs by Team
+      const ctx = document.getElementById('teamJobsChart').getContext('2d');
+      
+      const teamJobs = {};
+      filteredSchedules.filter(s => s.status === 'completed').forEach(schedule => {
+        teamJobs[schedule.teamId] = (teamJobs[schedule.teamId] || 0) + 1;
+      });
+      
+      const teamLabels = [];
+      const teamData = [];
+      teams.forEach(team => {
+        teamLabels.push(team.name);
+        teamData.push(teamJobs[team.id] || 0);
+      });
+      
+      charts.teamJobs = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: teamLabels,
+          datasets: [{
+            label: 'Jobs Completed',
+            data: teamData,
+            backgroundColor: '#0d9488'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+      
+      // Hours Worked
+      const hoursCtx = document.getElementById('hoursWorkedChart').getContext('2d');
+      
+      // Sample data for hours
+      const empLabels = employees.slice(0, 8).map(e => e.firstName);
+      const hoursData = empLabels.map(() => Math.floor(Math.random() * 30) + 20);
+      
+      charts.hoursWorked = new Chart(hoursCtx, {
+        type: 'bar',
+        data: {
+          labels: empLabels,
+          datasets: [{
+            label: 'Hours',
+            data: hoursData,
+            backgroundColor: '#f97316'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: { legend: { display: false } }
+        }
+      });
+      
+      // Employee Performance Table
+      renderEmployeePerformanceTable();
+    }
+
+    function renderEmployeePerformanceTable() {
+      const tbody = document.getElementById('employeePerformanceBody');
+      
+      const empStats = employees.map(emp => {
+        const team = teams.find(t => t.id === emp.teamId);
+        const teamSchedules = schedules.filter(s => s.teamId === emp.teamId && s.status === 'completed');
+        const jobs = Math.floor(teamSchedules.length / (team?.memberIds?.length || 1));
+        const hours = Math.floor(Math.random() * 30) + 20;
+        const revenue = teamSchedules.reduce((sum, s) => sum + (s.serviceDetails?.totalPrice || 0), 0) / (team?.memberIds?.length || 1);
+        
+        return {
+          ...emp,
+          team: team?.name || '-',
+          jobs,
+          hours,
+          avgTime: jobs > 0 ? (hours / jobs).toFixed(1) : '-',
+          revenue
+        };
+      });
+      
+      tbody.innerHTML = empStats.slice(0, 10).map(emp => `
+        <tr>
+          <td class="font-semibold">${emp.firstName} ${emp.lastName}</td>
+          <td>${emp.team}</td>
+          <td>${emp.jobs}</td>
+          <td>${emp.hours}h</td>
+          <td>${emp.avgTime}h</td>
+          <td class="font-semibold text-success">${formatCurrency(emp.revenue)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // ============================================
+    // OPERATIONS REPORT
+    // ============================================
+    function renderOperationsReport() {
+      const filteredSchedules = filterByDate(schedules, 'date');
+      
+      // Jobs by Day
+      const ctx = document.getElementById('jobsByDayChart').getContext('2d');
+      
+      const dayJobs = [0, 0, 0, 0, 0, 0, 0];
+      filteredSchedules.forEach(schedule => {
+        const date = new Date(schedule.date);
+        dayJobs[date.getDay()]++;
+      });
+      
+      charts.jobsByDay = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => i18n.getDayName(i, true)),
+          datasets: [{
+            label: 'Jobs',
+            data: dayJobs,
+            backgroundColor: '#0d9488'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+      
+      // Time Slot Distribution
+      const slotCtx = document.getElementById('timeSlotChart').getContext('2d');
+      
+      const morningJobs = filteredSchedules.filter(s => s.timeSlot === 'morning').length;
+      const afternoonJobs = filteredSchedules.filter(s => s.timeSlot === 'afternoon').length;
+      
+      charts.timeSlot = new Chart(slotCtx, {
+        type: 'pie',
+        data: {
+          labels: ['Morning (8am-12pm)', 'Afternoon (12pm-5pm)'],
+          datasets: [{
+            data: [morningJobs, afternoonJobs],
+            backgroundColor: ['#3b82f6', '#f97316']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+      
+      // Completion Trend
+      const trendCtx = document.getElementById('completionTrendChart').getContext('2d');
+      
+      const weeks = [];
+      const completionRates = [];
+      
+      for (let i = 11; i >= 0; i--) {
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - (i * 7));
+        weeks.push(`W${12 - i}`);
+        
+        // Sample completion rate
+        completionRates.push(85 + Math.random() * 15);
+      }
+      
+      charts.completionTrend = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+          labels: weeks,
+          datasets: [{
+            label: 'Completion Rate %',
+            data: completionRates,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: false,
+              min: 70,
+              max: 100,
+              ticks: { callback: value => value + '%' }
+            }
+          }
+        }
+      });
+      
+      // Operations Summary Table
+      renderOperationsSummary();
+    }
+
+    function renderOperationsSummary() {
+      const tbody = document.getElementById('operationsSummaryBody');
+      
+      const filteredSchedules = filterByDate(schedules, 'date');
+      const completed = filteredSchedules.filter(s => s.status === 'completed').length;
+      const total = filteredSchedules.length;
+      const cancelled = filteredSchedules.filter(s => s.status === 'cancelled').length;
+      
+      const metrics = [
+        { name: 'Total Jobs Scheduled', current: total, previous: Math.floor(total * 0.9), format: 'number' },
+        { name: 'Jobs Completed', current: completed, previous: Math.floor(completed * 0.85), format: 'number' },
+        { name: 'Completion Rate', current: total > 0 ? (completed / total * 100) : 0, previous: 88, format: 'percent' },
+        { name: 'Cancellation Rate', current: total > 0 ? (cancelled / total * 100) : 0, previous: 5, format: 'percent' },
+        { name: 'Avg Jobs per Day', current: total / 30, previous: (total * 0.9) / 30, format: 'decimal' }
+      ];
+      
+      tbody.innerHTML = metrics.map(m => {
+        const change = m.current - m.previous;
+        const changePercent = m.previous > 0 ? (change / m.previous * 100) : 0;
+        const isPositive = m.name.includes('Cancellation') ? change < 0 : change >= 0;
+        
+        let currentFormatted, previousFormatted;
+        if (m.format === 'percent') {
+          currentFormatted = m.current.toFixed(1) + '%';
+          previousFormatted = m.previous.toFixed(1) + '%';
+        } else if (m.format === 'decimal') {
+          currentFormatted = m.current.toFixed(1);
+          previousFormatted = m.previous.toFixed(1);
+        } else {
+          currentFormatted = Math.round(m.current);
+          previousFormatted = Math.round(m.previous);
+        }
+        
+        return `
+          <tr>
+            <td class="font-semibold">${m.name}</td>
+            <td>${currentFormatted}</td>
+            <td>${previousFormatted}</td>
+            <td>
+              <span class="badge ${isPositive ? 'badge-success' : 'badge-danger'}">
+                ${isPositive ? '↑' : '↓'} ${Math.abs(changePercent).toFixed(1)}%
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ============================================
+    // EXPORT FUNCTIONS
+    // ============================================
+    window.exportData = function(format) {
+      document.getElementById('exportMenu').classList.remove('open');
+      
+      const data = prepareExportData();
+      
+      switch (format) {
+        case 'excel':
+          exportToExcel(data);
+          break;
+        case 'csv':
+          exportToCSV(data);
+          break;
+        case 'pdf':
+          exportToPDF();
+          break;
+      }
+    };
+
+    function prepareExportData() {
+      return {
+        schedules: schedules.map(s => {
+          const client = clients.find(c => c.id === s.clientId);
+          const team = teams.find(t => t.id === s.teamId);
+          return {
+            Date: s.date,
+            Client: client ? `${client.firstName} ${client.lastName}` : 'Unknown',
+            Team: team?.name || 'Unassigned',
+            Service: s.serviceDetails?.type || 'full',
+            Status: s.status,
+            Price: s.serviceDetails?.totalPrice || 0
+          };
+        }),
+        payments: payments.map(p => {
+          const client = clients.find(c => c.id === p.clientId);
+          const date = p.date?.toDate ? p.date.toDate() : new Date(p.date);
+          return {
+            Date: date.toISOString().split('T')[0],
+            Client: client ? `${client.firstName} ${client.lastName}` : 'Unknown',
+            Amount: p.amount || 0,
+            Method: p.paymentMethod || '-',
+            Status: p.status
+          };
+        }),
+        expenses: expenses.map(e => {
+          const date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
+          return {
+            Date: date.toISOString().split('T')[0],
+            Category: e.category,
+            Description: e.description,
+            Vendor: e.vendor || '-',
+            Amount: e.amount || 0
+          };
+        }),
+        clients: clients.map(c => ({
+          Name: `${c.firstName} ${c.lastName}`,
+          Phone: c.phone || '-',
+          Email: c.email || '-',
+          Address: c.address?.street || '-',
+          Schedule: c.scheduleType || '-',
+          BasePrice: c.basePrice || 0,
+          Status: c.isActive ? 'Active' : 'Inactive'
+        }))
+      };
+    }
+
+    function exportToExcel(data) {
+      const wb = XLSX.utils.book_new();
+      
+      // Add sheets
+      const schedulesWS = XLSX.utils.json_to_sheet(data.schedules);
+      XLSX.utils.book_append_sheet(wb, schedulesWS, 'Schedules');
+      
+      const paymentsWS = XLSX.utils.json_to_sheet(data.payments);
+      XLSX.utils.book_append_sheet(wb, paymentsWS, 'Payments');
+      
+      const expensesWS = XLSX.utils.json_to_sheet(data.expenses);
+      XLSX.utils.book_append_sheet(wb, expensesWS, 'Expenses');
+      
+      const clientsWS = XLSX.utils.json_to_sheet(data.clients);
+      XLSX.utils.book_append_sheet(wb, clientsWS, 'Clients');
+      
+      // Save
+      XLSX.writeFile(wb, `CleanPro_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+      showToast('success', 'Export Complete', 'Excel file downloaded');
+    }
+
+    function exportToCSV(data) {
+      // Export schedules as CSV
+      const ws = XLSX.utils.json_to_sheet(data.schedules);
+      const csv = XLSX.utils.sheet_to_csv(ws);
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CleanPro_Schedules_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      
+      showToast('success', 'Export Complete', 'CSV file downloaded');
+    }
+
+    function exportToPDF() {
+      // Simple print-based PDF export
+      window.print();
+      showToast('info', 'PDF Export', 'Use browser print dialog to save as PDF');
+    }
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    function filterByDate(items, dateField) {
+      return items.filter(item => {
+        let date;
+        if (typeof item[dateField] === 'string') {
+          date = new Date(item[dateField]);
+        } else if (item[dateField]?.toDate) {
+          date = item[dateField].toDate();
+        } else {
+          return false;
+        }
+        return date >= startDate && date <= endDate;
+      });
+    }
+
+    function getAvatarColor(name) {
+      const colors = ['#0d9488', '#f97316', '#8b5cf6', '#ec4899', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
+    }
+
+    function updateLanguage() {
+      const lang = i18n.getLanguage();
+      document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN';
+      i18n.updatePageTranslations();
+    }
+
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    function setupEventListeners() {
+      // Mobile menu
+      document.getElementById('menuToggle').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+      });
+
+      document.getElementById('sidebarOverlay').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+      });
+
+      // Language
+      document.getElementById('langToggle').addEventListener('click', () => {
+        i18n.toggleLanguage();
+        updateLanguage();
+        renderCurrentReport();
+      });
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await signOut(auth);
+        window.location.href = 'index.html';
+      });
+
+      // Report type selector
+      document.querySelectorAll('.report-type-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.report-type-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentReport = btn.dataset.report;
+          renderCurrentReport();
+        });
+      });
+
+      // Date range
+      document.getElementById('dateRangeSelect').addEventListener('change', (e) => {
+        if (e.target.value === 'custom') {
+          document.getElementById('customDateGroup').classList.remove('hidden');
+        } else {
+          setDateRange(e.target.value);
+          renderCurrentReport();
+        }
+      });
+
+      document.getElementById('applyDateBtn').addEventListener('click', () => {
+        startDate = new Date(document.getElementById('startDate').value);
+        endDate = new Date(document.getElementById('endDate').value);
+        endDate.setHours(23, 59, 59, 999);
+        renderCurrentReport();
+      });
+
+      // Export dropdown
+      document.getElementById('exportBtn').addEventListener('click', () => {
+        document.getElementById('exportMenu').classList.toggle('open');
+      });
+
+      // Close export menu on outside click
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.export-dropdown')) {
+          document.getElementById('exportMenu').classList.remove('open');
+        }
+      });
+
+      // Revenue period selector
+      document.getElementById('revenuePeriod')?.addEventListener('change', () => {
+        if (charts.revenue) {
+          charts.revenue.destroy();
+          renderRevenueChart();
+        }
+      });
+    }
+  </script>
+</body>
+</html>

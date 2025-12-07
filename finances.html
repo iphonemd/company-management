@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanPro - Finances</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+  <style>
+    /* Finance-specific styles */
+    .finance-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
+    }
+    
+    @media (max-width: 1024px) {
+      .finance-summary {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 640px) {
+      .finance-summary {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .summary-card {
+      background: white;
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      border: 1px solid var(--gray-200);
+    }
+    
+    .summary-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--space-3);
+    }
+    
+    .summary-card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-xl);
+    }
+    
+    .summary-card-icon.revenue {
+      background: var(--success-100);
+    }
+    
+    .summary-card-icon.expenses {
+      background: var(--danger-100);
+    }
+    
+    .summary-card-icon.profit {
+      background: var(--primary-100);
+    }
+    
+    .summary-card-icon.pending {
+      background: var(--warning-100);
+    }
+    
+    .summary-card-trend {
+      font-size: var(--text-sm);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-full);
+      font-weight: 500;
+    }
+    
+    .summary-card-trend.up {
+      background: var(--success-100);
+      color: var(--success-700);
+    }
+    
+    .summary-card-trend.down {
+      background: var(--danger-100);
+      color: var(--danger-700);
+    }
+    
+    .summary-card-value {
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      margin-bottom: var(--space-1);
+    }
+    
+    .summary-card-value.revenue {
+      color: var(--success-600);
+    }
+    
+    .summary-card-value.expenses {
+      color: var(--danger-600);
+    }
+    
+    .summary-card-value.profit {
+      color: var(--primary-600);
+    }
+    
+    .summary-card-value.pending {
+      color: var(--warning-600);
+    }
+    
+    .summary-card-label {
+      color: var(--gray-500);
+      font-size: var(--text-sm);
+    }
+    
+    /* Date range selector */
+    .date-range-selector {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+      flex-wrap: wrap;
+    }
+    
+    .date-range-btn {
+      padding: var(--space-2) var(--space-4);
+      border: 1px solid var(--gray-300);
+      background: white;
+      border-radius: var(--radius-lg);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .date-range-btn:hover {
+      background: var(--gray-50);
+    }
+    
+    .date-range-btn.active {
+      background: var(--primary-600);
+      border-color: var(--primary-600);
+      color: white;
+    }
+    
+    /* Invoice preview */
+    .invoice-preview {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .invoice-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--space-8);
+      padding-bottom: var(--space-6);
+      border-bottom: 2px solid var(--gray-200);
+    }
+    
+    .invoice-logo {
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      color: var(--primary-600);
+    }
+    
+    .invoice-title {
+      text-align: right;
+    }
+    
+    .invoice-title h2 {
+      font-size: var(--text-2xl);
+      color: var(--gray-800);
+      margin-bottom: var(--space-2);
+    }
+    
+    .invoice-number {
+      font-size: var(--text-lg);
+      color: var(--gray-500);
+    }
+    
+    .invoice-parties {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-8);
+      margin-bottom: var(--space-8);
+    }
+    
+    .invoice-party-label {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+      text-transform: uppercase;
+      margin-bottom: var(--space-2);
+    }
+    
+    .invoice-party-name {
+      font-weight: 600;
+      font-size: var(--text-lg);
+      margin-bottom: var(--space-1);
+    }
+    
+    .invoice-party-details {
+      color: var(--gray-600);
+      font-size: var(--text-sm);
+      line-height: 1.6;
+    }
+    
+    .invoice-meta {
+      display: flex;
+      gap: var(--space-8);
+      margin-bottom: var(--space-6);
+    }
+    
+    .invoice-meta-item {
+      flex: 1;
+    }
+    
+    .invoice-meta-label {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+      margin-bottom: var(--space-1);
+    }
+    
+    .invoice-meta-value {
+      font-weight: 600;
+    }
+    
+    .invoice-table {
+      width: 100%;
+      margin-bottom: var(--space-6);
+    }
+    
+    .invoice-table th {
+      text-align: left;
+      padding: var(--space-3) var(--space-4);
+      background: var(--gray-50);
+      font-weight: 600;
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+      border-bottom: 2px solid var(--gray-200);
+    }
+    
+    .invoice-table th:last-child {
+      text-align: right;
+    }
+    
+    .invoice-table td {
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .invoice-table td:last-child {
+      text-align: right;
+      font-weight: 500;
+    }
+    
+    .invoice-totals {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: var(--space-8);
+    }
+    
+    .invoice-totals-table {
+      width: 300px;
+    }
+    
+    .invoice-totals-row {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--space-2) 0;
+    }
+    
+    .invoice-totals-row.total {
+      border-top: 2px solid var(--gray-200);
+      margin-top: var(--space-2);
+      padding-top: var(--space-3);
+      font-size: var(--text-xl);
+      font-weight: 700;
+    }
+    
+    .invoice-totals-row.total .amount {
+      color: var(--primary-600);
+    }
+    
+    .invoice-footer {
+      text-align: center;
+      padding-top: var(--space-6);
+      border-top: 1px solid var(--gray-200);
+      color: var(--gray-500);
+      font-size: var(--text-sm);
+    }
+    
+    /* Expense category icons */
+    .expense-category-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-lg);
+    }
+    
+    .expense-category-icon.supplies { background: var(--info-100); }
+    .expense-category-icon.equipment { background: var(--warning-100); }
+    .expense-category-icon.vehicle { background: var(--success-100); }
+    .expense-category-icon.insurance { background: var(--danger-100); }
+    .expense-category-icon.payroll { background: var(--primary-100); }
+    .expense-category-icon.marketing { background: var(--secondary-100); }
+    .expense-category-icon.office { background: var(--gray-100); }
+    .expense-category-icon.other { background: var(--gray-100); }
+
+    @media print {
+  body * {
+    visibility: hidden;
+  }
+  #invoicePreviewContent, #invoicePreviewContent * {
+    visibility: visible;
+  }
+  #invoicePreviewContent {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+}
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🧹</div>
+        <span class="sidebar-title">CleanPro</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">
+            <span class="nav-item-icon">📊</span>
+            <span class="nav-item-text" data-i18n="dashboard">Dashboard</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="employees.html" class="nav-item">
+            <span class="nav-item-icon">👥</span>
+            <span class="nav-item-text" data-i18n="employees">Employees</span>
+          </a>
+          <a href="clients.html" class="nav-item">
+            <span class="nav-item-icon">🏠</span>
+            <span class="nav-item-text" data-i18n="clients">Clients</span>
+          </a>
+          <a href="scheduling.html" class="nav-item">
+            <span class="nav-item-icon">📅</span>
+            <span class="nav-item-text" data-i18n="scheduling">Scheduling</span>
+          </a>
+          <a href="timeclock.html" class="nav-item">
+            <span class="nav-item-icon">⏱️</span>
+            <span class="nav-item-text" data-i18n="timeClock">Time Clock</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title" data-i18n="finances">Finance</div>
+          <a href="finances.html" class="nav-item active">
+            <span class="nav-item-icon">💰</span>
+            <span class="nav-item-text" data-i18n="finances">Finances</span>
+          </a>
+          <a href="reports.html" class="nav-item">
+            <span class="nav-item-icon">📈</span>
+            <span class="nav-item-text" data-i18n="reports">Reports</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="audit-log.html" class="nav-item">
+            <span class="nav-item-icon">📋</span>
+            <span class="nav-item-text" data-i18n="auditLog">Audit Log</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar" id="userAvatar">AD</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="userName">Admin</div>
+            <div class="sidebar-user-role" id="userRole">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <button class="header-menu-btn" id="menuToggle">☰</button>
+        
+        <div class="header-search">
+          <span class="header-search-icon">🔍</span>
+          <input type="text" class="header-search-input" placeholder="Search transactions..." id="searchInput">
+        </div>
+
+        <div class="header-actions">
+          <button class="header-btn lang-toggle" id="langToggle">
+            🌐 <span id="langLabel">ES</span>
+          </button>
+          <button class="header-btn" id="logoutBtn" title="Logout">🚪</button>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="finances">Finances</h1>
+            <p class="text-gray-500">Track revenue, expenses, and profitability</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-secondary" id="addExpenseBtn">
+              <span>💸</span>
+              <span data-i18n="addExpense">Add Expense</span>
+            </button>
+            <button class="btn btn-primary" id="createInvoiceBtn">
+              <span>📄</span>
+              <span data-i18n="createInvoice">Create Invoice</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Date Range Selector -->
+        <div class="date-range-selector">
+          <button class="date-range-btn" data-range="today">Today</button>
+          <button class="date-range-btn active" data-range="week">This Week</button>
+          <button class="date-range-btn" data-range="month">This Month</button>
+          <button class="date-range-btn" data-range="year">This Year</button>
+          <button class="date-range-btn" data-range="custom">Custom</button>
+          <div class="hidden" id="customDateRange">
+            <input type="date" class="form-input" id="startDate" style="width: auto;">
+            <span>to</span>
+            <input type="date" class="form-input" id="endDate" style="width: auto;">
+            <button class="btn btn-sm btn-primary" id="applyDateRange">Apply</button>
+          </div>
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="finance-summary">
+          <div class="summary-card">
+            <div class="summary-card-header">
+              <div class="summary-card-icon revenue">💵</div>
+              <span class="summary-card-trend up" id="revenueTrend">↑ 12%</span>
+            </div>
+            <div class="summary-card-value revenue" id="totalRevenue">$0.00</div>
+            <div class="summary-card-label" data-i18n="totalRevenue">Total Revenue</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-card-header">
+              <div class="summary-card-icon expenses">💸</div>
+              <span class="summary-card-trend down" id="expensesTrend">↓ 5%</span>
+            </div>
+            <div class="summary-card-value expenses" id="totalExpenses">$0.00</div>
+            <div class="summary-card-label" data-i18n="totalExpenses">Total Expenses</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-card-header">
+              <div class="summary-card-icon profit">📈</div>
+              <span class="summary-card-trend up" id="profitTrend">↑ 18%</span>
+            </div>
+            <div class="summary-card-value profit" id="netProfit">$0.00</div>
+            <div class="summary-card-label" data-i18n="netProfit">Net Profit</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-card-header">
+              <div class="summary-card-icon pending">⏳</div>
+            </div>
+            <div class="summary-card-value pending" id="pendingPayments">$0.00</div>
+            <div class="summary-card-label" data-i18n="pendingPayments">Pending Payments</div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs mb-4">
+          <button class="tab active" data-tab="payments" data-i18n="payments">Payments</button>
+          <button class="tab" data-tab="expenses" data-i18n="expenses">Expenses</button>
+          <button class="tab" data-tab="invoices" data-i18n="invoices">Invoices</button>
+        </div>
+
+        <!-- Payments Tab -->
+        <div class="tab-content active" id="paymentsTab">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title" data-i18n="recentPayments">Recent Payments</h3>
+              <select class="form-select" id="paymentStatusFilter" style="width: auto;">
+                <option value="">All Status</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </div>
+            <div class="table-container">
+              <table class="table" id="paymentsTable">
+                <thead>
+                  <tr>
+                    <th data-i18n="date">Date</th>
+                    <th data-i18n="clients">Client</th>
+                    <th data-i18n="serviceType">Service</th>
+                    <th data-i18n="paymentMethod">Method</th>
+                    <th data-i18n="amount">Amount</th>
+                    <th data-i18n="status">Status</th>
+                    <th data-i18n="actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentsBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+            <div class="empty-state hidden" id="noPayments">
+              <div class="empty-state-icon">💳</div>
+              <div class="empty-state-title">No payments found</div>
+              <p class="text-gray-500">Payments will appear here when jobs are completed</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expenses Tab -->
+        <div class="tab-content" id="expensesTab">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title" data-i18n="expenses">Expenses</h3>
+              <select class="form-select" id="expenseCategoryFilter" style="width: auto;">
+                <option value="">All Categories</option>
+                <option value="supplies">Supplies</option>
+                <option value="equipment">Equipment</option>
+                <option value="vehicle">Vehicle</option>
+                <option value="insurance">Insurance</option>
+                <option value="payroll">Payroll</option>
+                <option value="marketing">Marketing</option>
+                <option value="office">Office</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="table-container">
+              <table class="table" id="expensesTable">
+                <thead>
+                  <tr>
+                    <th data-i18n="date">Date</th>
+                    <th data-i18n="category">Category</th>
+                    <th data-i18n="description">Description</th>
+                    <th data-i18n="vendor">Vendor</th>
+                    <th data-i18n="amount">Amount</th>
+                    <th data-i18n="actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="expensesBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+            <div class="empty-state hidden" id="noExpenses">
+              <div class="empty-state-icon">💸</div>
+              <div class="empty-state-title">No expenses recorded</div>
+              <p class="text-gray-500">Track your business expenses here</p>
+              <button class="btn btn-primary mt-4" id="addFirstExpenseBtn">
+                <span>➕</span>
+                <span data-i18n="addExpense">Add Expense</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Invoices Tab -->
+        <div class="tab-content" id="invoicesTab">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title" data-i18n="invoices">Invoices</h3>
+              <select class="form-select" id="invoiceStatusFilter" style="width: auto;">
+                <option value="">All Status</option>
+                <option value="draft">Draft</option>
+                <option value="sent">Sent</option>
+                <option value="paid">Paid</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </div>
+            <div class="table-container">
+              <table class="table" id="invoicesTable">
+                <thead>
+                  <tr>
+                    <th>Invoice #</th>
+                    <th data-i18n="clients">Client</th>
+                    <th data-i18n="date">Date</th>
+                    <th data-i18n="dueDate">Due Date</th>
+                    <th data-i18n="amount">Amount</th>
+                    <th data-i18n="status">Status</th>
+                    <th data-i18n="actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="invoicesBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+            <div class="empty-state hidden" id="noInvoices">
+              <div class="empty-state-icon">📄</div>
+              <div class="empty-state-title">No invoices yet</div>
+              <p class="text-gray-500">Create invoices for clients who require them</p>
+              <button class="btn btn-primary mt-4" id="createFirstInvoiceBtn">
+                <span>➕</span>
+                <span data-i18n="createInvoice">Create Invoice</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div class="modal-backdrop" id="sidebarOverlay"></div>
+
+  <!-- Modal Backdrop -->
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+
+  <!-- Add/Edit Expense Modal -->
+  <div class="modal modal-lg" id="expenseModal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="expenseModalTitle" data-i18n="addExpense">Add Expense</h3>
+      <button class="modal-close" id="closeExpenseModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="expenseForm">
+        <input type="hidden" id="expenseId">
+        
+        <div class="grid grid-cols-2">
+          <div class="form-group">
+            <label class="form-label form-label-required" data-i18n="date">Date</label>
+            <input type="date" class="form-input" id="expenseDate" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label form-label-required" data-i18n="category">Category</label>
+            <select class="form-select" id="expenseCategory" required>
+              <option value="">Select Category</option>
+              <option value="supplies">🧴 Supplies</option>
+              <option value="equipment">🔧 Equipment</option>
+              <option value="vehicle">🚗 Vehicle</option>
+              <option value="insurance">🛡️ Insurance</option>
+              <option value="payroll">💵 Payroll</option>
+              <option value="marketing">📢 Marketing</option>
+              <option value="office">🏢 Office</option>
+              <option value="other">📦 Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label form-label-required" data-i18n="description">Description</label>
+          <input type="text" class="form-input" id="expenseDescription" required placeholder="e.g., Cleaning supplies from Amazon">
+        </div>
+
+        <div class="grid grid-cols-2">
+          <div class="form-group">
+            <label class="form-label form-label-required" data-i18n="amount">Amount</label>
+            <div class="input-group">
+              <span class="input-group-prepend">$</span>
+              <input type="number" class="form-input" id="expenseAmount" step="0.01" min="0" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="vendor">Vendor</label>
+            <input type="text" class="form-input" id="expenseVendor" placeholder="e.g., Amazon, Home Depot">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="toggle">
+            <input type="checkbox" class="toggle-input" id="expenseRecurring">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Recurring Expense</span>
+          </label>
+        </div>
+
+        <div class="form-group hidden" id="recurringOptions">
+          <label class="form-label">Recurring Frequency</label>
+          <select class="form-select" id="expenseFrequency">
+            <option value="weekly">Weekly</option>
+            <option value="biweekly">Bi-weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="notes">Notes</label>
+          <textarea class="form-input" id="expenseNotes" rows="2" placeholder="Additional details..."></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelExpenseBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveExpenseBtn" data-i18n="save">Save</button>
+    </div>
+  </div>
+
+  <!-- Record Payment Modal -->
+  <div class="modal" id="paymentModal">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="recordPayment">Record Payment</h3>
+      <button class="modal-close" id="closePaymentModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="paymentForm">
+        <input type="hidden" id="paymentId">
+        
+        <div class="form-group">
+          <label class="form-label" data-i18n="paymentMethod">Payment Method</label>
+          <select class="form-select" id="recordPaymentMethod">
+            <option value="cash">💵 Cash</option>
+            <option value="check">📝 Check</option>
+            <option value="card">💳 Card</option>
+            <option value="venmo">📱 Venmo</option>
+            <option value="zelle">📲 Zelle</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="amount">Amount</label>
+          <div class="input-group">
+            <span class="input-group-prepend">$</span>
+            <input type="number" class="form-input" id="recordPaymentAmount" step="0.01" min="0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="notes">Notes</label>
+          <textarea class="form-input" id="recordPaymentNotes" rows="2"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelPaymentBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-success" id="savePaymentBtn">Mark as Paid</button>
+    </div>
+  </div>
+
+  <!-- Create Invoice Modal -->
+  <div class="modal modal-xl" id="invoiceModal">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="createInvoice">Create Invoice</h3>
+      <button class="modal-close" id="closeInvoiceModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="invoiceForm">
+        <input type="hidden" id="invoiceId">
+        
+        <div class="grid grid-cols-2 mb-4">
+          <div class="form-group">
+            <label class="form-label form-label-required" data-i18n="selectClient">Select Client</label>
+            <select class="form-select" id="invoiceClient" required>
+              <option value="">-- Select Client --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Invoice Number</label>
+            <input type="text" class="form-input" id="invoiceNumber" readonly>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 mb-4">
+          <div class="form-group">
+            <label class="form-label" data-i18n="invoiceDate">Invoice Date</label>
+            <input type="date" class="form-input" id="invoiceDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="dueDate">Due Date</label>
+            <input type="date" class="form-input" id="invoiceDueDate">
+          </div>
+        </div>
+
+        <!-- Invoice Items -->
+        <div class="form-group">
+          <label class="form-label">Invoice Items</label>
+          <div class="card">
+            <div class="table-container">
+              <table class="table" id="invoiceItemsTable">
+                <thead>
+                  <tr>
+                    <th style="width: 50%;">Description</th>
+                    <th>Qty</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                    <th style="width: 50px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="invoiceItemsBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+            <div class="p-3">
+              <button type="button" class="btn btn-ghost btn-sm" id="addInvoiceItemBtn">
+                ➕ Add Item
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Invoice Totals -->
+        <div class="flex justify-end">
+          <div style="width: 300px;">
+            <div class="flex justify-between p-2">
+              <span>Subtotal</span>
+              <span id="invoiceSubtotal">$0.00</span>
+            </div>
+            <div class="flex justify-between p-2">
+              <span>Tax (0%)</span>
+              <span id="invoiceTax">$0.00</span>
+            </div>
+            <div class="flex justify-between p-2 border-t font-semibold text-lg">
+              <span>Total</span>
+              <span class="text-primary" id="invoiceTotal">$0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group mt-4">
+          <label class="form-label" data-i18n="notes">Notes</label>
+          <textarea class="form-input" id="invoiceNotes" rows="2" placeholder="Payment terms, thank you note, etc."></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelInvoiceBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-secondary" id="previewInvoiceBtn">👁️ Preview</button>
+      <button type="button" class="btn btn-primary" id="saveInvoiceBtn" data-i18n="save">Save Invoice</button>
+    </div>
+  </div>
+
+  <!-- Invoice Preview Modal -->
+  <div class="modal modal-xl" id="invoicePreviewModal">
+    <div class="modal-header">
+      <h3 class="modal-title">Invoice Preview</h3>
+      <button class="modal-close" id="closePreviewModal">✕</button>
+    </div>
+    <div class="modal-body" id="invoicePreviewContent">
+      <!-- Populated by JS -->
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="closePreviewBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-primary" id="printInvoiceBtn">🖨️ Print</button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script type="module">
+    import { 
+      auth, db, onAuthStateChanged, signOut,
+      collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, 
+      query, where, orderBy, Timestamp
+    } from './js/firebase-config.js';
+    import { i18n } from './js/i18n.js';
+    import { 
+      showToast, openModal, closeModal, closeAllModals,
+      formatCurrency, formatDate, getInitials, confirmDialog, debounce
+    } from './js/utils.js';
+    import { logExpenseAction, logPaymentAction, AuditActions } from './js/audit.js';
+
+    // ============================================
+    // STATE
+    // ============================================
+    let currentUser = null;
+    let currentAdmin = null;
+    let clients = {};
+    let payments = [];
+    let expenses = [];
+    let invoices = [];
+    let schedules = [];
+    
+    let currentDateRange = 'week';
+    let startDate = null;
+    let endDate = null;
+    let editingExpenseId = null;
+    let editingPaymentId = null;
+    let invoiceItems = [];
+
+    // ============================================
+    // AUTHENTICATION CHECK
+    // ============================================
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        try {
+          const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+          if (adminDoc.exists()) {
+            currentAdmin = { id: adminDoc.id, ...adminDoc.data() };
+            initializePage();
+          } else {
+            window.location.href = 'index.html';
+          }
+        } catch (error) {
+          console.error('Error fetching admin:', error);
+          window.location.href = 'index.html';
+        }
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // ============================================
+    // INITIALIZE PAGE
+    // ============================================
+    async function initializePage() {
+      document.getElementById('userName').textContent = currentAdmin.name;
+      document.getElementById('userAvatar').textContent = getInitials(
+        currentAdmin.name.split(' ')[0], 
+        currentAdmin.name.split(' ')[1] || ''
+      );
+
+      updateLanguage();
+      i18n.updatePageTranslations();
+
+      // Set default date range
+      setDateRange('week');
+
+      // Load data
+      await loadClients();
+      await loadData();
+
+      setupEventListeners();
+
+      // Check URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('action') === 'expense') {
+        openExpenseModal();
+      }
+    }
+
+    // ============================================
+    // DATE RANGE FUNCTIONS
+    // ============================================
+    function setDateRange(range) {
+      currentDateRange = range;
+      const today = new Date();
+      
+      switch (range) {
+        case 'today':
+          startDate = new Date(today.setHours(0, 0, 0, 0));
+          endDate = new Date(today.setHours(23, 59, 59, 999));
+          break;
+        case 'week':
+          const weekStart = new Date(today);
+          weekStart.setDate(today.getDate() - today.getDay());
+          weekStart.setHours(0, 0, 0, 0);
+          startDate = weekStart;
+          endDate = new Date(weekStart);
+          endDate.setDate(weekStart.getDate() + 6);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        case 'month':
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+          break;
+        case 'year':
+          startDate = new Date(today.getFullYear(), 0, 1);
+          endDate = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
+          break;
+        case 'custom':
+          document.getElementById('customDateRange').classList.remove('hidden');
+          return;
+      }
+      
+      document.getElementById('customDateRange').classList.add('hidden');
+      
+      // Update active button
+      document.querySelectorAll('.date-range-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.range === range);
+      });
+      
+      loadData();
+    }
+
+    // ============================================
+    // LOAD DATA
+    // ============================================
+    async function loadClients() {
+      try {
+        const snapshot = await getDocs(collection(db, 'clients'));
+        snapshot.forEach(doc => {
+          clients[doc.id] = { id: doc.id, ...doc.data() };
+        });
+        populateClientSelect();
+      } catch (error) {
+        console.error('Error loading clients:', error);
+      }
+    }
+
+    async function loadData() {
+      await Promise.all([
+        loadPayments(),
+        loadExpenses(),
+        loadInvoices(),
+        loadSchedules()
+      ]);
+      
+      updateSummary();
+      renderPayments();
+      renderExpenses();
+      renderInvoices();
+    }
+
+    async function loadPayments() {
+      try {
+        const q = query(collection(db, 'payments'), orderBy('date', 'desc'));
+        const snapshot = await getDocs(q);
+        
+        payments = [];
+        snapshot.forEach(doc => {
+          const payment = { id: doc.id, ...doc.data() };
+          const paymentDate = payment.date?.toDate ? payment.date.toDate() : new Date(payment.date);
+          if (paymentDate >= startDate && paymentDate <= endDate) {
+            payments.push(payment);
+          }
+        });
+      } catch (error) {
+        console.error('Error loading payments:', error);
+      }
+    }
+
+    async function loadExpenses() {
+      try {
+        const q = query(collection(db, 'expenses'), orderBy('date', 'desc'));
+        const snapshot = await getDocs(q);
+        
+        expenses = [];
+        snapshot.forEach(doc => {
+          const expense = { id: doc.id, ...doc.data() };
+          const expenseDate = expense.date?.toDate ? expense.date.toDate() : new Date(expense.date);
+          if (expenseDate >= startDate && expenseDate <= endDate) {
+            expenses.push(expense);
+          }
+        });
+      } catch (error) {
+        console.error('Error loading expenses:', error);
+      }
+    }
+
+    async function loadInvoices() {
+      try {
+        const q = query(collection(db, 'invoices'), orderBy('invoiceDate', 'desc'));
+        const snapshot = await getDocs(q);
+        
+        invoices = [];
+        snapshot.forEach(doc => {
+          invoices.push({ id: doc.id, ...doc.data() });
+        });
+      } catch (error) {
+        console.error('Error loading invoices:', error);
+      }
+    }
+
+    async function loadSchedules() {
+      try {
+        const q = query(collection(db, 'schedules'), where('status', '==', 'completed'));
+        const snapshot = await getDocs(q);
+        
+        schedules = [];
+        snapshot.forEach(doc => {
+          schedules.push({ id: doc.id, ...doc.data() });
+        });
+      } catch (error) {
+        console.error('Error loading schedules:', error);
+      }
+    }
+
+    // ============================================
+    // UPDATE SUMMARY
+    // ============================================
+    function updateSummary() {
+      // Calculate revenue from payments
+      const totalRevenue = payments
+        .filter(p => p.status === 'paid')
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
+      
+      // Calculate expenses
+      const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+      
+      // Net profit
+      const netProfit = totalRevenue - totalExpenses;
+      
+      // Pending payments
+      const pendingPayments = payments
+        .filter(p => p.status === 'pending' || p.status === 'overdue')
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
+      
+      document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
+      document.getElementById('totalExpenses').textContent = formatCurrency(totalExpenses);
+      document.getElementById('netProfit').textContent = formatCurrency(netProfit);
+      document.getElementById('pendingPayments').textContent = formatCurrency(pendingPayments);
+    }
+
+    // ============================================
+    // RENDER FUNCTIONS
+    // ============================================
+    function renderPayments() {
+      const tbody = document.getElementById('paymentsBody');
+      const emptyState = document.getElementById('noPayments');
+      const table = document.getElementById('paymentsTable');
+      
+      const filter = document.getElementById('paymentStatusFilter').value;
+      let filtered = payments;
+      if (filter) {
+        filtered = payments.filter(p => p.status === filter);
+      }
+      
+      if (filtered.length === 0) {
+        table.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      
+      table.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+      
+      const methodIcons = {
+        cash: '💵',
+        check: '📝',
+        card: '💳',
+        venmo: '📱',
+        zelle: '📲'
+      };
+      
+      const statusClasses = {
+        paid: 'completed',
+        pending: 'pending',
+        overdue: 'cancelled'
+      };
+      
+      tbody.innerHTML = filtered.map(payment => {
+        const client = clients[payment.clientId];
+        const schedule = schedules.find(s => s.id === payment.scheduleId);
+        const date = payment.date?.toDate ? payment.date.toDate() : new Date(payment.date);
+        
+        return `
+          <tr>
+            <td>${formatDate(date, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+            <td>
+              <div class="font-semibold">${client?.firstName || ''} ${client?.lastName || 'Unknown'}</div>
+            </td>
+            <td>${schedule?.serviceDetails?.type === 'full' ? 'Full House' : 'Half House'}</td>
+            <td>
+              <span>${methodIcons[payment.paymentMethod] || ''} ${payment.paymentMethod || '-'}</span>
+            </td>
+            <td class="font-semibold">${formatCurrency(payment.amount || 0)}</td>
+            <td>
+              <span class="status-badge ${statusClasses[payment.status] || 'pending'}">
+                ${payment.status || 'pending'}
+              </span>
+            </td>
+            <td>
+              ${payment.status !== 'paid' ? `
+                <button class="btn btn-success btn-sm" onclick="markAsPaid('${payment.id}')">
+                  Mark Paid
+                </button>
+              ` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderExpenses() {
+      const tbody = document.getElementById('expensesBody');
+      const emptyState = document.getElementById('noExpenses');
+      const table = document.getElementById('expensesTable');
+      
+      const filter = document.getElementById('expenseCategoryFilter').value;
+      let filtered = expenses;
+      if (filter) {
+        filtered = expenses.filter(e => e.category === filter);
+      }
+      
+      if (filtered.length === 0) {
+        table.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      
+      table.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+      
+      const categoryIcons = {
+        supplies: '🧴',
+        equipment: '🔧',
+        vehicle: '🚗',
+        insurance: '🛡️',
+        payroll: '💵',
+        marketing: '📢',
+        office: '🏢',
+        other: '📦'
+      };
+      
+      tbody.innerHTML = filtered.map(expense => {
+        const date = expense.date?.toDate ? expense.date.toDate() : new Date(expense.date);
+        
+        return `
+          <tr>
+            <td>${formatDate(date, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+            <td>
+              <div class="flex items-center gap-2">
+                <div class="expense-category-icon ${expense.category}">
+                  ${categoryIcons[expense.category] || '📦'}
+                </div>
+                <span class="capitalize">${expense.category}</span>
+              </div>
+            </td>
+            <td>${expense.description || '-'}</td>
+            <td>${expense.vendor || '-'}</td>
+            <td class="font-semibold text-danger">${formatCurrency(expense.amount || 0)}</td>
+            <td>
+              <div class="table-actions">
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="editExpense('${expense.id}')" title="Edit">✏️</button>
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteExpense('${expense.id}')" title="Delete">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderInvoices() {
+      const tbody = document.getElementById('invoicesBody');
+      const emptyState = document.getElementById('noInvoices');
+      const table = document.getElementById('invoicesTable');
+      
+      const filter = document.getElementById('invoiceStatusFilter').value;
+      let filtered = invoices;
+      if (filter) {
+        filtered = invoices.filter(i => i.status === filter);
+      }
+      
+      if (filtered.length === 0) {
+        table.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      
+      table.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+      
+      const statusClasses = {
+        draft: 'pending',
+        sent: 'active',
+        paid: 'completed',
+        overdue: 'cancelled'
+      };
+      
+      tbody.innerHTML = filtered.map(invoice => {
+        const client = clients[invoice.clientId];
+        const invoiceDate = invoice.invoiceDate?.toDate ? invoice.invoiceDate.toDate() : new Date(invoice.invoiceDate);
+        const dueDate = invoice.dueDate?.toDate ? invoice.dueDate.toDate() : new Date(invoice.dueDate);
+        
+        return `
+          <tr>
+            <td class="font-semibold">${invoice.invoiceNumber || '-'}</td>
+            <td>${client?.firstName || ''} ${client?.lastName || 'Unknown'}</td>
+            <td>${formatDate(invoiceDate, { month: 'short', day: 'numeric' })}</td>
+            <td>${formatDate(dueDate, { month: 'short', day: 'numeric' })}</td>
+            <td class="font-semibold">${formatCurrency(invoice.total || 0)}</td>
+            <td>
+              <span class="status-badge ${statusClasses[invoice.status] || 'pending'}">
+                ${invoice.status || 'draft'}
+              </span>
+            </td>
+            <td>
+              <div class="table-actions">
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="viewInvoice('${invoice.id}')" title="View">👁️</button>
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteInvoice('${invoice.id}')" title="Delete">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ============================================
+    // EXPENSE CRUD
+    // ============================================
+    function openExpenseModal() {
+      editingExpenseId = null;
+      document.getElementById('expenseModalTitle').textContent = i18n.t('addExpense');
+      document.getElementById('expenseForm').reset();
+      document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('recurringOptions').classList.add('hidden');
+      openModal('expenseModal');
+    }
+
+    window.editExpense = function(id) {
+      const expense = expenses.find(e => e.id === id);
+      if (!expense) return;
+      
+      editingExpenseId = id;
+      document.getElementById('expenseModalTitle').textContent = i18n.t('editExpense');
+      
+      const date = expense.date?.toDate ? expense.date.toDate() : new Date(expense.date);
+      document.getElementById('expenseDate').value = date.toISOString().split('T')[0];
+      document.getElementById('expenseCategory').value = expense.category || '';
+      document.getElementById('expenseDescription').value = expense.description || '';
+      document.getElementById('expenseAmount').value = expense.amount || '';
+      document.getElementById('expenseVendor').value = expense.vendor || '';
+      document.getElementById('expenseRecurring').checked = expense.isRecurring || false;
+      document.getElementById('expenseNotes').value = expense.notes || '';
+      
+      if (expense.isRecurring) {
+        document.getElementById('recurringOptions').classList.remove('hidden');
+        document.getElementById('expenseFrequency').value = expense.frequency || 'monthly';
+      }
+      
+      openModal('expenseModal');
+    };
+
+    async function saveExpense() {
+      const date = document.getElementById('expenseDate').value;
+      const category = document.getElementById('expenseCategory').value;
+      const description = document.getElementById('expenseDescription').value;
+      const amount = parseFloat(document.getElementById('expenseAmount').value);
+      
+      if (!date || !category || !description || isNaN(amount)) {
+        showToast('error', i18n.t('error'), i18n.t('required'));
+        return;
+      }
+      
+      const expenseData = {
+        date: Timestamp.fromDate(new Date(date)),
+        category,
+        description,
+        amount,
+        vendor: document.getElementById('expenseVendor').value.trim(),
+        isRecurring: document.getElementById('expenseRecurring').checked,
+        frequency: document.getElementById('expenseRecurring').checked ? 
+          document.getElementById('expenseFrequency').value : null,
+        notes: document.getElementById('expenseNotes').value.trim(),
+        updatedAt: Timestamp.now()
+      };
+      
+      try {
+        if (editingExpenseId) {
+          await updateDoc(doc(db, 'expenses', editingExpenseId), expenseData);
+          await logExpenseAction(AuditActions.UPDATE, editingExpenseId, description);
+          showToast('success', i18n.t('success'), 'Expense updated');
+        } else {
+          expenseData.createdBy = currentAdmin.id;
+          expenseData.createdAt = Timestamp.now();
+          const docRef = await addDoc(collection(db, 'expenses'), expenseData);
+          await logExpenseAction(AuditActions.CREATE, docRef.id, description);
+          showToast('success', i18n.t('success'), 'Expense added');
+        }
+        
+        closeModal('expenseModal');
+        await loadExpenses();
+        updateSummary();
+        renderExpenses();
+      } catch (error) {
+        console.error('Error saving expense:', error);
+        showToast('error', i18n.t('error'), 'Failed to save expense');
+      }
+    }
+
+    window.deleteExpense = async function(id) {
+      const expense = expenses.find(e => e.id === id);
+      if (!expense) return;
+      
+      const confirmed = await confirmDialog(
+        i18n.t('delete'),
+        'Are you sure you want to delete this expense?',
+        i18n.t('delete'),
+        i18n.t('cancel')
+      );
+      
+      if (!confirmed) return;
+      
+      try {
+        await deleteDoc(doc(db, 'expenses', id));
+        await logExpenseAction(AuditActions.DELETE, id, expense.description);
+        showToast('success', i18n.t('success'), 'Expense deleted');
+        await loadExpenses();
+        updateSummary();
+        renderExpenses();
+      } catch (error) {
+        console.error('Error deleting expense:', error);
+        showToast('error', i18n.t('error'), 'Failed to delete expense');
+      }
+    };
+
+    // ============================================
+    // PAYMENT FUNCTIONS
+    // ============================================
+    window.markAsPaid = async function(id) {
+      editingPaymentId = id;
+      const payment = payments.find(p => p.id === id);
+      if (!payment) return;
+      
+      document.getElementById('recordPaymentAmount').value = payment.amount || '';
+      document.getElementById('recordPaymentMethod').value = payment.paymentMethod || 'cash';
+      document.getElementById('recordPaymentNotes').value = '';
+      
+      openModal('paymentModal');
+    };
+
+    async function savePayment() {
+      if (!editingPaymentId) return;
+      
+      try {
+        await updateDoc(doc(db, 'payments', editingPaymentId), {
+          status: 'paid',
+          paymentMethod: document.getElementById('recordPaymentMethod').value,
+          amount: parseFloat(document.getElementById('recordPaymentAmount').value),
+          paidAt: Timestamp.now(),
+          notes: document.getElementById('recordPaymentNotes').value
+        });
+        
+        await logPaymentAction(AuditActions.UPDATE, editingPaymentId, 'Marked as paid');
+        showToast('success', i18n.t('success'), 'Payment recorded');
+        
+        closeModal('paymentModal');
+        await loadPayments();
+        updateSummary();
+        renderPayments();
+      } catch (error) {
+        console.error('Error saving payment:', error);
+        showToast('error', i18n.t('error'), 'Failed to record payment');
+      }
+    }
+
+    // ============================================
+    // INVOICE FUNCTIONS
+    // ============================================
+    function openInvoiceModal() {
+      document.getElementById('invoiceForm').reset();
+      invoiceItems = [{ description: 'Cleaning Service', quantity: 1, rate: 0 }];
+      renderInvoiceItems();
+      
+      // Generate invoice number
+      const invoiceNum = 'INV-' + Date.now().toString().slice(-6);
+      document.getElementById('invoiceNumber').value = invoiceNum;
+      
+      // Set dates
+      document.getElementById('invoiceDate').value = new Date().toISOString().split('T')[0];
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 30);
+      document.getElementById('invoiceDueDate').value = dueDate.toISOString().split('T')[0];
+      
+      openModal('invoiceModal');
+    }
+
+    function populateClientSelect() {
+      const select = document.getElementById('invoiceClient');
+      const clientsWithInvoice = Object.values(clients).filter(c => c.requiresInvoice && c.isActive);
+      
+      select.innerHTML = '<option value="">-- Select Client --</option>' +
+        clientsWithInvoice.map(c => 
+          `<option value="${c.id}" data-price="${c.basePrice || 0}">${c.lastName}, ${c.firstName}</option>`
+        ).join('');
+      
+      if (clientsWithInvoice.length === 0) {
+        select.innerHTML += '<option disabled>No clients require invoices</option>';
+      }
+    }
+
+    function renderInvoiceItems() {
+      const tbody = document.getElementById('invoiceItemsBody');
+      
+      tbody.innerHTML = invoiceItems.map((item, index) => `
+        <tr>
+          <td>
+            <input type="text" class="form-input" value="${item.description}" 
+                   onchange="updateInvoiceItem(${index}, 'description', this.value)">
+          </td>
+          <td style="width: 80px;">
+            <input type="number" class="form-input" value="${item.quantity}" min="1"
+                   onchange="updateInvoiceItem(${index}, 'quantity', this.value)">
+          </td>
+          <td style="width: 120px;">
+            <div class="input-group">
+              <span class="input-group-prepend">$</span>
+              <input type="number" class="form-input" value="${item.rate}" step="0.01"
+                     onchange="updateInvoiceItem(${index}, 'rate', this.value)">
+            </div>
+          </td>
+          <td class="font-semibold">${formatCurrency(item.quantity * item.rate)}</td>
+          <td>
+            ${invoiceItems.length > 1 ? `
+              <button type="button" class="btn btn-ghost btn-icon btn-sm" onclick="removeInvoiceItem(${index})">🗑️</button>
+            ` : ''}
+          </td>
+        </tr>
+      `).join('');
+      
+      updateInvoiceTotals();
+    }
+
+    window.updateInvoiceItem = function(index, field, value) {
+      if (field === 'quantity') {
+        invoiceItems[index].quantity = parseInt(value) || 1;
+      } else if (field === 'rate') {
+        invoiceItems[index].rate = parseFloat(value) || 0;
+      } else {
+        invoiceItems[index][field] = value;
+      }
+      updateInvoiceTotals();
+    };
+
+    window.removeInvoiceItem = function(index) {
+      invoiceItems.splice(index, 1);
+      renderInvoiceItems();
+    };
+
+    function addInvoiceItem() {
+      invoiceItems.push({ description: '', quantity: 1, rate: 0 });
+      renderInvoiceItems();
+    }
+
+    function updateInvoiceTotals() {
+      const subtotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+      const tax = 0; // Could add tax calculation here
+      const total = subtotal + tax;
+      
+      document.getElementById('invoiceSubtotal').textContent = formatCurrency(subtotal);
+      document.getElementById('invoiceTax').textContent = formatCurrency(tax);
+      document.getElementById('invoiceTotal').textContent = formatCurrency(total);
+    }
+
+    function onClientSelect() {
+      const select = document.getElementById('invoiceClient');
+      const option = select.options[select.selectedIndex];
+      
+      if (option && option.dataset.price) {
+        invoiceItems[0].rate = parseFloat(option.dataset.price) || 0;
+        renderInvoiceItems();
+      }
+    }
+
+    async function saveInvoice() {
+      const clientId = document.getElementById('invoiceClient').value;
+      if (!clientId) {
+        showToast('error', i18n.t('error'), 'Please select a client');
+        return;
+      }
+      
+      const subtotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+      
+      const invoiceData = {
+        clientId,
+        invoiceNumber: document.getElementById('invoiceNumber').value,
+        invoiceDate: Timestamp.fromDate(new Date(document.getElementById('invoiceDate').value)),
+        dueDate: Timestamp.fromDate(new Date(document.getElementById('invoiceDueDate').value)),
+        items: invoiceItems,
+        subtotal,
+        tax: 0,
+        total: subtotal,
+        status: 'draft',
+        notes: document.getElementById('invoiceNotes').value,
+        createdAt: Timestamp.now(),
+        createdBy: currentAdmin.id
+      };
+      
+      try {
+        const docRef = await addDoc(collection(db, 'invoices'), invoiceData);
+        showToast('success', i18n.t('success'), 'Invoice created');
+        closeModal('invoiceModal');
+        await loadInvoices();
+        renderInvoices();
+      } catch (error) {
+        console.error('Error creating invoice:', error);
+        showToast('error', i18n.t('error'), 'Failed to create invoice');
+      }
+    }
+
+    window.viewInvoice = function(id) {
+      const invoice = invoices.find(i => i.id === id);
+      if (!invoice) return;
+      
+      const client = clients[invoice.clientId] || {};
+      const invoiceDate = invoice.invoiceDate?.toDate ? invoice.invoiceDate.toDate() : new Date();
+      const dueDate = invoice.dueDate?.toDate ? invoice.dueDate.toDate() : new Date();
+      
+      document.getElementById('invoicePreviewContent').innerHTML = `
+        <div class="invoice-preview">
+          <div class="invoice-header">
+            <div>
+              <div class="invoice-logo">🧹 CleanPro</div>
+              <div class="text-gray-500 mt-2">Professional Cleaning Services</div>
+            </div>
+            <div class="invoice-title">
+              <h2>INVOICE</h2>
+              <div class="invoice-number">${invoice.invoiceNumber}</div>
+            </div>
+          </div>
+          
+          <div class="invoice-parties">
+            <div>
+              <div class="invoice-party-label">From</div>
+              <div class="invoice-party-name">CleanPro Services</div>
+              <div class="invoice-party-details">
+                Your Business Address<br>
+                City, State ZIP<br>
+                Phone: (555) 123-4567
+              </div>
+            </div>
+            <div>
+              <div class="invoice-party-label">Bill To</div>
+              <div class="invoice-party-name">${client.firstName || ''} ${client.lastName || ''}</div>
+              <div class="invoice-party-details">
+                ${client.address?.street || ''}<br>
+                ${client.address?.city || ''}, ${client.address?.state || ''} ${client.address?.zip || ''}<br>
+                ${client.email || ''}
+              </div>
+            </div>
+          </div>
+          
+          <div class="invoice-meta">
+            <div class="invoice-meta-item">
+              <div class="invoice-meta-label">Invoice Date</div>
+              <div class="invoice-meta-value">${formatDate(invoiceDate, { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+            </div>
+            <div class="invoice-meta-item">
+              <div class="invoice-meta-label">Due Date</div>
+              <div class="invoice-meta-value">${formatDate(dueDate, { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+            </div>
+            <div class="invoice-meta-item">
+              <div class="invoice-meta-label">Status</div>
+              <div class="invoice-meta-value">
+                <span class="badge badge-${invoice.status === 'paid' ? 'success' : 'warning'}">${invoice.status}</span>
+              </div>
+            </div>
+          </div>
+          
+          <table class="invoice-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Rate</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(invoice.items || []).map(item => `
+                <tr>
+                  <td>${item.description}</td>
+                  <td>${item.quantity}</td>
+                  <td>${formatCurrency(item.rate)}</td>
+                  <td>${formatCurrency(item.quantity * item.rate)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="invoice-totals">
+            <div class="invoice-totals-table">
+              <div class="invoice-totals-row">
+                <span>Subtotal</span>
+                <span>${formatCurrency(invoice.subtotal || 0)}</span>
+              </div>
+              <div class="invoice-totals-row">
+                <span>Tax</span>
+                <span>${formatCurrency(invoice.tax || 0)}</span>
+              </div>
+              <div class="invoice-totals-row total">
+                <span>Total</span>
+                <span class="amount">${formatCurrency(invoice.total || 0)}</span>
+              </div>
+            </div>
+          </div>
+          
+          ${invoice.notes ? `
+            <div class="mb-6">
+              <strong>Notes:</strong>
+              <p class="text-gray-600 mt-1">${invoice.notes}</p>
+            </div>
+          ` : ''}
+          
+          <div class="invoice-footer">
+            Thank you for your business!
+          </div>
+        </div>
+      `;
+      
+      openModal('invoicePreviewModal');
+    };
+
+    window.deleteInvoice = async function(id) {
+      const confirmed = await confirmDialog(
+        i18n.t('delete'),
+        'Are you sure you want to delete this invoice?',
+        i18n.t('delete'),
+        i18n.t('cancel')
+      );
+      
+      if (!confirmed) return;
+      
+      try {
+        await deleteDoc(doc(db, 'invoices', id));
+        showToast('success', i18n.t('success'), 'Invoice deleted');
+        await loadInvoices();
+        renderInvoices();
+      } catch (error) {
+        console.error('Error deleting invoice:', error);
+        showToast('error', i18n.t('error'), 'Failed to delete invoice');
+      }
+    }; 
+
+function printInvoice() {
+  window.print();
+}
+
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    function updateLanguage() {
+      const lang = i18n.getLanguage();
+      document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN';
+      i18n.updatePageTranslations();
+    }
+
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    function setupEventListeners() {
+      // Mobile menu
+      document.getElementById('menuToggle').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+      });
+
+      document.getElementById('sidebarOverlay').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+      });
+
+      // Language
+      document.getElementById('langToggle').addEventListener('click', () => {
+        i18n.toggleLanguage();
+        updateLanguage();
+      });
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await signOut(auth);
+        window.location.href = 'index.html';
+      });
+
+      // Date range buttons
+      document.querySelectorAll('.date-range-btn').forEach(btn => {
+        btn.addEventListener('click', () => setDateRange(btn.dataset.range));
+      });
+
+      document.getElementById('applyDateRange').addEventListener('click', () => {
+        startDate = new Date(document.getElementById('startDate').value);
+        endDate = new Date(document.getElementById('endDate').value);
+        endDate.setHours(23, 59, 59, 999);
+        loadData();
+      });
+
+      // Tabs
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+        });
+      });
+
+      // Filters
+      document.getElementById('paymentStatusFilter').addEventListener('change', renderPayments);
+      document.getElementById('expenseCategoryFilter').addEventListener('change', renderExpenses);
+      document.getElementById('invoiceStatusFilter').addEventListener('change', renderInvoices);
+
+      // Expense Modal
+      document.getElementById('addExpenseBtn').addEventListener('click', openExpenseModal);
+      document.getElementById('addFirstExpenseBtn')?.addEventListener('click', openExpenseModal);
+      document.getElementById('closeExpenseModal').addEventListener('click', () => closeModal('expenseModal'));
+      document.getElementById('cancelExpenseBtn').addEventListener('click', () => closeModal('expenseModal'));
+      document.getElementById('saveExpenseBtn').addEventListener('click', saveExpense);
+      
+      document.getElementById('expenseRecurring').addEventListener('change', (e) => {
+        document.getElementById('recurringOptions').classList.toggle('hidden', !e.target.checked);
+      });
+
+      // Payment Modal
+      document.getElementById('closePaymentModal').addEventListener('click', () => closeModal('paymentModal'));
+      document.getElementById('cancelPaymentBtn').addEventListener('click', () => closeModal('paymentModal'));
+      document.getElementById('savePaymentBtn').addEventListener('click', savePayment);
+
+      // Invoice Modal
+      document.getElementById('createInvoiceBtn').addEventListener('click', openInvoiceModal);
+      document.getElementById('createFirstInvoiceBtn')?.addEventListener('click', openInvoiceModal);
+      document.getElementById('closeInvoiceModal').addEventListener('click', () => closeModal('invoiceModal'));
+      document.getElementById('cancelInvoiceBtn').addEventListener('click', () => closeModal('invoiceModal'));
+      document.getElementById('saveInvoiceBtn').addEventListener('click', saveInvoice);
+      document.getElementById('addInvoiceItemBtn').addEventListener('click', addInvoiceItem);
+      document.getElementById('invoiceClient').addEventListener('change', onClientSelect);
+
+      // Invoice Preview
+      document.getElementById('previewInvoiceBtn').addEventListener('click', () => {
+        // Quick preview based on form data
+        showToast('info', 'Preview', 'Save the invoice first to see full preview');
+      });
+      document.getElementById('closePreviewModal').addEventListener('click', () => closeModal('invoicePreviewModal'));
+      document.getElementById('closePreviewBtn').addEventListener('click', () => closeModal('invoicePreviewModal'));
+      document.getElementById('printInvoiceBtn').addEventListener('click', printInvoice);
+
+      // Modal backdrop
+      document.getElementById('modalBackdrop').addEventListener('click', closeAllModals);
+    }
+  </script>
+</body>
+</html>

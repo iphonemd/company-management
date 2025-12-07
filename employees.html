@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanPro - Employees</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🧹</div>
+        <span class="sidebar-title">CleanPro</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">
+            <span class="nav-item-icon">📊</span>
+            <span class="nav-item-text" data-i18n="dashboard">Dashboard</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="employees.html" class="nav-item active">
+            <span class="nav-item-icon">👥</span>
+            <span class="nav-item-text" data-i18n="employees">Employees</span>
+          </a>
+          <a href="clients.html" class="nav-item">
+            <span class="nav-item-icon">🏠</span>
+            <span class="nav-item-text" data-i18n="clients">Clients</span>
+          </a>
+          <a href="scheduling.html" class="nav-item">
+            <span class="nav-item-icon">📅</span>
+            <span class="nav-item-text" data-i18n="scheduling">Scheduling</span>
+          </a>
+          <a href="timeclock.html" class="nav-item">
+            <span class="nav-item-icon">⏱️</span>
+            <span class="nav-item-text" data-i18n="timeClock">Time Clock</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title" data-i18n="finances">Finance</div>
+          <a href="finances.html" class="nav-item">
+            <span class="nav-item-icon">💰</span>
+            <span class="nav-item-text" data-i18n="finances">Finances</span>
+          </a>
+          <a href="reports.html" class="nav-item">
+            <span class="nav-item-icon">📈</span>
+            <span class="nav-item-text" data-i18n="reports">Reports</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="audit-log.html" class="nav-item">
+            <span class="nav-item-icon">📋</span>
+            <span class="nav-item-text" data-i18n="auditLog">Audit Log</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebarUser">
+          <div class="sidebar-user-avatar" id="userAvatar">AD</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="userName">Admin</div>
+            <div class="sidebar-user-role" id="userRole">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <button class="header-menu-btn" id="menuToggle">☰</button>
+        
+        <div class="header-search">
+          <span class="header-search-icon">🔍</span>
+          <input type="text" class="header-search-input" placeholder="Search employees..." id="searchInput">
+        </div>
+
+        <div class="header-actions">
+          <button class="header-btn lang-toggle" id="langToggle">
+            🌐 <span id="langLabel">ES</span>
+          </button>
+          <button class="header-btn" id="logoutBtn" title="Logout">🚪</button>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <!-- Tabs -->
+        <div class="tabs mb-6">
+          <button class="tab active" data-tab="employees" data-i18n="employees">Employees</button>
+          <button class="tab" data-tab="teams" data-i18n="teams">Teams</button>
+        </div>
+
+        <!-- Employees Tab -->
+        <div class="tab-content active" id="employeesTab">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title" data-i18n="employeeList">Employee List</h1>
+              <p class="text-gray-500"><span id="employeeCount">0</span> <span data-i18n="totalEmployees">total employees</span></p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-primary" id="addEmployeeBtn">
+                <span>➕</span>
+                <span data-i18n="addEmployee">Add Employee</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="search-filters">
+            <div class="filter-group">
+              <button class="filter-btn active" data-filter="all" data-i18n="all">All</button>
+              <button class="filter-btn" data-filter="active" data-i18n="active">Active</button>
+              <button class="filter-btn" data-filter="inactive" data-i18n="inactive">Inactive</button>
+            </div>
+          </div>
+
+          <!-- Employees Table -->
+          <div class="card">
+            <div class="table-container">
+              <table class="table" id="employeesTable">
+                <thead>
+                  <tr>
+                    <th data-i18n="firstName">Name</th>
+                    <th data-i18n="phone">Phone</th>
+                    <th data-i18n="team">Team</th>
+                    <th data-i18n="hourlyRate">Hourly Rate</th>
+                    <th data-i18n="status">Status</th>
+                    <th data-i18n="actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="employeesBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Empty State -->
+            <div class="empty-state hidden" id="noEmployees">
+              <div class="empty-state-icon">👥</div>
+              <div class="empty-state-title" data-i18n="noEmployees">No employees found</div>
+              <p class="text-gray-500">Add your first employee to get started</p>
+              <button class="btn btn-primary mt-4" id="addFirstEmployeeBtn">
+                <span>➕</span>
+                <span data-i18n="addEmployee">Add Employee</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Teams Tab -->
+        <div class="tab-content" id="teamsTab">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title" data-i18n="teamList">Team List</h1>
+              <p class="text-gray-500"><span id="teamCount">0</span> <span data-i18n="teams">teams</span></p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-primary" id="addTeamBtn">
+                <span>➕</span>
+                <span data-i18n="addTeam">Add Team</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Teams Grid -->
+          <div class="grid grid-cols-3" id="teamsGrid">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Empty State -->
+          <div class="empty-state hidden" id="noTeams">
+            <div class="empty-state-icon">👥</div>
+            <div class="empty-state-title" data-i18n="noTeams">No teams found</div>
+            <p class="text-gray-500">Create teams to organize your employees</p>
+            <button class="btn btn-primary mt-4" id="addFirstTeamBtn">
+              <span>➕</span>
+              <span data-i18n="addTeam">Add Team</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div class="modal-backdrop" id="sidebarOverlay"></div>
+
+  <!-- Modal Backdrop -->
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+
+  <!-- Add/Edit Employee Modal -->
+  <div class="modal modal-lg" id="employeeModal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="employeeModalTitle" data-i18n="addEmployee">Add Employee</h3>
+      <button class="modal-close" id="closeEmployeeModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="employeeForm">
+        <input type="hidden" id="employeeId">
+        
+        <div class="grid grid-cols-2">
+          <div class="form-group">
+            <label class="form-label form-label-required" data-i18n="firstName">First Name</label>
+            <input type="text" class="form-input" id="empFirstName" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label form-label-required" data-i18n="lastName">Last Name</label>
+            <input type="text" class="form-input" id="empLastName" required>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2">
+          <div class="form-group">
+            <label class="form-label" data-i18n="phone">Phone</label>
+            <input type="tel" class="form-input" id="empPhone" placeholder="(555) 123-4567">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="email">Email</label>
+            <input type="email" class="form-input" id="empEmail" placeholder="employee@email.com">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2">
+          <div class="form-group">
+            <label class="form-label" data-i18n="hourlyRate">Hourly Rate</label>
+            <div class="input-group">
+              <span class="input-group-prepend">$</span>
+              <input type="number" class="form-input" id="empHourlyRate" step="0.01" min="0" placeholder="15.00">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="hireDate">Hire Date</label>
+            <input type="date" class="form-input" id="empHireDate">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="team">Team</label>
+          <select class="form-select" id="empTeam">
+            <option value="">No Team</option>
+            <!-- Populated by JS -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="toggle">
+            <input type="checkbox" class="toggle-input" id="empIsActive" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-label" data-i18n="active">Active</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="notes">Notes</label>
+          <textarea class="form-input" id="empNotes" rows="3" placeholder="Any additional notes..."></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelEmployeeBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveEmployeeBtn" data-i18n="save">Save</button>
+    </div>
+  </div>
+
+  <!-- Add/Edit Team Modal -->
+  <div class="modal modal-lg" id="teamModal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="teamModalTitle" data-i18n="addTeam">Add Team</h3>
+      <button class="modal-close" id="closeTeamModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="teamForm">
+        <input type="hidden" id="teamId">
+        
+        <div class="form-group">
+          <label class="form-label form-label-required" data-i18n="teamName">Team Name</label>
+          <input type="text" class="form-input" id="teamName" required placeholder="Team Alpha">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="teamLeader">Team Leader</label>
+          <select class="form-select" id="teamLeader">
+            <option value="">Select Leader</option>
+            <!-- Populated by JS -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="teamMembers">Team Members</label>
+          <div class="card" style="max-height: 250px; overflow-y: auto;">
+            <div class="card-body" id="teamMembersList">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+          <p class="form-helper">Select 3-4 employees for this team</p>
+        </div>
+
+        <div class="form-group">
+          <label class="toggle">
+            <input type="checkbox" class="toggle-input" id="teamIsActive" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-label" data-i18n="active">Active</span>
+          </label>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelTeamBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveTeamBtn" data-i18n="save">Save</button>
+    </div>
+  </div>
+
+  <!-- View Employee Modal -->
+  <div class="modal modal-lg" id="viewEmployeeModal">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="employeeDetails">Employee Details</h3>
+      <button class="modal-close" id="closeViewEmployeeModal">✕</button>
+    </div>
+    <div class="modal-body" id="viewEmployeeContent">
+      <!-- Populated by JS -->
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="closeViewEmployeeBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-primary" id="editFromViewBtn" data-i18n="edit">Edit</button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script type="module">
+    import { 
+      auth, db, onAuthStateChanged, signOut,
+      collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, 
+      query, where, orderBy, Timestamp
+    } from './js/firebase-config.js';
+    import { i18n } from './js/i18n.js';
+    import { 
+      showToast, openModal, closeModal, closeAllModals,
+      formatPhone, formatCurrency, formatDate, getInitials,
+      confirmDialog, debounce, filterBySearch, sortByField
+    } from './js/utils.js';
+    import { logEmployeeAction, logTeamAction, AuditActions, trackChanges } from './js/audit.js';
+
+    // ============================================
+    // STATE
+    // ============================================
+    let currentUser = null;
+    let currentAdmin = null;
+    let employees = [];
+    let teams = [];
+    let currentFilter = 'all';
+    let currentSearch = '';
+    let editingEmployeeId = null;
+    let editingTeamId = null;
+
+    // ============================================
+    // AUTHENTICATION CHECK
+    // ============================================
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        try {
+          const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+          if (adminDoc.exists()) {
+            currentAdmin = { id: adminDoc.id, ...adminDoc.data() };
+            initializePage();
+          } else {
+            window.location.href = 'index.html';
+          }
+        } catch (error) {
+          console.error('Error fetching admin:', error);
+          window.location.href = 'index.html';
+        }
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // ============================================
+    // INITIALIZE PAGE
+    // ============================================
+    async function initializePage() {
+      // Set user info in sidebar
+      document.getElementById('userName').textContent = currentAdmin.name;
+      document.getElementById('userAvatar').textContent = getInitials(
+        currentAdmin.name.split(' ')[0], 
+        currentAdmin.name.split(' ')[1] || ''
+      );
+
+      // Initialize language
+      updateLanguage();
+      i18n.updatePageTranslations();
+
+      // Load data
+      await loadTeams();
+      await loadEmployees();
+
+      // Setup event listeners
+      setupEventListeners();
+
+      // Check URL params for actions
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('action') === 'add') {
+        openAddEmployeeModal();
+      }
+    }
+
+    // ============================================
+    // LOAD DATA
+    // ============================================
+    async function loadEmployees() {
+      try {
+        const employeesRef = collection(db, 'employees');
+        const q = query(employeesRef, orderBy('firstName'));
+        const snapshot = await getDocs(q);
+        
+        employees = [];
+        snapshot.forEach(doc => {
+          employees.push({ id: doc.id, ...doc.data() });
+        });
+
+        document.getElementById('employeeCount').textContent = employees.length;
+        renderEmployees();
+        populateTeamLeaderSelect();
+        populateTeamMembersList();
+      } catch (error) {
+        console.error('Error loading employees:', error);
+        showToast('error', i18n.t('error'), 'Failed to load employees');
+      }
+    }
+
+    async function loadTeams() {
+      try {
+        const teamsRef = collection(db, 'teams');
+        const q = query(teamsRef, orderBy('name'));
+        const snapshot = await getDocs(q);
+        
+        teams = [];
+        snapshot.forEach(doc => {
+          teams.push({ id: doc.id, ...doc.data() });
+        });
+
+        document.getElementById('teamCount').textContent = teams.length;
+        renderTeams();
+        populateEmployeeTeamSelect();
+      } catch (error) {
+        console.error('Error loading teams:', error);
+        showToast('error', i18n.t('error'), 'Failed to load teams');
+      }
+    }
+
+    // ============================================
+    // RENDER EMPLOYEES
+    // ============================================
+    function renderEmployees() {
+      let filteredEmployees = [...employees];
+
+      // Apply status filter
+      if (currentFilter === 'active') {
+        filteredEmployees = filteredEmployees.filter(e => e.isActive);
+      } else if (currentFilter === 'inactive') {
+        filteredEmployees = filteredEmployees.filter(e => !e.isActive);
+      }
+
+      // Apply search
+      if (currentSearch) {
+        filteredEmployees = filterBySearch(filteredEmployees, currentSearch, 
+          ['firstName', 'lastName', 'phone', 'email']);
+      }
+
+      const tbody = document.getElementById('employeesBody');
+      const noEmployees = document.getElementById('noEmployees');
+      const table = document.getElementById('employeesTable');
+
+      if (filteredEmployees.length === 0) {
+        table.classList.add('hidden');
+        noEmployees.classList.remove('hidden');
+        return;
+      }
+
+      table.classList.remove('hidden');
+      noEmployees.classList.add('hidden');
+
+      tbody.innerHTML = filteredEmployees.map(emp => {
+        const team = teams.find(t => t.id === emp.teamId);
+        const isLeader = team && team.leaderId === emp.id;
+        
+        return `
+          <tr data-id="${emp.id}">
+            <td>
+              <div class="flex items-center gap-3">
+                <div class="avatar" style="background-color: ${getAvatarColor(emp.firstName + emp.lastName)}">
+                  ${getInitials(emp.firstName, emp.lastName)}
+                </div>
+                <div>
+                  <div class="font-semibold">${emp.firstName} ${emp.lastName}</div>
+                  <div class="text-sm text-gray-500">${emp.email || ''}</div>
+                </div>
+              </div>
+            </td>
+            <td>${formatPhone(emp.phone) || '-'}</td>
+            <td>
+              ${team ? `
+                <span class="badge badge-primary">${team.name}</span>
+                ${isLeader ? '<span class="badge badge-warning ml-1">Leader</span>' : ''}
+              ` : '<span class="text-gray-400">-</span>'}
+            </td>
+            <td>${emp.hourlyRate ? formatCurrency(emp.hourlyRate) + '/hr' : '-'}</td>
+            <td>
+              <span class="status-badge ${emp.isActive ? 'active' : 'inactive'}">
+                ${emp.isActive ? i18n.t('active') : i18n.t('inactive')}
+              </span>
+            </td>
+            <td>
+              <div class="table-actions">
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="viewEmployee('${emp.id}')" title="View">👁️</button>
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="editEmployee('${emp.id}')" title="Edit">✏️</button>
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteEmployee('${emp.id}')" title="Delete">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ============================================
+    // RENDER TEAMS
+    // ============================================
+    function renderTeams() {
+      const grid = document.getElementById('teamsGrid');
+      const noTeams = document.getElementById('noTeams');
+
+      if (teams.length === 0) {
+        grid.classList.add('hidden');
+        noTeams.classList.remove('hidden');
+        return;
+      }
+
+      grid.classList.remove('hidden');
+      noTeams.classList.add('hidden');
+
+      grid.innerHTML = teams.map(team => {
+        const teamMembers = employees.filter(e => e.teamId === team.id);
+        const leader = employees.find(e => e.id === team.leaderId);
+        
+        return `
+          <div class="card">
+            <div class="card-header">
+              <h4 class="card-title">${team.name}</h4>
+              <span class="status-badge ${team.isActive ? 'active' : 'inactive'}">
+                ${team.isActive ? i18n.t('active') : i18n.t('inactive')}
+              </span>
+            </div>
+            <div class="card-body">
+              ${leader ? `
+                <div class="mb-4">
+                  <div class="text-sm text-gray-500 mb-1">${i18n.t('teamLeader')}</div>
+                  <div class="flex items-center gap-2">
+                    <div class="avatar avatar-sm" style="background-color: ${getAvatarColor(leader.firstName + leader.lastName)}">
+                      ${getInitials(leader.firstName, leader.lastName)}
+                    </div>
+                    <span class="font-semibold">${leader.firstName} ${leader.lastName}</span>
+                  </div>
+                </div>
+              ` : ''}
+              
+              <div class="text-sm text-gray-500 mb-2">${i18n.t('teamMembers')} (${teamMembers.length})</div>
+              <div class="flex flex-wrap gap-2">
+                ${teamMembers.length > 0 ? teamMembers.map(m => `
+                  <div class="avatar avatar-sm" style="background-color: ${getAvatarColor(m.firstName + m.lastName)}" title="${m.firstName} ${m.lastName}">
+                    ${getInitials(m.firstName, m.lastName)}
+                  </div>
+                `).join('') : '<span class="text-gray-400">No members</span>'}
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="flex justify-end gap-2">
+                <button class="btn btn-ghost btn-sm" onclick="editTeam('${team.id}')">
+                  ✏️ ${i18n.t('edit')}
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="deleteTeam('${team.id}')">
+                  🗑️ ${i18n.t('delete')}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ============================================
+    // EMPLOYEE CRUD OPERATIONS
+    // ============================================
+    function openAddEmployeeModal() {
+      editingEmployeeId = null;
+      document.getElementById('employeeModalTitle').textContent = i18n.t('addEmployee');
+      document.getElementById('employeeForm').reset();
+      document.getElementById('empIsActive').checked = true;
+      document.getElementById('empHireDate').value = new Date().toISOString().split('T')[0];
+      populateEmployeeTeamSelect();
+      openModal('employeeModal');
+    }
+
+    window.editEmployee = async function(id) {
+      editingEmployeeId = id;
+      const emp = employees.find(e => e.id === id);
+      if (!emp) return;
+
+      document.getElementById('employeeModalTitle').textContent = i18n.t('editEmployee');
+      document.getElementById('employeeId').value = id;
+      document.getElementById('empFirstName').value = emp.firstName || '';
+      document.getElementById('empLastName').value = emp.lastName || '';
+      document.getElementById('empPhone').value = emp.phone || '';
+      document.getElementById('empEmail').value = emp.email || '';
+      document.getElementById('empHourlyRate').value = emp.hourlyRate || '';
+      document.getElementById('empHireDate').value = emp.hireDate ? 
+        (emp.hireDate.toDate ? emp.hireDate.toDate().toISOString().split('T')[0] : emp.hireDate) : '';
+      document.getElementById('empTeam').value = emp.teamId || '';
+      document.getElementById('empIsActive').checked = emp.isActive !== false;
+      document.getElementById('empNotes').value = emp.notes || '';
+
+      populateEmployeeTeamSelect(emp.teamId);
+      openModal('employeeModal');
+    };
+
+    window.viewEmployee = async function(id) {
+      const emp = employees.find(e => e.id === id);
+      if (!emp) return;
+
+      const team = teams.find(t => t.id === emp.teamId);
+      const isLeader = team && team.leaderId === emp.id;
+
+      document.getElementById('viewEmployeeContent').innerHTML = `
+        <div class="flex items-start gap-6 mb-6">
+          <div class="avatar avatar-lg" style="background-color: ${getAvatarColor(emp.firstName + emp.lastName)}">
+            ${getInitials(emp.firstName, emp.lastName)}
+          </div>
+          <div>
+            <h2 class="text-2xl font-semibold">${emp.firstName} ${emp.lastName}</h2>
+            <div class="flex gap-2 mt-2">
+              <span class="status-badge ${emp.isActive ? 'active' : 'inactive'}">
+                ${emp.isActive ? i18n.t('active') : i18n.t('inactive')}
+              </span>
+              ${isLeader ? '<span class="badge badge-warning">Team Leader</span>' : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6">
+          <div>
+            <div class="text-sm text-gray-500">${i18n.t('phone')}</div>
+            <div class="font-semibold">${formatPhone(emp.phone) || '-'}</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-500">${i18n.t('email')}</div>
+            <div class="font-semibold">${emp.email || '-'}</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-500">${i18n.t('hourlyRate')}</div>
+            <div class="font-semibold">${emp.hourlyRate ? formatCurrency(emp.hourlyRate) + '/hr' : '-'}</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-500">${i18n.t('hireDate')}</div>
+            <div class="font-semibold">${emp.hireDate ? formatDate(emp.hireDate.toDate ? emp.hireDate.toDate() : emp.hireDate) : '-'}</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-500">${i18n.t('team')}</div>
+            <div class="font-semibold">${team ? team.name : '-'}</div>
+          </div>
+        </div>
+
+        ${emp.notes ? `
+          <div class="mt-6">
+            <div class="text-sm text-gray-500">${i18n.t('notes')}</div>
+            <div class="mt-1">${emp.notes}</div>
+          </div>
+        ` : ''}
+      `;
+
+      document.getElementById('editFromViewBtn').onclick = () => {
+        closeModal('viewEmployeeModal');
+        editEmployee(id);
+      };
+
+      openModal('viewEmployeeModal');
+    };
+
+    async function saveEmployee() {
+      const firstName = document.getElementById('empFirstName').value.trim();
+      const lastName = document.getElementById('empLastName').value.trim();
+
+      if (!firstName || !lastName) {
+        showToast('error', i18n.t('error'), i18n.t('required'));
+        return;
+      }
+
+      const employeeData = {
+        firstName,
+        lastName,
+        phone: document.getElementById('empPhone').value.trim(),
+        email: document.getElementById('empEmail').value.trim(),
+        hourlyRate: parseFloat(document.getElementById('empHourlyRate').value) || 0,
+        hireDate: document.getElementById('empHireDate').value || null,
+        teamId: document.getElementById('empTeam').value || null,
+        isActive: document.getElementById('empIsActive').checked,
+        notes: document.getElementById('empNotes').value.trim(),
+        updatedAt: Timestamp.now()
+      };
+
+      try {
+        if (editingEmployeeId) {
+          // Update existing employee
+          const oldData = employees.find(e => e.id === editingEmployeeId);
+          await updateDoc(doc(db, 'employees', editingEmployeeId), employeeData);
+          
+          const changes = trackChanges(oldData, employeeData, 
+            ['firstName', 'lastName', 'phone', 'email', 'hourlyRate', 'teamId', 'isActive']);
+          await logEmployeeAction(AuditActions.UPDATE, editingEmployeeId, 
+            `${firstName} ${lastName}`, changes);
+          
+          showToast('success', i18n.t('success'), i18n.t('employeeUpdated'));
+        } else {
+          // Create new employee
+          employeeData.createdAt = Timestamp.now();
+          const docRef = await addDoc(collection(db, 'employees'), employeeData);
+          
+          await logEmployeeAction(AuditActions.CREATE, docRef.id, `${firstName} ${lastName}`);
+          showToast('success', i18n.t('success'), i18n.t('employeeAdded'));
+        }
+
+        closeModal('employeeModal');
+        await loadEmployees();
+      } catch (error) {
+        console.error('Error saving employee:', error);
+        showToast('error', i18n.t('error'), 'Failed to save employee');
+      }
+    }
+
+    window.deleteEmployee = async function(id) {
+      const emp = employees.find(e => e.id === id);
+      if (!emp) return;
+
+      const confirmed = await confirmDialog(
+        i18n.t('delete'),
+        i18n.t('confirmDeleteEmployee'),
+        i18n.t('delete'),
+        i18n.t('cancel')
+      );
+
+      if (!confirmed) return;
+
+      try {
+        await deleteDoc(doc(db, 'employees', id));
+        await logEmployeeAction(AuditActions.DELETE, id, `${emp.firstName} ${emp.lastName}`);
+        showToast('success', i18n.t('success'), i18n.t('employeeDeleted'));
+        await loadEmployees();
+      } catch (error) {
+        console.error('Error deleting employee:', error);
+        showToast('error', i18n.t('error'), 'Failed to delete employee');
+      }
+    };
+
+    // ============================================
+    // TEAM CRUD OPERATIONS
+    // ============================================
+    function openAddTeamModal() {
+      editingTeamId = null;
+      document.getElementById('teamModalTitle').textContent = i18n.t('addTeam');
+      document.getElementById('teamForm').reset();
+      document.getElementById('teamIsActive').checked = true;
+      populateTeamLeaderSelect();
+      populateTeamMembersList();
+      openModal('teamModal');
+    }
+
+    window.editTeam = async function(id) {
+      editingTeamId = id;
+      const team = teams.find(t => t.id === id);
+      if (!team) return;
+
+      document.getElementById('teamModalTitle').textContent = i18n.t('editTeam');
+      document.getElementById('teamId').value = id;
+      document.getElementById('teamName').value = team.name || '';
+      document.getElementById('teamLeader').value = team.leaderId || '';
+      document.getElementById('teamIsActive').checked = team.isActive !== false;
+
+      populateTeamLeaderSelect(team.leaderId);
+      populateTeamMembersList(team.memberIds || []);
+      openModal('teamModal');
+    };
+
+    async function saveTeam() {
+      const name = document.getElementById('teamName').value.trim();
+
+      if (!name) {
+        showToast('error', i18n.t('error'), i18n.t('required'));
+        return;
+      }
+
+      // Get selected members
+      const memberCheckboxes = document.querySelectorAll('#teamMembersList input[type="checkbox"]:checked');
+      const memberIds = Array.from(memberCheckboxes).map(cb => cb.value);
+
+      const teamData = {
+        name,
+        leaderId: document.getElementById('teamLeader').value || null,
+        memberIds,
+        isActive: document.getElementById('teamIsActive').checked,
+        updatedAt: Timestamp.now()
+      };
+
+      try {
+        if (editingTeamId) {
+          // Update existing team
+          const oldData = teams.find(t => t.id === editingTeamId);
+          await updateDoc(doc(db, 'teams', editingTeamId), teamData);
+          
+          // Update employees' teamId
+          await updateEmployeeTeams(editingTeamId, memberIds);
+          
+          const changes = trackChanges(oldData, teamData, ['name', 'leaderId', 'isActive']);
+          await logTeamAction(AuditActions.UPDATE, editingTeamId, name, changes);
+          
+          showToast('success', i18n.t('success'), i18n.t('teamUpdated'));
+        } else {
+          // Create new team
+          teamData.createdAt = Timestamp.now();
+          const docRef = await addDoc(collection(db, 'teams'), teamData);
+          
+          // Update employees' teamId
+          await updateEmployeeTeams(docRef.id, memberIds);
+          
+          await logTeamAction(AuditActions.CREATE, docRef.id, name);
+          showToast('success', i18n.t('success'), i18n.t('teamCreated'));
+        }
+
+        closeModal('teamModal');
+        await loadTeams();
+        await loadEmployees();
+      } catch (error) {
+        console.error('Error saving team:', error);
+        showToast('error', i18n.t('error'), 'Failed to save team');
+      }
+    }
+
+    async function updateEmployeeTeams(teamId, memberIds) {
+      // Remove team from employees no longer in the team
+      const previousMembers = employees.filter(e => e.teamId === teamId);
+      for (const emp of previousMembers) {
+        if (!memberIds.includes(emp.id)) {
+          await updateDoc(doc(db, 'employees', emp.id), { teamId: null });
+        }
+      }
+
+      // Add team to new members
+      for (const memberId of memberIds) {
+        await updateDoc(doc(db, 'employees', memberId), { teamId });
+      }
+    }
+
+    window.deleteTeam = async function(id) {
+      const team = teams.find(t => t.id === id);
+      if (!team) return;
+
+      const confirmed = await confirmDialog(
+        i18n.t('delete'),
+        i18n.t('confirmDeleteTeam'),
+        i18n.t('delete'),
+        i18n.t('cancel')
+      );
+
+      if (!confirmed) return;
+
+      try {
+        // Remove team reference from employees
+        const teamMembers = employees.filter(e => e.teamId === id);
+        for (const emp of teamMembers) {
+          await updateDoc(doc(db, 'employees', emp.id), { teamId: null });
+        }
+
+        await deleteDoc(doc(db, 'teams', id));
+        await logTeamAction(AuditActions.DELETE, id, team.name);
+        showToast('success', i18n.t('success'), i18n.t('teamDeleted'));
+        await loadTeams();
+        await loadEmployees();
+      } catch (error) {
+        console.error('Error deleting team:', error);
+        showToast('error', i18n.t('error'), 'Failed to delete team');
+      }
+    };
+
+    // ============================================
+    // POPULATE SELECTS
+    // ============================================
+    function populateEmployeeTeamSelect(selectedId = '') {
+      const select = document.getElementById('empTeam');
+      select.innerHTML = `<option value="">${i18n.t('noTeam')}</option>` +
+        teams.filter(t => t.isActive).map(t => 
+          `<option value="${t.id}" ${t.id === selectedId ? 'selected' : ''}>${t.name}</option>`
+        ).join('');
+    }
+
+    function populateTeamLeaderSelect(selectedId = '') {
+      const select = document.getElementById('teamLeader');
+      select.innerHTML = `<option value="">Select Leader</option>` +
+        employees.filter(e => e.isActive).map(e => 
+          `<option value="${e.id}" ${e.id === selectedId ? 'selected' : ''}>${e.firstName} ${e.lastName}</option>`
+        ).join('');
+    }
+
+    function populateTeamMembersList(selectedIds = []) {
+      const container = document.getElementById('teamMembersList');
+      container.innerHTML = employees.filter(e => e.isActive).map(e => `
+        <label class="form-check" style="padding: 8px 0; border-bottom: 1px solid var(--gray-100);">
+          <input type="checkbox" class="form-check-input" value="${e.id}" 
+            ${selectedIds.includes(e.id) ? 'checked' : ''}>
+          <span class="form-check-label">
+            <span class="font-semibold">${e.firstName} ${e.lastName}</span>
+            ${e.teamId && e.teamId !== editingTeamId ? 
+              `<span class="text-sm text-gray-500 ml-2">(${teams.find(t => t.id === e.teamId)?.name || ''})</span>` : ''}
+          </span>
+        </label>
+      `).join('');
+    }
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    function getAvatarColor(name) {
+      const colors = ['#0d9488', '#f97316', '#8b5cf6', '#ec4899', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
+    }
+
+    function updateLanguage() {
+      const lang = i18n.getLanguage();
+      document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN';
+      i18n.updatePageTranslations();
+    }
+
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    function setupEventListeners() {
+      // Mobile menu toggle
+      document.getElementById('menuToggle').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+      });
+
+      document.getElementById('sidebarOverlay').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+      });
+
+      // Language toggle
+      document.getElementById('langToggle').addEventListener('click', () => {
+        i18n.toggleLanguage();
+        updateLanguage();
+        renderEmployees();
+        renderTeams();
+      });
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await signOut(auth);
+        window.location.href = 'index.html';
+      });
+
+      // Tabs
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          
+          tab.classList.add('active');
+          document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+        });
+      });
+
+      // Filter buttons
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilter = btn.dataset.filter;
+          renderEmployees();
+        });
+      });
+
+      // Search
+      document.getElementById('searchInput').addEventListener('input', debounce((e) => {
+        currentSearch = e.target.value;
+        renderEmployees();
+      }, 300));
+
+      // Add Employee buttons
+      document.getElementById('addEmployeeBtn').addEventListener('click', openAddEmployeeModal);
+      document.getElementById('addFirstEmployeeBtn').addEventListener('click', openAddEmployeeModal);
+
+      // Add Team buttons
+      document.getElementById('addTeamBtn').addEventListener('click', openAddTeamModal);
+      document.getElementById('addFirstTeamBtn').addEventListener('click', openAddTeamModal);
+
+      // Employee Modal
+      document.getElementById('closeEmployeeModal').addEventListener('click', () => closeModal('employeeModal'));
+      document.getElementById('cancelEmployeeBtn').addEventListener('click', () => closeModal('employeeModal'));
+      document.getElementById('saveEmployeeBtn').addEventListener('click', saveEmployee);
+
+      // Team Modal
+      document.getElementById('closeTeamModal').addEventListener('click', () => closeModal('teamModal'));
+      document.getElementById('cancelTeamBtn').addEventListener('click', () => closeModal('teamModal'));
+      document.getElementById('saveTeamBtn').addEventListener('click', saveTeam);
+
+      // View Employee Modal
+      document.getElementById('closeViewEmployeeModal').addEventListener('click', () => closeModal('viewEmployeeModal'));
+      document.getElementById('closeViewEmployeeBtn').addEventListener('click', () => closeModal('viewEmployeeModal'));
+
+      // Modal backdrop
+      document.getElementById('modalBackdrop').addEventListener('click', closeAllModals);
+
+      // Enter key on forms
+      document.getElementById('employeeForm').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveEmployee();
+        }
+      });
+
+      document.getElementById('teamForm').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveTeam();
+        }
+      });
+    }
+  </script>
+</body>
+</html>
