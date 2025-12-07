@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="css/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
   <style>
-    /* Mobile-optimized time clock styles */
     .timeclock-layout {
       min-height: 100vh;
       background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%);
@@ -54,7 +53,6 @@
       padding: 0 var(--space-4) var(--space-6);
     }
     
-    /* Current Time Display */
     .current-time-card {
       background: rgba(255,255,255,0.15);
       backdrop-filter: blur(10px);
@@ -84,7 +82,6 @@
       vertical-align: super;
     }
     
-    /* Status Card */
     .status-card {
       background: white;
       border-radius: var(--radius-2xl);
@@ -155,7 +152,6 @@
       color: var(--primary-600);
     }
     
-    /* Clock Button */
     .clock-btn-container {
       display: flex;
       justify-content: center;
@@ -197,7 +193,6 @@
       font-size: 3rem;
     }
     
-    /* Current Job Card */
     .current-job-card {
       background: linear-gradient(135deg, var(--warning-50) 0%, var(--warning-100) 100%);
       border: 2px solid var(--warning-300);
@@ -267,7 +262,6 @@
       border: 1px solid var(--gray-300);
     }
     
-    /* Today's Schedule */
     .schedule-card {
       background: white;
       border-radius: var(--radius-2xl);
@@ -313,7 +307,7 @@
       transition: background var(--transition-fast);
     }
     
-    .schedule-item:hover {
+    .schedule-item:hover:not(.completed):not(.active):not(.cancelled) {
       background: var(--gray-50);
     }
     
@@ -322,12 +316,20 @@
     }
     
     .schedule-item.completed {
-      opacity: 0.6;
+      opacity: 0.5;
+      background: var(--gray-50);
+      cursor: not-allowed;
     }
     
     .schedule-item.active {
       background: var(--warning-50);
       border-left: 4px solid var(--warning-500);
+    }
+    
+    .schedule-item.cancelled {
+      opacity: 0.4;
+      text-decoration: line-through;
+      cursor: not-allowed;
     }
     
     .schedule-time {
@@ -359,6 +361,12 @@
       color: var(--gray-500);
     }
     
+    .schedule-door-code {
+      font-size: var(--text-xs);
+      color: var(--primary-600);
+      margin-top: 2px;
+    }
+    
     .schedule-status {
       display: flex;
       flex-direction: column;
@@ -371,7 +379,6 @@
       color: var(--primary-600);
     }
     
-    /* Team Member Selection */
     .team-card {
       background: white;
       border-radius: var(--radius-2xl);
@@ -393,17 +400,6 @@
       padding: var(--space-3);
       border-radius: var(--radius-lg);
       margin-bottom: var(--space-2);
-      cursor: pointer;
-      transition: background var(--transition-fast);
-    }
-    
-    .team-member:hover {
-      background: var(--gray-50);
-    }
-    
-    .team-member.selected {
-      background: var(--primary-50);
-      border: 2px solid var(--primary-500);
     }
     
     .team-member-avatar {
@@ -442,7 +438,6 @@
       background: var(--success-500);
     }
     
-    /* Empty State */
     .empty-schedule {
       text-align: center;
       padding: var(--space-8);
@@ -454,7 +449,6 @@
       margin-bottom: var(--space-3);
     }
     
-    /* Start Job Modal Specific */
     .job-details-preview {
       background: var(--gray-50);
       border-radius: var(--radius-lg);
@@ -470,6 +464,12 @@
     
     .job-preview-address {
       color: var(--gray-600);
+      margin-bottom: var(--space-2);
+    }
+    
+    .job-preview-door-code {
+      color: var(--primary-600);
+      font-weight: 600;
       margin-bottom: var(--space-3);
     }
     
@@ -486,7 +486,23 @@
       font-size: var(--text-sm);
     }
     
-    /* Time Entry History */
+    .job-preview-addons {
+      margin-top: var(--space-3);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--gray-200);
+    }
+    
+    .job-preview-addon {
+      display: inline-block;
+      background: var(--warning-100);
+      color: var(--warning-700);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-size: var(--text-xs);
+      margin-right: var(--space-2);
+      margin-bottom: var(--space-1);
+    }
+    
     .history-item {
       display: flex;
       justify-content: space-between;
@@ -536,7 +552,6 @@
       color: var(--gray-500);
     }
     
-    /* Navigation tabs at bottom */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -576,12 +591,42 @@
       font-size: var(--text-xl);
     }
     
-    /* Add padding to content for bottom nav */
     .timeclock-content {
       padding-bottom: 100px;
     }
     
-    /* Desktop sidebar toggle */
+    .admin-only {
+      display: none;
+    }
+    
+    .is-admin .admin-only {
+      display: block;
+    }
+    
+    .admin-controls {
+      background: white;
+      border-radius: var(--radius-2xl);
+      padding: var(--space-5);
+      margin-bottom: var(--space-4);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .admin-controls-title {
+      font-weight: 700;
+      font-size: var(--text-lg);
+      margin-bottom: var(--space-4);
+      color: var(--primary-700);
+    }
+    
+    .debug-info {
+      background: rgba(255,255,255,0.1);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2);
+      font-size: var(--text-xs);
+      color: rgba(255,255,255,0.7);
+      margin-bottom: var(--space-2);
+    }
+    
     @media (min-width: 768px) {
       .timeclock-layout {
         display: flex;
@@ -604,10 +649,8 @@
   </style>
 </head>
 <body>
-  <div class="timeclock-layout">
-    <!-- Main Time Clock Interface -->
+  <div class="timeclock-layout" id="mainLayout">
     <div class="timeclock-main">
-      <!-- Header -->
       <header class="timeclock-header">
         <div class="timeclock-logo">
           <span>🧹</span>
@@ -620,9 +663,14 @@
         </div>
       </header>
 
-      <!-- Content -->
       <div class="timeclock-content">
-        <!-- Current Time -->
+        <div class="current-time-card" style="padding: var(--space-3); margin-bottom: var(--space-3);">
+          <div id="teamBanner" style="font-size: var(--text-lg); font-weight: 600;"></div>
+        </div>
+
+        <!-- Debug info for date -->
+        <div class="debug-info" id="debugInfo"></div>
+
         <div class="current-time-card">
           <div class="current-date" id="currentDate">Thursday, December 5, 2024</div>
           <div class="current-time">
@@ -631,7 +679,6 @@
           </div>
         </div>
 
-        <!-- Status Card -->
         <div class="status-card">
           <div class="status-header">
             <div class="status-indicator">
@@ -644,16 +691,14 @@
             </div>
           </div>
 
-          <!-- Clock In/Out Button -->
           <div class="clock-btn-container">
             <button class="clock-btn clock-in" id="clockBtn">
-              <span class="clock-btn-icon">▶</span>
+              <span class="clock-btn-icon">▶️</span>
               <span data-i18n="clockIn">Clock In</span>
             </button>
           </div>
         </div>
 
-        <!-- Current Job (shown when working on a job) -->
         <div class="current-job-card hidden" id="currentJobCard">
           <div class="current-job-header">
             <div class="current-job-label">🏠 Currently Working</div>
@@ -663,18 +708,16 @@
           <div class="current-job-address" id="currentJobAddress">123 Oak Street, Springfield</div>
           <div class="current-job-actions">
             <button class="job-action-btn pause" id="pauseJobBtn">⏸️ Pause</button>
-            <button class="job-action-btn complete" id="completeJobBtn">✓ Complete</button>
+            <button class="job-action-btn complete" id="completeJobBtn">✔ Complete</button>
           </div>
         </div>
 
-        <!-- Today's Schedule -->
         <div class="schedule-card">
           <div class="schedule-header">
             <div class="schedule-title" data-i18n="todaySchedule">Today's Schedule</div>
             <div class="schedule-count" id="scheduleCount">0 jobs</div>
           </div>
           <div class="schedule-list" id="scheduleList">
-            <!-- Populated by JS -->
             <div class="empty-schedule" id="emptySchedule">
               <div class="empty-schedule-icon">📅</div>
               <div>No jobs scheduled for today</div>
@@ -682,37 +725,41 @@
           </div>
         </div>
 
-        <!-- Team Members (if team leader) -->
+        <div class="admin-controls admin-only" id="adminControls">
+          <div class="admin-controls-title">🔧 Admin Controls</div>
+          <div class="form-group">
+            <label class="form-label">View Team</label>
+            <select class="form-select" id="adminTeamFilter">
+              <option value="">All Teams</option>
+            </select>
+          </div>
+        </div>
+
         <div class="team-card hidden" id="teamCard">
           <div class="team-title">👥 Team Members</div>
-          <div id="teamMembersList">
-            <!-- Populated by JS -->
-          </div>
+          <div id="teamMembersList"></div>
         </div>
       </div>
     </div>
 
-    <!-- Bottom Navigation (Mobile) -->
-    <nav class="bottom-nav">
+    <nav class="bottom-nav" id="bottomNav">
       <a href="timeclock.html" class="bottom-nav-item active">
         <span class="bottom-nav-icon">⏱️</span>
         <span>Time Clock</span>
       </a>
-      <a href="scheduling.html" class="bottom-nav-item">
+      <a href="scheduling.html" class="bottom-nav-item admin-only">
         <span class="bottom-nav-icon">📅</span>
         <span>Schedule</span>
       </a>
-      <a href="dashboard.html" class="bottom-nav-item">
+      <a href="dashboard.html" class="bottom-nav-item admin-only">
         <span class="bottom-nav-icon">📊</span>
         <span>Dashboard</span>
       </a>
     </nav>
   </div>
 
-  <!-- Modal Backdrop -->
   <div class="modal-backdrop" id="modalBackdrop"></div>
 
-  <!-- Start Job Modal -->
   <div class="modal" id="startJobModal">
     <div class="modal-header">
       <h3 class="modal-title" data-i18n="startJob">Start Job</h3>
@@ -722,11 +769,8 @@
       <div class="job-details-preview" id="jobPreview">
         <div class="job-preview-client" id="previewClient">Client Name</div>
         <div class="job-preview-address" id="previewAddress">Address</div>
+        <div class="job-preview-door-code hidden" id="previewDoorCode">🔑 Door Code: </div>
         <div class="job-preview-details">
-          <div class="job-preview-detail">
-            <span>🏠</span>
-            <span id="previewService">Full House</span>
-          </div>
           <div class="job-preview-detail">
             <span>⏱️</span>
             <span id="previewDuration">2 hours</span>
@@ -736,13 +780,15 @@
             <span id="previewPrice">$150</span>
           </div>
         </div>
+        <div class="job-preview-addons hidden" id="previewAddons">
+          <strong>Add-ons:</strong>
+          <div id="previewAddonsList"></div>
+        </div>
       </div>
 
       <div class="form-group">
         <label class="form-label">Confirm Team Members Working</label>
-        <div id="jobTeamMembers">
-          <!-- Populated by JS -->
-        </div>
+        <div id="jobTeamMembers"></div>
       </div>
 
       <div class="form-group">
@@ -752,11 +798,10 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" id="cancelStartJobBtn" data-i18n="cancel">Cancel</button>
-      <button type="button" class="btn btn-success" id="confirmStartJobBtn">▶ Start Job</button>
+      <button type="button" class="btn btn-success" id="confirmStartJobBtn">▶️ Start Job</button>
     </div>
   </div>
 
-  <!-- Complete Job Modal -->
   <div class="modal" id="completeJobModal">
     <div class="modal-header">
       <h3 class="modal-title" data-i18n="completeJob">Complete Job</h3>
@@ -765,7 +810,7 @@
     <div class="modal-body">
       <div class="card mb-4" style="background: var(--success-50); border-color: var(--success-200);">
         <div class="card-body text-center">
-          <div class="text-4xl mb-2">✓</div>
+          <div class="text-4xl mb-2">✔</div>
           <div class="font-semibold" id="completeJobClient">Johnson Family</div>
           <div class="text-gray-500" id="completeJobAddress">123 Oak Street</div>
           <div class="mt-3">
@@ -774,30 +819,9 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" data-i18n="serviceCompleted">Service Completed</label>
-        <select class="form-select" id="completeServiceType">
-          <option value="full">Full House</option>
-          <option value="half">Half House</option>
-        </select>
-      </div>
-
-      <div class="form-group">
+      <div class="form-group" id="completedAddonsGroup" style="display: none;">
         <label class="form-label">Add-ons Completed</label>
-        <div class="flex gap-4">
-          <label class="form-check">
-            <input type="checkbox" class="form-check-input" id="completedBasement" value="basement">
-            <span class="form-check-label">Basement</span>
-          </label>
-          <label class="form-check">
-            <input type="checkbox" class="form-check-input" id="completedGarage" value="garage">
-            <span class="form-check-label">Garage</span>
-          </label>
-          <label class="form-check">
-            <input type="checkbox" class="form-check-input" id="completedAttic" value="attic">
-            <span class="form-check-label">Attic</span>
-          </label>
-        </div>
+        <div id="completedAddonsList"></div>
       </div>
 
       <div class="form-group">
@@ -827,27 +851,56 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" id="cancelCompleteJobBtn" data-i18n="cancel">Cancel</button>
-      <button type="button" class="btn btn-success" id="confirmCompleteJobBtn">✓ Mark Complete</button>
+      <button type="button" class="btn btn-success" id="confirmCompleteJobBtn">✔ Mark Complete</button>
     </div>
   </div>
 
-  <!-- History Modal -->
   <div class="modal modal-lg" id="historyModal">
     <div class="modal-header">
       <h3 class="modal-title" data-i18n="todayHistory">Today's Activity</h3>
       <button class="modal-close" id="closeHistoryModal">✕</button>
     </div>
     <div class="modal-body">
-      <div id="historyList">
-        <!-- Populated by JS -->
-      </div>
+      <div id="historyList"></div>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" id="closeHistoryBtn" data-i18n="close">Close</button>
     </div>
   </div>
 
-  <!-- Toast Container -->
+  <div class="modal" id="adminStatusModal">
+    <div class="modal-header">
+      <h3 class="modal-title">Change Job Status</h3>
+      <button class="modal-close" id="closeAdminStatusModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="job-details-preview">
+        <div class="job-preview-client" id="adminStatusClient">Client Name</div>
+        <div class="job-preview-address" id="adminStatusAddress">Address</div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">New Status</label>
+        <select class="form-select" id="adminNewStatus">
+          <option value="scheduled">Scheduled</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="rescheduled">Rescheduled</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input" id="adminStatusNotes" rows="2" placeholder="Reason for status change..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelAdminStatusBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirmAdminStatusBtn">Update Status</button>
+    </div>
+  </div>
+
   <div class="toast-container" id="toastContainer"></div>
 
   <script type="module">
@@ -863,31 +916,36 @@
     } from './js/utils.js';
     import { logScheduleAction, AuditActions } from './js/audit.js';
 
-    // ============================================
-    // STATE
-    // ============================================
     let currentUser = null;
     let currentAdmin = null;
     let currentEmployee = null;
     let currentTeam = null;
+    let allTeams = [];
     let teamMembers = [];
     let todaySchedules = [];
     let clients = {};
+    let isAdmin = false;
+    let isTeamLeader = false;
     
-    // Time tracking state
     let isClockedIn = false;
     let clockInTime = null;
     let currentJob = null;
     let jobStartTime = null;
     let timeEntries = [];
     
-    // Timers
     let clockInterval = null;
     let jobTimerInterval = null;
+    let adminSelectedScheduleId = null;
+    let selectedScheduleId = null;
 
-    // ============================================
-    // AUTHENTICATION CHECK
-    // ============================================
+    // FIXED: Get local date string in YYYY-MM-DD format
+    function getLocalDateString(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    }
+
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUser = user;
@@ -895,12 +953,37 @@
           const adminDoc = await getDoc(doc(db, 'admins', user.uid));
           if (adminDoc.exists()) {
             currentAdmin = { id: adminDoc.id, ...adminDoc.data() };
+            isAdmin = currentAdmin.role === 'admin' || currentAdmin.role === 'manager';
+            
+            if (isAdmin) {
+              document.body.classList.add('is-admin');
+            }
+            
             await initializePage();
           } else {
-            window.location.href = 'index.html';
+            // Check if user is an employee/team leader by matching their email
+            const employeeQuery = query(collection(db, 'employees'), where('email', '==', user.email));
+            const employeeSnapshot = await getDocs(employeeQuery);
+            
+            if (!employeeSnapshot.empty) {
+              currentEmployee = { id: employeeSnapshot.docs[0].id, ...employeeSnapshot.docs[0].data() };
+              isTeamLeader = currentEmployee.role === 'team_leader';
+              
+              if (!isTeamLeader && !isAdmin) {
+                document.getElementById('bottomNav').classList.add('hidden');
+              }
+              
+              await initializePage();
+            } else {
+              // User exists in Firebase Auth but not in admins or employees
+              // This could be a team leader logging in for the first time
+              showToast('error', 'Access Denied', 'Your account is not set up. Please contact your administrator.');
+              await signOut(auth);
+              window.location.href = 'index.html';
+            }
           }
         } catch (error) {
-          console.error('Error fetching admin:', error);
+          console.error('Error checking user role:', error);
           window.location.href = 'index.html';
         }
       } else {
@@ -908,36 +991,36 @@
       }
     });
 
-    // ============================================
-    // INITIALIZE PAGE
-    // ============================================
     async function initializePage() {
-      i18n.updatePageTranslations();
-      
-      // Start clock
       updateClock();
       clockInterval = setInterval(updateClock, 1000);
       
-      // Load data
       await loadClients();
+      await loadAllTeams();
+      await loadTeamInfo();
       await loadTodaySchedules();
       await loadTimeEntries();
-      await loadTeamInfo();
       
-      // Restore state from localStorage
       restoreState();
-      
-      // Setup event listeners
-      setupEventListeners();
-      
-      // Update UI
       updateStatusUI();
       renderSchedule();
+      setupEventListeners();
+      
+      if (currentTeam) {
+        document.getElementById('teamBanner').textContent = 'Team: ' + currentTeam.name;
+      } else if (isAdmin) {
+        document.getElementById('teamBanner').textContent = 'Admin View - All Teams';
+      }
+      
+      if (isAdmin) {
+        populateAdminTeamFilter();
+      }
+
+      // Show debug info
+      const todayStr = getLocalDateString();
+      document.getElementById('debugInfo').textContent = 'Searching for date: ' + todayStr;
     }
 
-    // ============================================
-    // LOAD DATA
-    // ============================================
     async function loadClients() {
       try {
         const snapshot = await getDocs(collection(db, 'clients'));
@@ -949,14 +1032,52 @@
       }
     }
 
+    async function loadAllTeams() {
+      try {
+        const snapshot = await getDocs(collection(db, 'teams'));
+        allTeams = [];
+        snapshot.forEach(doc => {
+          allTeams.push({ id: doc.id, ...doc.data() });
+        });
+      } catch (error) {
+        console.error('Error loading teams:', error);
+      }
+    }
+
     async function loadTodaySchedules() {
       try {
-        const today = new Date().toISOString().split('T')[0];
-        const q = query(
-          collection(db, 'schedules'),
-          where('date', '==', today),
-          orderBy('timeSlot')
-        );
+        // FIXED: Use local date instead of UTC
+        const todayStr = getLocalDateString();
+        
+        console.log('Loading schedules for date:', todayStr);
+        
+        let q;
+        const adminTeamFilter = document.getElementById('adminTeamFilter')?.value;
+        
+        if (isAdmin && !adminTeamFilter) {
+          q = query(
+            collection(db, 'schedules'),
+            where('date', '==', todayStr),
+            orderBy('timeSlot')
+          );
+        } else {
+          const teamId = adminTeamFilter || currentTeam?.id;
+          if (teamId) {
+            q = query(
+              collection(db, 'schedules'),
+              where('date', '==', todayStr),
+              where('teamId', '==', teamId),
+              orderBy('timeSlot')
+            );
+          } else {
+            q = query(
+              collection(db, 'schedules'),
+              where('date', '==', todayStr),
+              orderBy('timeSlot')
+            );
+          }
+        }
+        
         const snapshot = await getDocs(q);
         
         todaySchedules = [];
@@ -964,7 +1085,9 @@
           todaySchedules.push({ id: doc.id, ...doc.data() });
         });
         
-        document.getElementById('scheduleCount').textContent = `${todaySchedules.length} jobs`;
+        console.log('Found schedules:', todaySchedules.length);
+        
+        document.getElementById('scheduleCount').textContent = todaySchedules.length + ' jobs';
       } catch (error) {
         console.error('Error loading schedules:', error);
       }
@@ -972,10 +1095,10 @@
 
     async function loadTimeEntries() {
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateString();
         const q = query(
           collection(db, 'timeEntries'),
-          where('date', '==', today)
+          where('date', '==', todayStr)
         );
         const snapshot = await getDocs(q);
         
@@ -990,18 +1113,14 @@
 
     async function loadTeamInfo() {
       try {
-        // For now, load all teams and employees
-        // In a real app, you'd filter by the current user's team
-        const teamsSnapshot = await getDocs(collection(db, 'teams'));
-        const teams = [];
-        teamsSnapshot.forEach(doc => {
-          teams.push({ id: doc.id, ...doc.data() });
-        });
+        if (currentEmployee && currentEmployee.teamId) {
+          const teamDoc = await getDoc(doc(db, 'teams', currentEmployee.teamId));
+          if (teamDoc.exists()) {
+            currentTeam = { id: teamDoc.id, ...teamDoc.data() };
+          }
+        }
         
-        if (teams.length > 0) {
-          currentTeam = teams[0]; // For demo, use first team
-          
-          // Load team members
+        if (currentTeam) {
           const employeesSnapshot = await getDocs(
             query(collection(db, 'employees'), where('teamId', '==', currentTeam.id))
           );
@@ -1021,13 +1140,17 @@
       }
     }
 
-    // ============================================
-    // CLOCK FUNCTIONS
-    // ============================================
+    function populateAdminTeamFilter() {
+      const select = document.getElementById('adminTeamFilter');
+      if (!select) return;
+      
+      select.innerHTML = '<option value="">All Teams</option>' +
+        allTeams.map(t => '<option value="' + t.id + '">' + t.name + '</option>').join('');
+    }
+
     function updateClock() {
       const now = new Date();
       
-      // Update date
       document.getElementById('currentDate').textContent = i18n.formatDate(now, {
         weekday: 'long',
         year: 'numeric',
@@ -1035,15 +1158,13 @@
         day: 'numeric'
       });
       
-      // Update time
       const hours = now.getHours().toString().padStart(2, '0');
       const minutes = now.getMinutes().toString().padStart(2, '0');
       const seconds = now.getSeconds().toString().padStart(2, '0');
       
-      document.getElementById('currentTime').textContent = `${hours}:${minutes}`;
-      document.getElementById('currentSeconds').textContent = `:${seconds}`;
+      document.getElementById('currentTime').textContent = hours + ':' + minutes;
+      document.getElementById('currentSeconds').textContent = ':' + seconds;
       
-      // Update hours worked today
       if (isClockedIn && clockInTime) {
         updateHoursWorked();
       }
@@ -1053,7 +1174,6 @@
       const now = new Date();
       let totalMs = 0;
       
-      // Add completed time entries
       timeEntries.forEach(entry => {
         if (entry.clockOut) {
           const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
@@ -1062,7 +1182,6 @@
         }
       });
       
-      // Add current session if clocked in
       if (isClockedIn && clockInTime) {
         totalMs += now - clockInTime;
       }
@@ -1070,7 +1189,7 @@
       const hours = Math.floor(totalMs / (1000 * 60 * 60));
       const minutes = Math.floor((totalMs % (1000 * 60 * 60)) / (1000 * 60));
       
-      document.getElementById('hoursToday').textContent = `${hours}:${minutes.toString().padStart(2, '0')}`;
+      document.getElementById('hoursToday').textContent = hours + ':' + minutes.toString().padStart(2, '0');
     }
 
     function updateJobTimer() {
@@ -1084,22 +1203,18 @@
       const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
       
       document.getElementById('jobTimer').textContent = 
-        `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        hours + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
     }
 
-    // ============================================
-    // CLOCK IN/OUT
-    // ============================================
     async function clockIn() {
       clockInTime = new Date();
       isClockedIn = true;
       
-      // Save to database
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateString();
         const entryData = {
-          date: today,
-          employeeId: currentAdmin.id,
+          date: todayStr,
+          employeeId: currentAdmin?.id || currentEmployee?.id,
           clockIn: Timestamp.fromDate(clockInTime),
           clockOut: null,
           hoursWorked: null,
@@ -1128,8 +1243,6 @@
       }
       
       const clockOutTime = new Date();
-      
-      // Find current time entry and update it
       const currentEntry = timeEntries.find(e => !e.clockOut);
       
       if (currentEntry) {
@@ -1158,49 +1271,126 @@
       updateStatusUI();
     }
 
-    // ============================================
-    // JOB FUNCTIONS
-    // ============================================
-    let selectedScheduleId = null;
-
     function showStartJobModal(scheduleId) {
       if (!isClockedIn) {
         showToast('warning', 'Warning', 'Please clock in first before starting a job');
         return;
       }
       
-      selectedScheduleId = scheduleId;
       const schedule = todaySchedules.find(s => s.id === scheduleId);
       if (!schedule) return;
       
+      if (schedule.status === 'completed') {
+        showToast('info', 'Info', 'This job has already been completed');
+        return;
+      }
+      
+      if (schedule.status === 'in_progress' && currentJob?.scheduleId !== scheduleId) {
+        showToast('info', 'Info', 'This job is already in progress');
+        return;
+      }
+      
+      if (schedule.status === 'cancelled') {
+        showToast('info', 'Info', 'This job has been cancelled');
+        return;
+      }
+      
+      if (currentJob && currentJob.scheduleId !== scheduleId) {
+        const confirmSwitch = confirm('You are currently working on another job. Would you like to stop that job and start this one?');
+        if (confirmSwitch) {
+          stopCurrentJobWithoutComplete();
+        } else {
+          return;
+        }
+      }
+      
+      selectedScheduleId = scheduleId;
       const client = clients[schedule.clientId];
       if (!client) return;
       
-      document.getElementById('previewClient').textContent = `${client.firstName} ${client.lastName}`;
+      document.getElementById('previewClient').textContent = client.firstName + ' ' + client.lastName;
       document.getElementById('previewAddress').textContent = 
-        `${client.address?.street || ''}, ${client.address?.city || ''}`;
-      document.getElementById('previewService').textContent = 
-        schedule.serviceDetails?.type === 'full' ? 'Full House' : 'Half House';
+        (client.address?.street || '') + ', ' + (client.address?.city || '');
+      
+      const doorCodeEl = document.getElementById('previewDoorCode');
+      if (client.houseCode) {
+        doorCodeEl.textContent = '🔑 Door Code: ' + client.houseCode;
+        doorCodeEl.classList.remove('hidden');
+      } else {
+        doorCodeEl.classList.add('hidden');
+      }
+      
       document.getElementById('previewDuration').textContent = 
-        `${schedule.estimatedDuration || 2} hours`;
+        (schedule.estimatedDuration || 2) + ' hours';
       document.getElementById('previewPrice').textContent = 
         formatCurrency(schedule.serviceDetails?.totalPrice || 0);
       
-      // Populate team members
+      const addOns = schedule.serviceDetails?.addOns || [];
+      const addonsContainer = document.getElementById('previewAddons');
+      const addonsList = document.getElementById('previewAddonsList');
+      
+      if (addOns.length > 0) {
+        addonsContainer.classList.remove('hidden');
+        const floorLabels = { basement: '🏚️ Basement', mainLevel: '🏠 Main Level', upstairs: '⬆️ Upstairs' };
+        addonsList.innerHTML = addOns.map(a => {
+          const areaKey = typeof a === 'object' ? a.area : a;
+          const price = typeof a === 'object' ? a.price : 0;
+          return '<span class="job-preview-addon">' + (floorLabels[areaKey] || areaKey) + (price ? ' (+' + formatCurrency(price) + ')' : '') + '</span>';
+        }).join('');
+      } else {
+        addonsContainer.classList.add('hidden');
+      }
+      
       const container = document.getElementById('jobTeamMembers');
-      container.innerHTML = teamMembers.map(m => `
-        <label class="form-check" style="margin-bottom: 8px;">
-          <input type="checkbox" class="form-check-input" value="${m.id}" checked>
-          <span class="form-check-label">${m.firstName} ${m.lastName}</span>
-        </label>
-      `).join('') || '<p class="text-gray-500">No team members assigned</p>';
+      container.innerHTML = teamMembers.map(m => 
+        '<label class="form-check" style="margin-bottom: 8px;">' +
+          '<input type="checkbox" class="form-check-input" value="' + m.id + '" checked>' +
+          '<span class="form-check-label">' + m.firstName + ' ' + m.lastName + '</span>' +
+        '</label>'
+      ).join('') || '<p class="text-gray-500">No team members assigned</p>';
       
       openModal('startJobModal');
+    }
+
+    async function stopCurrentJobWithoutComplete() {
+      if (!currentJob) return;
+      
+      try {
+        await updateDoc(doc(db, 'schedules', currentJob.scheduleId), {
+          status: 'scheduled',
+          actualStartTime: null
+        });
+        
+        const schedule = todaySchedules.find(s => s.id === currentJob.scheduleId);
+        if (schedule) {
+          schedule.status = 'scheduled';
+        }
+        
+        if (jobTimerInterval) {
+          clearInterval(jobTimerInterval);
+          jobTimerInterval = null;
+        }
+        
+        currentJob = null;
+        jobStartTime = null;
+        
+        saveState();
+        updateStatusUI();
+        renderSchedule();
+      } catch (error) {
+        console.error('Error stopping job:', error);
+      }
     }
 
     async function startJob() {
       const schedule = todaySchedules.find(s => s.id === selectedScheduleId);
       if (!schedule) return;
+      
+      if (schedule.status === 'completed' || schedule.status === 'in_progress') {
+        closeModal('startJobModal');
+        showToast('warning', 'Warning', 'This job cannot be started');
+        return;
+      }
       
       const client = clients[schedule.clientId];
       
@@ -1212,7 +1402,6 @@
       
       jobStartTime = new Date();
       
-      // Update schedule status
       try {
         await updateDoc(doc(db, 'schedules', selectedScheduleId), {
           status: 'in_progress',
@@ -1221,14 +1410,16 @@
         
         schedule.status = 'in_progress';
         
-        // Start job timer
         jobTimerInterval = setInterval(updateJobTimer, 1000);
+        updateJobTimer();
         
         closeModal('startJobModal');
-        showToast('success', 'Job Started', `Working on ${client.firstName} ${client.lastName}`);
+        showToast('success', 'Job Started', 'Working on ' + client.firstName + ' ' + client.lastName);
       } catch (error) {
         console.error('Error starting job:', error);
         showToast('error', i18n.t('error'), 'Failed to start job');
+        currentJob = null;
+        jobStartTime = null;
       }
       
       saveState();
@@ -1242,25 +1433,37 @@
       const client = currentJob.client;
       const schedule = currentJob.schedule;
       
-      document.getElementById('completeJobClient').textContent = `${client.firstName} ${client.lastName}`;
+      document.getElementById('completeJobClient').textContent = client.firstName + ' ' + client.lastName;
       document.getElementById('completeJobAddress').textContent = client.address?.street || '';
       
-      // Calculate elapsed time
       const elapsed = new Date() - jobStartTime;
       const hours = Math.floor(elapsed / (1000 * 60 * 60));
       const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
       document.getElementById('completeJobTime').textContent = 
-        `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        hours + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
       
-      // Set defaults from schedule
-      document.getElementById('completeServiceType').value = schedule.serviceDetails?.type || 'full';
+      const addOns = schedule.serviceDetails?.addOns || [];
+      const addonsContainer = document.getElementById('completedAddonsList');
+      const addonsGroup = document.getElementById('completedAddonsGroup');
+      
+      if (addOns.length > 0) {
+        addonsGroup.style.display = 'block';
+        const floorLabels = { basement: '🏚️ Basement', mainLevel: '🏠 Main Level', upstairs: '⬆️ Upstairs' };
+        addonsContainer.innerHTML = addOns.map(a => {
+          const areaKey = typeof a === 'object' ? a.area : a;
+          return '<label class="form-check" style="margin-bottom: 8px;">' +
+            '<input type="checkbox" class="form-check-input addon-complete-checkbox" data-area="' + areaKey + '" checked>' +
+            '<span class="form-check-label">' + (floorLabels[areaKey] || areaKey) + '</span>' +
+          '</label>';
+        }).join('');
+      } else {
+        addonsGroup.style.display = 'none';
+      }
+      
       document.getElementById('paymentAmount').value = schedule.serviceDetails?.totalPrice || '';
-      
-      // Reset checkboxes
-      document.getElementById('completedBasement').checked = schedule.serviceDetails?.addOns?.includes('basement');
-      document.getElementById('completedGarage').checked = schedule.serviceDetails?.addOns?.includes('garage');
-      document.getElementById('completedAttic').checked = schedule.serviceDetails?.addOns?.includes('attic');
+      document.getElementById('paymentMethod').value = '';
+      document.getElementById('paymentAmountGroup').classList.add('hidden');
       
       openModal('completeJobModal');
     }
@@ -1273,7 +1476,6 @@
       const client = currentJob.client;
       
       try {
-        // Update schedule
         await updateDoc(doc(db, 'schedules', currentJob.scheduleId), {
           status: 'completed',
           actualEndTime: Timestamp.fromDate(endTime),
@@ -1282,7 +1484,6 @@
         
         schedule.status = 'completed';
         
-        // Create payment record if payment collected
         const paymentMethod = document.getElementById('paymentMethod').value;
         if (paymentMethod) {
           const paymentData = {
@@ -1298,15 +1499,13 @@
           await addDoc(collection(db, 'payments'), paymentData);
         }
         
-        // Stop timer
         if (jobTimerInterval) {
           clearInterval(jobTimerInterval);
           jobTimerInterval = null;
         }
         
-        // Log completion
         await logScheduleAction(AuditActions.UPDATE, currentJob.scheduleId, 
-          `Completed: ${client.firstName} ${client.lastName}`);
+          'Completed: ' + client.firstName + ' ' + client.lastName);
         
         currentJob = null;
         jobStartTime = null;
@@ -1325,20 +1524,69 @@
     }
 
     function pauseJob() {
-      // For now, just stop tracking but keep the job
       showToast('info', 'Job Paused', 'Timer paused. Resume when ready.');
     }
 
-    // ============================================
-    // UI UPDATES
-    // ============================================
+    function showAdminStatusModal(scheduleId) {
+      adminSelectedScheduleId = scheduleId;
+      const schedule = todaySchedules.find(s => s.id === scheduleId);
+      if (!schedule) return;
+      
+      const client = clients[schedule.clientId];
+      
+      document.getElementById('adminStatusClient').textContent = 
+        client ? client.firstName + ' ' + client.lastName : 'Unknown Client';
+      document.getElementById('adminStatusAddress').textContent = 
+        client?.address?.street || '';
+      document.getElementById('adminNewStatus').value = schedule.status || 'scheduled';
+      document.getElementById('adminStatusNotes').value = '';
+      
+      openModal('adminStatusModal');
+    }
+
+    async function updateAdminStatus() {
+      if (!adminSelectedScheduleId) return;
+      
+      const newStatus = document.getElementById('adminNewStatus').value;
+      const notes = document.getElementById('adminStatusNotes').value;
+      
+      try {
+        const updateData = {
+          status: newStatus,
+          updatedAt: Timestamp.now()
+        };
+        
+        if (notes) {
+          updateData.adminNotes = notes;
+        }
+        
+        if (newStatus === 'completed' && !todaySchedules.find(s => s.id === adminSelectedScheduleId)?.actualEndTime) {
+          updateData.actualEndTime = Timestamp.now();
+        }
+        
+        await updateDoc(doc(db, 'schedules', adminSelectedScheduleId), updateData);
+        
+        const schedule = todaySchedules.find(s => s.id === adminSelectedScheduleId);
+        if (schedule) {
+          schedule.status = newStatus;
+        }
+        
+        closeModal('adminStatusModal');
+        showToast('success', 'Success', 'Status updated successfully');
+        renderSchedule();
+        
+      } catch (error) {
+        console.error('Error updating status:', error);
+        showToast('error', 'Error', 'Failed to update status');
+      }
+    }
+
     function updateStatusUI() {
       const statusDot = document.getElementById('statusDot');
       const statusText = document.getElementById('statusText');
       const clockBtn = document.getElementById('clockBtn');
       const currentJobCard = document.getElementById('currentJobCard');
       
-      // Remove all status classes
       statusDot.className = 'status-dot';
       statusText.className = 'status-text';
       
@@ -1348,10 +1596,7 @@
         statusText.textContent = i18n.t('clockedOut') || 'Clocked Out';
         
         clockBtn.className = 'clock-btn clock-in';
-        clockBtn.innerHTML = `
-          <span class="clock-btn-icon">▶</span>
-          <span>${i18n.t('clockIn') || 'Clock In'}</span>
-        `;
+        clockBtn.innerHTML = '<span class="clock-btn-icon">▶️</span><span>' + (i18n.t('clockIn') || 'Clock In') + '</span>';
         
         currentJobCard.classList.add('hidden');
         document.getElementById('hoursToday').textContent = '0:00';
@@ -1362,16 +1607,13 @@
         statusText.textContent = i18n.t('onJob') || 'On Job';
         
         clockBtn.className = 'clock-btn clock-out';
-        clockBtn.innerHTML = `
-          <span class="clock-btn-icon">⏹</span>
-          <span>${i18n.t('clockOut') || 'Clock Out'}</span>
-        `;
+        clockBtn.innerHTML = '<span class="clock-btn-icon">⏹️</span><span>' + (i18n.t('clockOut') || 'Clock Out') + '</span>';
         
         currentJobCard.classList.remove('hidden');
         document.getElementById('currentJobClient').textContent = 
-          `${currentJob.client.firstName} ${currentJob.client.lastName}`;
+          currentJob.client.firstName + ' ' + currentJob.client.lastName;
         document.getElementById('currentJobAddress').textContent = 
-          `${currentJob.client.address?.street || ''}, ${currentJob.client.address?.city || ''}`;
+          (currentJob.client.address?.street || '') + ', ' + (currentJob.client.address?.city || '');
         
       } else {
         statusDot.classList.add('clocked-in');
@@ -1379,10 +1621,7 @@
         statusText.textContent = i18n.t('clockedIn') || 'Clocked In';
         
         clockBtn.className = 'clock-btn clock-out';
-        clockBtn.innerHTML = `
-          <span class="clock-btn-icon">⏹</span>
-          <span>${i18n.t('clockOut') || 'Clock Out'}</span>
-        `;
+        clockBtn.innerHTML = '<span class="clock-btn-icon">⏹️</span><span>' + (i18n.t('clockOut') || 'Clock Out') + '</span>';
         
         currentJobCard.classList.add('hidden');
       }
@@ -1390,14 +1629,16 @@
 
     function renderSchedule() {
       const container = document.getElementById('scheduleList');
-      const emptyState = document.getElementById('emptySchedule');
       
-      if (todaySchedules.length === 0) {
-        emptyState.classList.remove('hidden');
+      if (!container) {
+        console.error('Schedule list container not found');
         return;
       }
       
-      emptyState.classList.add('hidden');
+      if (todaySchedules.length === 0) {
+        container.innerHTML = '<div class="empty-schedule"><div class="empty-schedule-icon">📅</div><div>No jobs scheduled for today</div></div>';
+        return;
+      }
       
       container.innerHTML = todaySchedules.map(schedule => {
         const client = clients[schedule.clientId];
@@ -1405,31 +1646,42 @@
         
         const isActive = currentJob?.scheduleId === schedule.id;
         const isCompleted = schedule.status === 'completed';
+        const isCancelled = schedule.status === 'cancelled';
         
-        const statusBadge = {
-          scheduled: `<span class="badge badge-primary">Scheduled</span>`,
-          in_progress: `<span class="badge badge-warning">In Progress</span>`,
-          completed: `<span class="badge badge-success">Completed</span>`,
-          cancelled: `<span class="badge badge-secondary">Cancelled</span>`
-        }[schedule.status] || '';
+        let clickHandler = '';
+        if (isAdmin) {
+          clickHandler = 'onclick="window.showAdminStatusModal(\'' + schedule.id + '\')"';
+        } else if (!isCompleted && !isCancelled && !isActive) {
+          clickHandler = 'onclick="window.showStartJob(\'' + schedule.id + '\')"';
+        }
         
-        return `
-          <div class="schedule-item ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''}"
-               onclick="${!isCompleted && !isActive ? `window.showStartJob('${schedule.id}')` : ''}">
-            <div class="schedule-time">
-              <div class="schedule-time-slot">${schedule.timeSlot === 'morning' ? '🌅' : '🌆'}</div>
-              <div class="schedule-time-label">${schedule.timeSlot === 'morning' ? 'AM' : 'PM'}</div>
-            </div>
-            <div class="schedule-info">
-              <div class="schedule-client">${client.firstName} ${client.lastName}</div>
-              <div class="schedule-address">${client.address?.street || ''}</div>
-            </div>
-            <div class="schedule-status">
-              <div class="schedule-price">${formatCurrency(schedule.serviceDetails?.totalPrice || 0)}</div>
-              ${statusBadge}
-            </div>
-          </div>
-        `;
+        const statusBadges = {
+          scheduled: '<span class="badge badge-primary">Scheduled</span>',
+          in_progress: '<span class="badge badge-warning">In Progress</span>',
+          completed: '<span class="badge badge-success">Completed</span>',
+          cancelled: '<span class="badge badge-secondary">Cancelled</span>',
+          rescheduled: '<span class="badge badge-info">Rescheduled</span>'
+        };
+        const statusBadge = statusBadges[schedule.status] || '';
+        
+        const doorCodeHtml = client.houseCode ? 
+          '<div class="schedule-door-code">🔑 ' + client.houseCode + '</div>' : '';
+        
+        return '<div class="schedule-item ' + (isCompleted ? 'completed' : '') + ' ' + (isActive ? 'active' : '') + ' ' + (isCancelled ? 'cancelled' : '') + '" ' + clickHandler + '>' +
+          '<div class="schedule-time">' +
+            '<div class="schedule-time-slot">' + (schedule.timeSlot === 'morning' ? '🌅' : '🌆') + '</div>' +
+            '<div class="schedule-time-label">' + (schedule.timeSlot === 'morning' ? 'AM' : 'PM') + '</div>' +
+          '</div>' +
+          '<div class="schedule-info">' +
+            '<div class="schedule-client">' + client.firstName + ' ' + client.lastName + '</div>' +
+            '<div class="schedule-address">' + (client.address?.street || '') + '</div>' +
+            doorCodeHtml +
+          '</div>' +
+          '<div class="schedule-status">' +
+            '<div class="schedule-price">' + formatCurrency(schedule.serviceDetails?.totalPrice || 0) + '</div>' +
+            statusBadge +
+          '</div>' +
+        '</div>';
       }).join('');
     }
 
@@ -1438,43 +1690,32 @@
       
       container.innerHTML = teamMembers.map(member => {
         const isLeader = currentTeam?.leaderId === member.id;
-        return `
-          <div class="team-member">
-            <div class="team-member-avatar" style="background-color: ${getAvatarColor(member.firstName + member.lastName)}">
-              ${getInitials(member.firstName, member.lastName)}
-            </div>
-            <div class="team-member-info">
-              <div class="team-member-name">${member.firstName} ${member.lastName}</div>
-              <div class="team-member-role">${isLeader ? '⭐ Team Leader' : 'Team Member'}</div>
-            </div>
-            <div class="team-member-status ${member.isActive ? 'active' : ''}"></div>
-          </div>
-        `;
+        return '<div class="team-member">' +
+          '<div class="team-member-avatar" style="background-color: ' + getAvatarColor(member.firstName + member.lastName) + '">' +
+            getInitials(member.firstName, member.lastName) +
+          '</div>' +
+          '<div class="team-member-info">' +
+            '<div class="team-member-name">' + member.firstName + ' ' + member.lastName + '</div>' +
+            '<div class="team-member-role">' + (isLeader ? '⭐ Team Leader' : 'Team Member') + '</div>' +
+          '</div>' +
+          '<div class="team-member-status ' + (member.isActive ? 'active' : '') + '"></div>' +
+        '</div>';
       }).join('');
     }
 
     function showHistory() {
       const container = document.getElementById('historyList');
       
-      // Build history from time entries and completed jobs
       let history = [];
       
       timeEntries.forEach(entry => {
         if (entry.clockIn) {
           const time = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
-          history.push({
-            type: 'clock-in',
-            time,
-            text: 'Clocked In'
-          });
+          history.push({ type: 'clock-in', time, text: 'Clocked In' });
         }
         if (entry.clockOut) {
           const time = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
-          history.push({
-            type: 'clock-out',
-            time,
-            text: 'Clocked Out'
-          });
+          history.push({ type: 'clock-out', time, text: 'Clocked Out' });
         }
       });
       
@@ -1485,45 +1726,39 @@
           history.push({
             type: 'job',
             time,
-            text: `Completed: ${client?.firstName || ''} ${client?.lastName || ''}`
+            text: 'Completed: ' + (client?.firstName || '') + ' ' + (client?.lastName || '')
           });
         }
       });
       
-      // Sort by time
       history.sort((a, b) => a.time - b.time);
       
       if (history.length === 0) {
         container.innerHTML = '<div class="text-center text-gray-500 p-4">No activity recorded today</div>';
       } else {
-        container.innerHTML = history.map(item => `
-          <div class="history-item">
-            <div class="history-info">
-              <div class="history-icon ${item.type}">
-                ${item.type === 'clock-in' ? '▶' : item.type === 'clock-out' ? '⏹' : '✓'}
-              </div>
-              <div>
-                <div class="history-text">${item.text}</div>
-                <div class="history-time">${formatTime(item.time)}</div>
-              </div>
-            </div>
-          </div>
-        `).join('');
+        container.innerHTML = history.map(item => 
+          '<div class="history-item">' +
+            '<div class="history-info">' +
+              '<div class="history-icon ' + item.type + '">' +
+                (item.type === 'clock-in' ? '▶️' : item.type === 'clock-out' ? '⏹️' : '✔') +
+              '</div>' +
+              '<div>' +
+                '<div class="history-text">' + item.text + '</div>' +
+                '<div class="history-time">' + formatTime(item.time) + '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>'
+        ).join('');
       }
       
       openModal('historyModal');
     }
 
-    // ============================================
-    // STATE PERSISTENCE
-    // ============================================
     function saveState() {
       const state = {
         isClockedIn,
         clockInTime: clockInTime?.toISOString(),
-        currentJob: currentJob ? {
-          scheduleId: currentJob.scheduleId
-        } : null,
+        currentJob: currentJob ? { scheduleId: currentJob.scheduleId } : null,
         jobStartTime: jobStartTime?.toISOString()
       };
       localStorage.setItem('timeclockState', JSON.stringify(state));
@@ -1535,14 +1770,14 @@
         if (!saved) return;
         
         const state = JSON.parse(saved);
-        
-        // Check if it's from today
-        const today = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateString();
         
         if (state.clockInTime) {
           const clockInDate = state.clockInTime.split('T')[0];
-          if (clockInDate !== today) {
-            // Different day, reset state
+          // Compare with local date
+          const savedDate = new Date(state.clockInTime);
+          const savedLocalDate = getLocalDateString(savedDate);
+          if (savedLocalDate !== todayStr) {
             localStorage.removeItem('timeclockState');
             return;
           }
@@ -1558,7 +1793,6 @@
             currentJob = { scheduleId: state.currentJob.scheduleId, schedule, client };
             jobStartTime = new Date(state.jobStartTime);
             
-            // Restart job timer
             jobTimerInterval = setInterval(updateJobTimer, 1000);
             updateJobTimer();
           }
@@ -1569,9 +1803,6 @@
       }
     }
 
-    // ============================================
-    // HELPER FUNCTIONS
-    // ============================================
     function getAvatarColor(name) {
       const colors = ['#0d9488', '#f97316', '#8b5cf6', '#ec4899', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
       let hash = 0;
@@ -1588,14 +1819,10 @@
       });
     }
 
-    // Expose functions to window for onclick handlers
     window.showStartJob = showStartJobModal;
+    window.showAdminStatusModal = showAdminStatusModal;
 
-    // ============================================
-    // EVENT LISTENERS
-    // ============================================
     function setupEventListeners() {
-      // Clock button
       document.getElementById('clockBtn').addEventListener('click', () => {
         if (isClockedIn) {
           clockOut();
@@ -1604,7 +1831,6 @@
         }
       });
       
-      // Language toggle
       document.getElementById('langToggle').addEventListener('click', () => {
         i18n.toggleLanguage();
         i18n.updatePageTranslations();
@@ -1613,25 +1839,20 @@
         renderSchedule();
       });
       
-      // Logout
       document.getElementById('logoutBtn').addEventListener('click', async () => {
         await signOut(auth);
         window.location.href = 'index.html';
       });
       
-      // History button
       document.getElementById('historyBtn').addEventListener('click', showHistory);
       
-      // Current job actions
       document.getElementById('pauseJobBtn').addEventListener('click', pauseJob);
       document.getElementById('completeJobBtn').addEventListener('click', showCompleteJobModal);
       
-      // Start Job Modal
       document.getElementById('closeStartJobModal').addEventListener('click', () => closeModal('startJobModal'));
       document.getElementById('cancelStartJobBtn').addEventListener('click', () => closeModal('startJobModal'));
       document.getElementById('confirmStartJobBtn').addEventListener('click', startJob);
       
-      // Complete Job Modal
       document.getElementById('closeCompleteJobModal').addEventListener('click', () => closeModal('completeJobModal'));
       document.getElementById('cancelCompleteJobBtn').addEventListener('click', () => closeModal('completeJobModal'));
       document.getElementById('confirmCompleteJobBtn').addEventListener('click', completeJob);
@@ -1645,11 +1866,18 @@
         }
       });
       
-      // History Modal
       document.getElementById('closeHistoryModal').addEventListener('click', () => closeModal('historyModal'));
       document.getElementById('closeHistoryBtn').addEventListener('click', () => closeModal('historyModal'));
       
-      // Modal backdrop
+      document.getElementById('closeAdminStatusModal')?.addEventListener('click', () => closeModal('adminStatusModal'));
+      document.getElementById('cancelAdminStatusBtn')?.addEventListener('click', () => closeModal('adminStatusModal'));
+      document.getElementById('confirmAdminStatusBtn')?.addEventListener('click', updateAdminStatus);
+      
+      document.getElementById('adminTeamFilter')?.addEventListener('change', async () => {
+        await loadTodaySchedules();
+        renderSchedule();
+      });
+      
       document.getElementById('modalBackdrop').addEventListener('click', closeAllModals);
     }
   </script>

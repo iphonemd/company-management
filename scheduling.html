@@ -1654,7 +1654,7 @@ function formatDateStr(date) {
       updateTotalPrice();
     }
 
-    function updateTotalPrice() {
+    window.updateTotalPrice = function() {
       if (!selectedClient) {
         document.getElementById('scheduleTotalPrice').textContent = formatCurrency(0);
         return;
