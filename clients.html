@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanPro - Clients</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    .area-section { border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 1rem; }
+    .area-section-header { background: var(--gray-50); padding: 0.75rem 1rem; border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: space-between; border-radius: 8px 8px 0 0; }
+    .area-section-header h4 { margin: 0; font-size: 1rem; }
+    .area-section-body { padding: 1rem; }
+    .area-row { display: flex; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100); }
+    .area-row:last-child { border-bottom: none; }
+    .area-row .area-name { flex: 1; display: flex; align-items: center; gap: 0.5rem; }
+    .extra-badge { background: var(--warning-100); color: var(--warning-700); padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
+    .base-service-summary { background: var(--primary-50); border: 1px solid var(--primary-200); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🧹</div>
+        <span class="sidebar-title">CleanPro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item"><span class="nav-item-icon">📊</span><span class="nav-item-text" data-i18n="dashboard">Dashboard</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="employees.html" class="nav-item"><span class="nav-item-icon">👥</span><span class="nav-item-text" data-i18n="employees">Employees</span></a>
+          <a href="clients.html" class="nav-item active"><span class="nav-item-icon">🏠</span><span class="nav-item-text" data-i18n="clients">Clients</span></a>
+          <a href="scheduling.html" class="nav-item"><span class="nav-item-icon">📅</span><span class="nav-item-text" data-i18n="scheduling">Scheduling</span></a>
+          <a href="timeclock.html" class="nav-item"><span class="nav-item-icon">⏱️</span><span class="nav-item-text" data-i18n="timeClock">Time Clock</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title" data-i18n="finances">Finance</div>
+          <a href="finances.html" class="nav-item"><span class="nav-item-icon">💰</span><span class="nav-item-text" data-i18n="finances">Finances</span></a>
+          <a href="reports.html" class="nav-item"><span class="nav-item-icon">📈</span><span class="nav-item-text" data-i18n="reports">Reports</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="audit-log.html" class="nav-item"><span class="nav-item-icon">📋</span><span class="nav-item-text" data-i18n="auditLog">Audit Log</span></a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebarUser">
+          <div class="sidebar-user-avatar" id="userAvatar">AD</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="userName">Admin</div>
+            <div class="sidebar-user-role" id="userRole">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="header">
+        <button class="header-menu-btn" id="menuToggle">☰</button>
+        <div class="header-search">
+          <span class="header-search-icon">🔍</span>
+          <input type="text" class="header-search-input" placeholder="Search clients..." id="searchInput">
+        </div>
+        <div class="header-actions">
+          <button class="header-btn lang-toggle" id="langToggle">🌐 <span id="langLabel">ES</span></button>
+          <button class="header-btn" id="logoutBtn" title="Logout">🚪</button>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="clientList">Client List</h1>
+            <p class="text-gray-500"><span id="clientCount">0</span> <span data-i18n="totalClients">total clients</span></p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-secondary" id="importClientsBtn"><span>📥</span><span data-i18n="importClients">Import Clients</span></button>
+            <button class="btn btn-primary" id="addClientBtn"><span>➕</span><span data-i18n="addClient">Add Client</span></button>
+          </div>
+        </div>
+
+        <div class="search-filters">
+          <div class="filter-group">
+            <select class="form-select" id="statusFilter" style="width: auto;">
+              <option value="all" data-i18n="all">All</option>
+              <option value="active" data-i18n="active">Active</option>
+              <option value="inactive" data-i18n="inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <select class="form-select" id="scheduleFilter" style="width: auto;">
+              <option value="">All Schedules</option>
+              <option value="weekly">Weekly</option>
+              <option value="biweekly">Bi-weekly</option>
+              <option value="every3weeks">Every 3 Weeks</option>
+              <option value="monthly">Monthly</option>
+              <option value="oneTime">One Time</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-container">
+            <table class="table" id="clientsTable">
+              <thead>
+                <tr>
+                  <th data-i18n="clients">Client</th>
+                  <th data-i18n="address">Address</th>
+                  <th data-i18n="phone">Phone</th>
+                  <th data-i18n="scheduleType">Schedule</th>
+                  <th data-i18n="basePrice">Price</th>
+                  <th data-i18n="status">Status</th>
+                  <th data-i18n="actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="clientsBody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state hidden" id="noClients">
+            <div class="empty-state-icon">🏠</div>
+            <div class="empty-state-title" data-i18n="noClients">No clients found</div>
+            <p class="text-gray-500">Add your first client or import from a spreadsheet</p>
+            <div class="flex gap-3 justify-center mt-4">
+              <button class="btn btn-secondary" id="importFirstBtn"><span>📥</span><span data-i18n="importClients">Import Clients</span></button>
+              <button class="btn btn-primary" id="addFirstClientBtn"><span>➕</span><span data-i18n="addClient">Add Client</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="sidebarOverlay"></div>
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+
+  <!-- Add/Edit Client Modal -->
+  <div class="modal modal-xl" id="clientModal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="clientModalTitle" data-i18n="addClient">Add Client</h3>
+      <button class="modal-close" id="closeClientModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="clientForm">
+        <input type="hidden" id="clientId">
+        
+        <div class="tabs mb-4">
+          <button type="button" class="tab active" data-tab="basic">Basic Info</button>
+          <button type="button" class="tab" data-tab="service">Service & Notes</button>
+          <button type="button" class="tab" data-tab="areas">Areas & Pricing</button>
+        </div>
+
+        <!-- Basic Info Tab -->
+        <div class="tab-content active" id="basicTab">
+          <div class="grid grid-cols-2">
+            <div class="form-group">
+              <label class="form-label form-label-required" data-i18n="firstName">First Name</label>
+              <input type="text" class="form-input" id="clientFirstName" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label form-label-required" data-i18n="lastName">Last Name</label>
+              <input type="text" class="form-input" id="clientLastName" required>
+            </div>
+          </div>
+          <div class="grid grid-cols-2">
+            <div class="form-group">
+              <label class="form-label" data-i18n="phone">Phone</label>
+              <input type="tel" class="form-input" id="clientPhone" placeholder="(555) 123-4567">
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="email">Email</label>
+              <input type="email" class="form-input" id="clientEmail" placeholder="client@email.com">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label form-label-required" data-i18n="street">Street Address</label>
+            <input type="text" class="form-input" id="clientStreet" required placeholder="123 Main Street">
+          </div>
+          <div class="grid grid-cols-3">
+            <div class="form-group">
+              <label class="form-label" data-i18n="city">City</label>
+              <input type="text" class="form-input" id="clientCity" placeholder="City">
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="state">State</label>
+              <input type="text" class="form-input" id="clientState" placeholder="State">
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="zipCode">ZIP Code</label>
+              <input type="text" class="form-input" id="clientZip" placeholder="12345">
+            </div>
+          </div>
+          <div class="grid grid-cols-2">
+            <div class="form-group">
+              <label class="form-label">House Code</label>
+              <input type="text" class="form-input" id="clientHouseCode" placeholder="Enter house code (if any)">
+              <p class="form-helper">Access code for entry (garage code, lockbox, etc.)</p>
+            </div>
+            <div class="form-group" style="display: flex; align-items: flex-end; padding-bottom: 1.5rem;">
+              <label class="toggle">
+                <input type="checkbox" class="toggle-input" id="clientIsActive" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label" data-i18n="active">Active</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Service & Notes Tab -->
+        <div class="tab-content" id="serviceTab">
+          <div class="grid grid-cols-2">
+            <div class="form-group">
+              <label class="form-label" data-i18n="scheduleType">Schedule Type</label>
+              <select class="form-select" id="clientScheduleType">
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Every 2 Weeks</option>
+                <option value="every3weeks">Every 3 Weeks</option>
+                <option value="monthly">Monthly</option>
+                <option value="oneTime">One Time</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="form-group" id="customDaysGroup" style="display: none;">
+              <label class="form-label" data-i18n="customDays">Custom Interval (days)</label>
+              <input type="number" class="form-input" id="clientCustomDays" min="1" placeholder="45">
+            </div>
+          </div>
+          <div class="grid grid-cols-2">
+            <div class="form-group">
+              <label class="form-label" data-i18n="preferredDay">Preferred Day</label>
+              <select class="form-select" id="clientPreferredDay">
+                <option value="">No Preference</option>
+                <option value="monday">Monday</option>
+                <option value="tuesday">Tuesday</option>
+                <option value="wednesday">Wednesday</option>
+                <option value="thursday">Thursday</option>
+                <option value="friday">Friday</option>
+                <option value="saturday">Saturday</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="preferredTime">Preferred Time</label>
+              <select class="form-select" id="clientPreferredTime">
+                <option value="morning">Morning (8am - 12pm)</option>
+                <option value="afternoon">Afternoon (12pm - 5pm)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="toggle">
+              <input type="checkbox" class="toggle-input" id="clientRequiresInvoice">
+              <span class="toggle-slider"></span>
+              <span class="toggle-label" data-i18n="requiresInvoice">Requires Invoice</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="notes">Notes</label>
+            <textarea class="form-input" id="clientNotes" rows="4" placeholder="Special instructions, pet info, parking details..."></textarea>
+          </div>
+        </div>
+
+        <!-- Areas & Pricing Tab -->
+        <div class="tab-content" id="areasTab">
+          <div class="base-service-summary">
+            <div class="flex items-center justify-between mb-3">
+              <h4 style="margin: 0;">💵 Base Service Price</h4>
+              <div class="input-group" style="width: 150px;">
+                <span class="input-group-prepend">$</span>
+                <input type="number" class="form-input" id="clientBasePrice" step="0.01" min="0" placeholder="150.00">
+              </div>
+            </div>
+            <p class="text-sm text-gray-600 mb-0">Check "Include in Base" for areas covered by base price. Uncheck to make it an extra service with its own frequency and charge.</p>
+          </div>
+
+          <!-- Basement Section -->
+          <div class="area-section">
+            <div class="area-section-header">
+              <h4>🏚️ Basement</h4>
+              <div class="flex items-center gap-2">
+                <label class="toggle" style="margin: 0;">
+                  <input type="checkbox" class="toggle-input" id="basementIncluded" onchange="toggleFloorIncluded('basement')">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span class="text-sm">Include in Base</span>
+              </div>
+            </div>
+            <div class="area-section-body">
+              <div id="basementAreas">
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="basementBathrooms"><span>Bathrooms</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="basementBedrooms"><span>Bedrooms</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="basementMasterBath"><span>Master Bath</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="basementMasterRoom"><span>Master Room</span></div></div>
+              </div>
+              <div id="basementExtra" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--gray-300);">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="extra-badge">EXTRA SERVICE</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="form-group mb-0">
+                    <label class="form-label text-sm">Frequency</label>
+                    <select class="form-select" id="basementExtraFreq">
+                      <option value="weekly">Weekly</option>
+                      <option value="biweekly">Every 2 Weeks</option>
+                      <option value="every3weeks">Every 3 Weeks</option>
+                      <option value="monthly" selected>Monthly</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </div>
+                  <div class="form-group mb-0">
+                    <label class="form-label text-sm">Extra Charge</label>
+                    <div class="input-group">
+                      <span class="input-group-prepend">$</span>
+                      <input type="number" class="form-input" id="basementExtraPrice" step="0.01" min="0" placeholder="50.00">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Level Section -->
+          <div class="area-section">
+            <div class="area-section-header">
+              <h4>🏠 Main Level</h4>
+              <div class="flex items-center gap-2">
+                <label class="toggle" style="margin: 0;">
+                  <input type="checkbox" class="toggle-input" id="mainIncluded" checked onchange="toggleFloorIncluded('main')">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span class="text-sm">Include in Base</span>
+              </div>
+            </div>
+            <div class="area-section-body">
+              <div id="mainAreas">
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainKitchen" checked><span>Kitchen</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainBathrooms" checked><span>Bathrooms</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainBedrooms"><span>Bedrooms</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainLivingRoom" checked><span>Living Room</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainDiningRoom"><span>Dining Room</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainLaundryRoom"><span>Laundry Room</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainOffice"><span>Office</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainFridge"><span>Fridge</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainMasterBath"><span>Master Bath</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainMasterRoom"><span>Master Room</span></div></div>
+              </div>
+              <div id="mainExtra" class="hidden" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--gray-300);">
+                <div class="flex items-center gap-2 mb-2"><span class="extra-badge">EXTRA SERVICE</span></div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="form-group mb-0">
+                    <label class="form-label text-sm">Frequency</label>
+                    <select class="form-select" id="mainExtraFreq">
+                      <option value="weekly">Weekly</option>
+                      <option value="biweekly" selected>Every 2 Weeks</option>
+                      <option value="every3weeks">Every 3 Weeks</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </div>
+                  <div class="form-group mb-0">
+                    <label class="form-label text-sm">Extra Charge</label>
+                    <div class="input-group">
+                      <span class="input-group-prepend">$</span>
+                      <input type="number" class="form-input" id="mainExtraPrice" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upstairs Section -->
+          <div class="area-section">
+            <div class="area-section-header">
+              <h4>⬆️ Upstairs</h4>
+              <div class="flex items-center gap-2">
+                <label class="toggle" style="margin: 0;">
+                  <input type="checkbox" class="toggle-input" id="upstairsIncluded" checked onchange="toggleFloorIncluded('upstairs')">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span class="text-sm">Include in Base</span>
+              </div>
+            </div>
+            <div class="area-section-body">
+              <div id="upstairsAreas">
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="upstairsBathrooms" checked><span>Bathrooms</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="upstairsBedrooms" checked><span>Bedrooms</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="upstairsMasterBath"><span>Master Bath</span></div></div>
+                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="upstairsMasterRoom"><span>Master Room</span></div></div>
+              </div>
+              <div id="upstairsExtra" class="hidden" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--gray-300);">
+                <div class="flex items-center gap-2 mb-2"><span class="extra-badge">EXTRA SERVICE</span></div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="form-group mb-0">
+                    <label class="form-label text-sm">Frequency</label>
+                    <select class="form-select" id="upstairsExtraFreq">
+                      <option value="weekly">Weekly</option>
+                      <option value="biweekly" selected>Every 2 Weeks</option>
+                      <option value="every3weeks">Every 3 Weeks</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </div>
+                  <div class="form-group mb-0">
+                    <label class="form-label text-sm">Extra Charge</label>
+                    <div class="input-group">
+                      <span class="input-group-prepend">$</span>
+                      <input type="number" class="form-input" id="upstairsExtraPrice" step="0.01" min="0" placeholder="40.00">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelClientBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveClientBtn" data-i18n="save">Save</button>
+    </div>
+  </div>
+
+  <!-- View Client Modal -->
+  <div class="modal modal-xl" id="viewClientModal">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="clientDetails">Client Details</h3>
+      <button class="modal-close" id="closeViewClientModal">✕</button>
+    </div>
+    <div class="modal-body" id="viewClientContent"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="closeViewClientBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-primary" id="editFromViewBtn" data-i18n="edit">Edit</button>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div class="modal modal-xl" id="importModal">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="importClients">Import Clients</h3>
+      <button class="modal-close" id="closeImportModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="importStep1">
+        <div class="empty-state" style="padding: 40px;">
+          <div class="empty-state-icon">📄</div>
+          <div class="empty-state-title">Upload Your Spreadsheet</div>
+          <p class="text-gray-500 mb-4">Supported formats: Excel (.xlsx, .xls) or CSV (.csv)</p>
+          <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+          <button class="btn btn-primary btn-lg" id="selectFileBtn"><span>📁</span><span data-i18n="selectFile">Select File</span></button>
+          <div class="mt-6 text-left" style="max-width: 400px; margin: 0 auto;">
+            <p class="text-sm font-semibold mb-2">Expected columns:</p>
+            <ul class="text-sm text-gray-500" style="list-style: disc; padding-left: 20px;">
+              <li>First Name, Last Name, Address (required)</li>
+              <li>City, State, ZIP, Phone, Email</li>
+              <li>Price, Schedule, House Code, Notes</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div id="importStep2" class="hidden">
+        <h4 class="mb-4">Map Your Columns</h4>
+        <p class="text-gray-500 mb-4">Match your spreadsheet columns to CleanPro fields</p>
+        <div class="grid grid-cols-2 gap-4" id="columnMappings"></div>
+      </div>
+      <div id="importStep3" class="hidden">
+        <h4 class="mb-4">Preview Import</h4>
+        <p class="text-gray-500 mb-4"><span id="importPreviewCount">0</span> clients will be imported</p>
+        <div class="card" style="max-height: 400px; overflow-y: auto;">
+          <div class="table-container">
+            <table class="table" id="importPreviewTable">
+              <thead><tr><th>Name</th><th>Address</th><th>Phone</th><th>Price</th><th>Status</th></tr></thead>
+              <tbody id="importPreviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="importStep4" class="hidden">
+        <div class="empty-state" style="padding: 40px;">
+          <div class="loading-spinner mb-4" style="margin: 0 auto;"></div>
+          <div class="empty-state-title">Importing Clients...</div>
+          <p class="text-gray-500" id="importProgress">0 of 0 imported</p>
+        </div>
+      </div>
+      <div id="importStep5" class="hidden">
+        <div class="empty-state" style="padding: 40px;">
+          <div class="empty-state-icon" style="background: var(--success-100); color: var(--success-600);">✔</div>
+          <div class="empty-state-title">Import Complete!</div>
+          <p class="text-gray-500" id="importResult">0 clients imported successfully</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelImportBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-secondary hidden" id="backImportBtn" data-i18n="back">Back</button>
+      <button type="button" class="btn btn-primary hidden" id="nextImportBtn" data-i18n="next">Next</button>
+      <button type="button" class="btn btn-success hidden" id="startImportBtn">Import Clients</button>
+      <button type="button" class="btn btn-primary hidden" id="doneImportBtn">Done</button>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script type="module">
+    import { auth, db, onAuthStateChanged, signOut, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, Timestamp } from './js/firebase-config.js';
+    import { i18n } from './js/i18n.js';
+    import { showToast, openModal, closeModal, closeAllModals, formatPhone, formatCurrency, formatDate, getInitials, confirmDialog, debounce, filterBySearch, sortByField, getScheduleTypeLabel, getServiceTypeLabel } from './js/utils.js';
+    import { logClientAction, AuditActions, trackChanges } from './js/audit.js';
+
+    let currentUser = null, currentAdmin = null, clients = [], currentFilter = 'all', currentScheduleFilter = '', currentSearch = '', editingClientId = null;
+    let importData = [], importHeaders = [], columnMappings = {}, currentImportStep = 1;
+
+    window.toggleFloorIncluded = function(floor) {
+      const included = document.getElementById(`${floor}Included`).checked;
+      const extraSection = document.getElementById(`${floor}Extra`);
+      if (included) { extraSection.classList.add('hidden'); } 
+      else { extraSection.classList.remove('hidden'); }
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        try {
+          const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+          if (adminDoc.exists()) {
+            currentAdmin = { id: adminDoc.id, ...adminDoc.data() };
+            document.getElementById('userName').textContent = currentAdmin.name || 'Admin';
+            document.getElementById('userAvatar').textContent = getInitials(currentAdmin.name || 'Admin', '');
+            document.getElementById('userRole').textContent = currentAdmin.role === 'admin' ? 'Administrator' : 'Manager';
+          }
+        } catch (error) { console.error('Error loading admin:', error); }
+        updateLanguage();
+        setupEventListeners();
+        await loadClients();
+      } else { window.location.href = 'index.html'; }
+    });
+
+    async function loadClients() {
+      try {
+        const snapshot = await getDocs(query(collection(db, 'clients'), orderBy('lastName', 'asc')));
+        clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderClients();
+      } catch (error) { console.error('Error loading clients:', error); showToast('error', i18n.t('error'), 'Failed to load clients'); }
+    }
+
+    function renderClients() {
+      let filtered = [...clients];
+      if (currentFilter === 'active') filtered = filtered.filter(c => c.isActive);
+      else if (currentFilter === 'inactive') filtered = filtered.filter(c => !c.isActive);
+      if (currentScheduleFilter) filtered = filtered.filter(c => c.scheduleType === currentScheduleFilter);
+      if (currentSearch) filtered = filterBySearch(filtered, currentSearch, ['firstName', 'lastName', 'phone', 'address.street']);
+
+      document.getElementById('clientCount').textContent = filtered.length;
+      const tbody = document.getElementById('clientsBody');
+      const noClients = document.getElementById('noClients');
+
+      if (filtered.length === 0) { tbody.innerHTML = ''; noClients.classList.remove('hidden'); return; }
+      noClients.classList.add('hidden');
+      
+      tbody.innerHTML = filtered.map(client => {
+        const scheduleLabel = getScheduleLabel(client.scheduleType);
+        return `<tr>
+          <td><div class="flex items-center gap-3"><div class="avatar" style="background-color: ${getAvatarColor(client.firstName + client.lastName)}">${getInitials(client.firstName, client.lastName)}</div><div><div class="font-semibold">${client.firstName} ${client.lastName}</div><div class="text-sm text-gray-500">${client.email || ''}</div></div></div></td>
+          <td><div>${client.address?.street || '-'}</div><div class="text-sm text-gray-500">${client.address?.city || ''}${client.address?.city && client.address?.state ? ', ' : ''}${client.address?.state || ''}</div></td>
+          <td>${formatPhone(client.phone) || '-'}</td>
+          <td><span class="badge badge-secondary">${scheduleLabel}</span></td>
+          <td class="font-semibold">${formatCurrency(client.basePrice || 0)}</td>
+          <td><span class="status-badge ${client.isActive ? 'active' : 'inactive'}">${client.isActive ? i18n.t('active') : i18n.t('inactive')}</span></td>
+          <td><div class="flex gap-2"><button class="btn btn-sm btn-secondary" onclick="viewClient('${client.id}')" title="View">👁️</button><button class="btn btn-sm btn-secondary" onclick="editClient('${client.id}')" title="Edit">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteClient('${client.id}')" title="Delete">🗑️</button></div></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function openAddClientModal() {
+      editingClientId = null;
+      document.getElementById('clientModalTitle').textContent = i18n.t('addClient');
+      document.getElementById('clientForm').reset();
+      document.getElementById('clientIsActive').checked = true;
+      document.getElementById('customDaysGroup').style.display = 'none';
+      document.getElementById('basementIncluded').checked = false;
+      document.getElementById('mainIncluded').checked = true;
+      document.getElementById('upstairsIncluded').checked = true;
+      document.getElementById('mainKitchen').checked = true;
+      document.getElementById('mainBathrooms').checked = true;
+      document.getElementById('mainLivingRoom').checked = true;
+      document.getElementById('upstairsBathrooms').checked = true;
+      document.getElementById('upstairsBedrooms').checked = true;
+      toggleFloorIncluded('basement');
+      toggleFloorIncluded('main');
+      toggleFloorIncluded('upstairs');
+      document.querySelectorAll('#clientModal .tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('#clientModal .tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelector('#clientModal .tab[data-tab="basic"]').classList.add('active');
+      document.getElementById('basicTab').classList.add('active');
+      openModal('clientModal');
+    }
+
+    window.editClient = async function(id) {
+      const client = clients.find(c => c.id === id);
+      if (!client) return;
+      editingClientId = id;
+      document.getElementById('clientModalTitle').textContent = i18n.t('editClient');
+      document.getElementById('clientId').value = id;
+      document.getElementById('clientFirstName').value = client.firstName || '';
+      document.getElementById('clientLastName').value = client.lastName || '';
+      document.getElementById('clientPhone').value = client.phone || '';
+      document.getElementById('clientEmail').value = client.email || '';
+      document.getElementById('clientStreet').value = client.address?.street || '';
+      document.getElementById('clientCity').value = client.address?.city || '';
+      document.getElementById('clientState').value = client.address?.state || '';
+      document.getElementById('clientZip').value = client.address?.zip || '';
+      document.getElementById('clientHouseCode').value = client.houseCode || '';
+      document.getElementById('clientIsActive').checked = client.isActive !== false;
+      document.getElementById('clientScheduleType').value = client.scheduleType || 'weekly';
+      document.getElementById('clientCustomDays').value = client.customScheduleDays || '';
+      document.getElementById('clientPreferredDay').value = client.preferredDay || '';
+      document.getElementById('clientPreferredTime').value = client.preferredTime || 'morning';
+      document.getElementById('clientRequiresInvoice').checked = client.requiresInvoice || false;
+      document.getElementById('clientNotes').value = client.notes || '';
+      toggleCustomDays();
+      document.getElementById('clientBasePrice').value = client.basePrice || '';
+      const areas = client.areas || {};
+      const basement = areas.basement || {};
+      document.getElementById('basementIncluded').checked = basement.includedInBase || false;
+      document.getElementById('basementBathrooms').checked = basement.bathrooms || false;
+      document.getElementById('basementBedrooms').checked = basement.bedrooms || false;
+      document.getElementById('basementMasterBath').checked = basement.masterBath || false;
+      document.getElementById('basementMasterRoom').checked = basement.masterRoom || false;
+      document.getElementById('basementExtraFreq').value = basement.extraFrequency || 'monthly';
+      document.getElementById('basementExtraPrice').value = basement.extraPrice || '';
+      toggleFloorIncluded('basement');
+      const main = areas.mainLevel || {};
+      document.getElementById('mainIncluded').checked = main.includedInBase !== false;
+      document.getElementById('mainKitchen').checked = main.kitchen !== false;
+      document.getElementById('mainBathrooms').checked = main.bathrooms !== false;
+      document.getElementById('mainBedrooms').checked = main.bedrooms || false;
+      document.getElementById('mainLivingRoom').checked = main.livingRoom !== false;
+      document.getElementById('mainDiningRoom').checked = main.diningRoom || false;
+      document.getElementById('mainLaundryRoom').checked = main.laundryRoom || false;
+      document.getElementById('mainOffice').checked = main.office || false;
+      document.getElementById('mainFridge').checked = main.fridge || false;
+      document.getElementById('mainMasterBath').checked = main.masterBath || false;
+      document.getElementById('mainMasterRoom').checked = main.masterRoom || false;
+      document.getElementById('mainExtraFreq').value = main.extraFrequency || 'biweekly';
+      document.getElementById('mainExtraPrice').value = main.extraPrice || '';
+      toggleFloorIncluded('main');
+      const upstairs = areas.upstairs || {};
+      document.getElementById('upstairsIncluded').checked = upstairs.includedInBase !== false;
+      document.getElementById('upstairsBathrooms').checked = upstairs.bathrooms !== false;
+      document.getElementById('upstairsBedrooms').checked = upstairs.bedrooms !== false;
+      document.getElementById('upstairsMasterBath').checked = upstairs.masterBath || false;
+      document.getElementById('upstairsMasterRoom').checked = upstairs.masterRoom || false;
+      document.getElementById('upstairsExtraFreq').value = upstairs.extraFrequency || 'biweekly';
+      document.getElementById('upstairsExtraPrice').value = upstairs.extraPrice || '';
+      toggleFloorIncluded('upstairs');
+      document.querySelectorAll('#clientModal .tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('#clientModal .tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelector('#clientModal .tab[data-tab="basic"]').classList.add('active');
+      document.getElementById('basicTab').classList.add('active');
+      openModal('clientModal');
+    };
+
+    window.viewClient = async function(id) {
+      const client = clients.find(c => c.id === id);
+      if (!client) return;
+      const scheduleLabel = getScheduleLabel(client.scheduleType);
+      const dayLabel = client.preferredDay ? i18n.t(`days.${client.preferredDay}`) : '-';
+      const timeLabel = client.preferredTime === 'morning' ? i18n.t('morning') : i18n.t('afternoon');
+      const areas = client.areas || {};
+      const areaLabels = { kitchen: 'Kitchen', bathrooms: 'Bathrooms', bedrooms: 'Bedrooms', livingRoom: 'Living Room', diningRoom: 'Dining Room', laundryRoom: 'Laundry Room', office: 'Office', fridge: 'Fridge', masterBath: 'Master Bath', masterRoom: 'Master Room' };
+      
+      const buildFloorDisplay = (floorData, floorName, emoji) => {
+        if (!floorData) return { base: '', extra: '' };
+        const includedAreas = [];
+        for (const [key, val] of Object.entries(floorData)) {
+          if (val === true && areaLabels[key]) includedAreas.push(areaLabels[key]);
+        }
+        if (floorData.includedInBase && includedAreas.length > 0) {
+          return { base: `<div class="mb-2"><strong>${emoji} ${floorName}:</strong> ${includedAreas.join(', ')}</div>`, extra: '' };
+        } else if (!floorData.includedInBase && (floorData.extraPrice || includedAreas.length > 0)) {
+          const freqLabel = getFrequencyLabel(floorData.extraFrequency || 'monthly');
+          return { base: '', extra: `<div class="flex items-center justify-between p-2 border-b"><span><strong>${emoji} ${floorName}</strong>${includedAreas.length ? ': ' + includedAreas.join(', ') : ''}</span><span class="text-sm">${freqLabel} • +${formatCurrency(floorData.extraPrice || 0)}</span></div>` };
+        }
+        return { base: '', extra: '' };
+      };
+      
+      const basementDisplay = buildFloorDisplay(areas.basement, 'Basement', '🏚️');
+      const mainDisplay = buildFloorDisplay(areas.mainLevel, 'Main Level', '🏠');
+      const upstairsDisplay = buildFloorDisplay(areas.upstairs, 'Upstairs', '⬆️');
+      const baseAreasHtml = basementDisplay.base + mainDisplay.base + upstairsDisplay.base;
+      const extrasHtml = basementDisplay.extra + mainDisplay.extra + upstairsDisplay.extra;
+
+      document.getElementById('viewClientContent').innerHTML = `
+        <div class="flex items-start justify-between mb-6">
+          <div class="flex items-start gap-4">
+            <div class="avatar avatar-lg" style="background-color: ${getAvatarColor(client.firstName + client.lastName)}">${getInitials(client.firstName, client.lastName)}</div>
+            <div>
+              <h2 class="text-2xl font-semibold">${client.firstName} ${client.lastName}</h2>
+              <div class="text-gray-500">${client.address?.street || ''}</div>
+              <div class="text-gray-500">${client.address?.city || ''}${client.address?.city && client.address?.state ? ', ' : ''}${client.address?.state || ''} ${client.address?.zip || ''}</div>
+              <div class="flex gap-2 mt-2">
+                <span class="status-badge ${client.isActive ? 'active' : 'inactive'}">${client.isActive ? i18n.t('active') : i18n.t('inactive')}</span>
+                ${client.requiresInvoice ? '<span class="badge badge-info">Requires Invoice</span>' : ''}
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-3xl font-bold text-primary">${formatCurrency(client.basePrice || 0)}</div>
+            <div class="text-sm text-gray-500">base price</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <div class="card"><div class="card-header"><h4 class="card-title">Contact Information</h4></div>
+            <div class="card-body"><div class="grid grid-cols-2 gap-4">
+              <div><div class="text-sm text-gray-500">${i18n.t('phone')}</div><div class="font-semibold">${formatPhone(client.phone) || '-'}</div></div>
+              <div><div class="text-sm text-gray-500">${i18n.t('email')}</div><div class="font-semibold">${client.email || '-'}</div></div>
+              ${client.houseCode ? `<div><div class="text-sm text-gray-500">House Code</div><div class="font-semibold">${client.houseCode}</div></div>` : ''}
+            </div></div>
+          </div>
+          <div class="card"><div class="card-header"><h4 class="card-title">Schedule</h4></div>
+            <div class="card-body"><div class="grid grid-cols-2 gap-4">
+              <div><div class="text-sm text-gray-500">${i18n.t('scheduleType')}</div><div class="font-semibold">${scheduleLabel}</div></div>
+              <div><div class="text-sm text-gray-500">${i18n.t('preferredDay')}</div><div class="font-semibold">${dayLabel}</div></div>
+              <div><div class="text-sm text-gray-500">${i18n.t('preferredTime')}</div><div class="font-semibold">${timeLabel}</div></div>
+            </div></div>
+          </div>
+        </div>
+        ${baseAreasHtml ? `<div class="card mb-6"><div class="card-header"><h4 class="card-title">✅ Base Service Areas</h4></div><div class="card-body">${baseAreasHtml}</div></div>` : ''}
+        ${extrasHtml ? `<div class="card mb-6"><div class="card-header"><h4 class="card-title">➕ Extra Services</h4></div><div class="card-body" style="padding: 0;">${extrasHtml}</div></div>` : ''}
+        ${client.notes ? `<div class="card"><div class="card-header"><h4 class="card-title">${i18n.t('notes')}</h4></div><div class="card-body"><p>${client.notes}</p></div></div>` : ''}
+      `;
+      document.getElementById('editFromViewBtn').onclick = () => { closeModal('viewClientModal'); editClient(id); };
+      openModal('viewClientModal');
+    };
+
+    async function saveClient() {
+      const firstName = document.getElementById('clientFirstName').value.trim();
+      const lastName = document.getElementById('clientLastName').value.trim();
+      const street = document.getElementById('clientStreet').value.trim();
+      if (!firstName || !lastName || !street) { showToast('error', i18n.t('error'), i18n.t('required')); return; }
+
+      const clientData = {
+        firstName, lastName,
+        phone: document.getElementById('clientPhone').value.trim(),
+        email: document.getElementById('clientEmail').value.trim(),
+        address: { street, city: document.getElementById('clientCity').value.trim(), state: document.getElementById('clientState').value.trim(), zip: document.getElementById('clientZip').value.trim() },
+        houseCode: document.getElementById('clientHouseCode').value.trim(),
+        scheduleType: document.getElementById('clientScheduleType').value,
+        customScheduleDays: parseInt(document.getElementById('clientCustomDays').value) || null,
+        preferredDay: document.getElementById('clientPreferredDay').value || null,
+        preferredTime: document.getElementById('clientPreferredTime').value,
+        requiresInvoice: document.getElementById('clientRequiresInvoice').checked,
+        basePrice: parseFloat(document.getElementById('clientBasePrice').value) || 0,
+        areas: {
+          basement: {
+            includedInBase: document.getElementById('basementIncluded').checked,
+            bathrooms: document.getElementById('basementBathrooms').checked,
+            bedrooms: document.getElementById('basementBedrooms').checked,
+            masterBath: document.getElementById('basementMasterBath').checked,
+            masterRoom: document.getElementById('basementMasterRoom').checked,
+            extraFrequency: document.getElementById('basementExtraFreq').value,
+            extraPrice: parseFloat(document.getElementById('basementExtraPrice').value) || 0
+          },
+          mainLevel: {
+            includedInBase: document.getElementById('mainIncluded').checked,
+            kitchen: document.getElementById('mainKitchen').checked,
+            bathrooms: document.getElementById('mainBathrooms').checked,
+            bedrooms: document.getElementById('mainBedrooms').checked,
+            livingRoom: document.getElementById('mainLivingRoom').checked,
+            diningRoom: document.getElementById('mainDiningRoom').checked,
+            laundryRoom: document.getElementById('mainLaundryRoom').checked,
+            office: document.getElementById('mainOffice').checked,
+            fridge: document.getElementById('mainFridge').checked,
+            masterBath: document.getElementById('mainMasterBath').checked,
+            masterRoom: document.getElementById('mainMasterRoom').checked,
+            extraFrequency: document.getElementById('mainExtraFreq').value,
+            extraPrice: parseFloat(document.getElementById('mainExtraPrice').value) || 0
+          },
+          upstairs: {
+            includedInBase: document.getElementById('upstairsIncluded').checked,
+            bathrooms: document.getElementById('upstairsBathrooms').checked,
+            bedrooms: document.getElementById('upstairsBedrooms').checked,
+            masterBath: document.getElementById('upstairsMasterBath').checked,
+            masterRoom: document.getElementById('upstairsMasterRoom').checked,
+            extraFrequency: document.getElementById('upstairsExtraFreq').value,
+            extraPrice: parseFloat(document.getElementById('upstairsExtraPrice').value) || 0
+          }
+        },
+        notes: document.getElementById('clientNotes').value.trim(),
+        isActive: document.getElementById('clientIsActive').checked,
+        updatedAt: Timestamp.now()
+      };
+
+      try {
+        if (editingClientId) {
+          const oldData = clients.find(c => c.id === editingClientId);
+          await updateDoc(doc(db, 'clients', editingClientId), clientData);
+          const changes = trackChanges(oldData, clientData, ['firstName', 'lastName', 'phone', 'basePrice', 'scheduleType', 'isActive']);
+          await logClientAction(AuditActions.UPDATE, editingClientId, `${firstName} ${lastName}`, changes);
+          showToast('success', i18n.t('success'), i18n.t('clientUpdated'));
+        } else {
+          clientData.createdAt = Timestamp.now();
+          const docRef = await addDoc(collection(db, 'clients'), clientData);
+          await logClientAction(AuditActions.CREATE, docRef.id, `${firstName} ${lastName}`);
+          showToast('success', i18n.t('success'), i18n.t('clientAdded'));
+        }
+        closeModal('clientModal');
+        await loadClients();
+      } catch (error) { console.error('Error saving client:', error); showToast('error', i18n.t('error'), 'Failed to save client'); }
+    }
+
+    window.deleteClient = async function(id) {
+      const client = clients.find(c => c.id === id);
+      if (!client) return;
+      const confirmed = await confirmDialog(i18n.t('delete'), i18n.t('confirmDeleteClient'), i18n.t('delete'), i18n.t('cancel'));
+      if (!confirmed) return;
+      try {
+        await deleteDoc(doc(db, 'clients', id));
+        await logClientAction(AuditActions.DELETE, id, `${client.firstName} ${client.lastName}`);
+        showToast('success', i18n.t('success'), i18n.t('clientDeleted'));
+        await loadClients();
+      } catch (error) { console.error('Error deleting client:', error); showToast('error', i18n.t('error'), 'Failed to delete client'); }
+    };
+
+    function openImportModal() { currentImportStep = 1; importData = []; importHeaders = []; columnMappings = {}; showImportStep(1); openModal('importModal'); }
+
+    function showImportStep(step) {
+      currentImportStep = step;
+      for (let i = 1; i <= 5; i++) document.getElementById(`importStep${i}`).classList.add('hidden');
+      document.getElementById(`importStep${step}`).classList.remove('hidden');
+      const cancelBtn = document.getElementById('cancelImportBtn'), backBtn = document.getElementById('backImportBtn'), nextBtn = document.getElementById('nextImportBtn'), startBtn = document.getElementById('startImportBtn'), doneBtn = document.getElementById('doneImportBtn');
+      cancelBtn.classList.remove('hidden'); backBtn.classList.add('hidden'); nextBtn.classList.add('hidden'); startBtn.classList.add('hidden'); doneBtn.classList.add('hidden');
+      if (step === 2) { backBtn.classList.remove('hidden'); nextBtn.classList.remove('hidden'); }
+      else if (step === 3) { backBtn.classList.remove('hidden'); startBtn.classList.remove('hidden'); }
+      else if (step === 4) { cancelBtn.classList.add('hidden'); }
+      else if (step === 5) { cancelBtn.classList.add('hidden'); doneBtn.classList.remove('hidden'); }
+    }
+
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+          if (jsonData.length < 2) { showToast('error', 'Error', 'File must contain at least a header row and one data row'); return; }
+          importHeaders = jsonData[0].map(h => String(h || '').trim());
+          importData = jsonData.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== ''));
+          setupColumnMapping();
+          showImportStep(2);
+        } catch (error) { console.error('Error reading file:', error); showToast('error', 'Error', 'Failed to read file'); }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function setupColumnMapping() {
+      const fields = [
+        { key: 'firstName', label: 'First Name', required: true }, { key: 'lastName', label: 'Last Name', required: true },
+        { key: 'street', label: 'Street Address', required: true }, { key: 'city', label: 'City' }, { key: 'state', label: 'State' },
+        { key: 'zip', label: 'ZIP Code' }, { key: 'phone', label: 'Phone' }, { key: 'email', label: 'Email' },
+        { key: 'basePrice', label: 'Price' }, { key: 'scheduleType', label: 'Schedule' }, { key: 'houseCode', label: 'House Code' }, { key: 'notes', label: 'Notes' }
+      ];
+      const container = document.getElementById('columnMappings');
+      container.innerHTML = fields.map(field => {
+        const matchIndex = importHeaders.findIndex(h => h.toLowerCase().includes(field.key.toLowerCase()) || h.toLowerCase().includes(field.label.toLowerCase().split(' ')[0].toLowerCase()));
+        return `<div class="form-group"><label class="form-label ${field.required ? 'form-label-required' : ''}">${field.label}</label><select class="form-select" data-field="${field.key}"><option value="">-- Skip --</option>${importHeaders.map((h, i) => `<option value="${i}" ${i === matchIndex ? 'selected' : ''}>${h}</option>`).join('')}</select></div>`;
+      }).join('');
+    }
+
+    function generatePreview() {
+      columnMappings = {};
+      document.querySelectorAll('#columnMappings select').forEach(select => { const field = select.dataset.field, colIndex = select.value; if (colIndex !== '') columnMappings[field] = parseInt(colIndex); });
+      if (columnMappings.firstName === undefined || columnMappings.lastName === undefined || columnMappings.street === undefined) { showToast('error', 'Error', 'First Name, Last Name, and Street Address are required'); return false; }
+      const previewBody = document.getElementById('importPreviewBody');
+      previewBody.innerHTML = importData.slice(0, 10).map(row => {
+        const firstName = row[columnMappings.firstName] || '', lastName = row[columnMappings.lastName] || '', street = row[columnMappings.street] || '';
+        const phone = columnMappings.phone !== undefined ? row[columnMappings.phone] : '', price = columnMappings.basePrice !== undefined ? row[columnMappings.basePrice] : '';
+        return `<tr><td>${firstName} ${lastName}</td><td>${street}</td><td>${phone}</td><td>${price ? formatCurrency(parseFloat(price) || 0) : '-'}</td><td><span class="status-badge active">Active</span></td></tr>`;
+      }).join('');
+      document.getElementById('importPreviewCount').textContent = importData.length;
+      return true;
+    }
+
+    async function startImport() {
+      showImportStep(4);
+      let imported = 0, errors = 0;
+      const clientsToImport = importData.map(row => ({
+        firstName: String(row[columnMappings.firstName] || '').trim(), lastName: String(row[columnMappings.lastName] || '').trim(),
+        address: { street: String(row[columnMappings.street] || '').trim(), city: columnMappings.city !== undefined ? String(row[columnMappings.city] || '').trim() : '', state: columnMappings.state !== undefined ? String(row[columnMappings.state] || '').trim() : '', zip: columnMappings.zip !== undefined ? String(row[columnMappings.zip] || '').trim() : '' },
+        phone: columnMappings.phone !== undefined ? String(row[columnMappings.phone] || '').trim() : '',
+        email: columnMappings.email !== undefined ? String(row[columnMappings.email] || '').trim() : '',
+        basePrice: columnMappings.basePrice !== undefined ? parseFloat(row[columnMappings.basePrice]) || 0 : 0,
+        scheduleType: columnMappings.scheduleType !== undefined ? normalizeScheduleType(row[columnMappings.scheduleType]) : 'biweekly',
+        houseCode: columnMappings.houseCode !== undefined ? String(row[columnMappings.houseCode] || '').trim() : '',
+        notes: columnMappings.notes !== undefined ? String(row[columnMappings.notes] || '').trim() : '',
+        isActive: true,
+        areas: { basement: { includedInBase: false }, mainLevel: { includedInBase: true, kitchen: true, bathrooms: true, livingRoom: true }, upstairs: { includedInBase: true, bathrooms: true, bedrooms: true } },
+        createdAt: Timestamp.now(), updatedAt: Timestamp.now()
+      })).filter(c => c.firstName && c.lastName && c.address.street);
+
+      for (const clientData of clientsToImport) {
+        try { await addDoc(collection(db, 'clients'), clientData); imported++; document.getElementById('importProgress').textContent = `${imported} of ${clientsToImport.length} imported`; }
+        catch (error) { console.error('Error importing client:', error); errors++; }
+      }
+      await logClientAction(AuditActions.CREATE, null, `Imported ${imported} clients`);
+      document.getElementById('importResult').textContent = `${imported} clients imported successfully` + (errors > 0 ? `, ${errors} failed` : '');
+      showImportStep(5);
+    }
+
+    function normalizeScheduleType(value) {
+      if (!value) return 'biweekly';
+      const v = String(value).toLowerCase().trim();
+      if (v.includes('week') && !v.includes('2') && !v.includes('bi') && !v.includes('3')) return 'weekly';
+      if (v.includes('bi') || v.includes('2')) return 'biweekly';
+      if (v.includes('3')) return 'every3weeks';
+      if (v.includes('month')) return 'monthly';
+      if (v.includes('one') || v.includes('time')) return 'oneTime';
+      return 'biweekly';
+    }
+
+    function getScheduleLabel(type) {
+      const labels = { weekly: i18n.t('scheduleTypes.weekly'), biweekly: i18n.t('scheduleTypes.biweekly'), every3weeks: i18n.t('scheduleTypes.every3weeks'), monthly: i18n.t('scheduleTypes.monthly'), oneTime: i18n.t('scheduleTypes.oneTime'), custom: i18n.t('scheduleTypes.custom') };
+      return labels[type] || type;
+    }
+    function getFrequencyLabel(freq) {
+      const labels = { weekly: 'Weekly', biweekly: 'Every 2 Weeks', every3weeks: 'Every 3 Weeks', monthly: 'Monthly', custom: 'Custom' };
+      return labels[freq] || freq;
+    }
+    function getAvatarColor(name) {
+      const colors = ['#0d9488', '#f97316', '#8b5cf6', '#ec4899', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
+      let hash = 0; for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      return colors[Math.abs(hash) % colors.length];
+    }
+    function updateLanguage() { const lang = i18n.getLanguage(); document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN'; i18n.updatePageTranslations(); }
+    function toggleCustomDays() { const scheduleType = document.getElementById('clientScheduleType').value; document.getElementById('customDaysGroup').style.display = scheduleType === 'custom' ? 'block' : 'none'; }
+
+    function setupEventListeners() {
+      document.getElementById('menuToggle').addEventListener('click', () => { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('active'); });
+      document.getElementById('sidebarOverlay').addEventListener('click', () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('active'); });
+      document.getElementById('langToggle').addEventListener('click', () => { i18n.toggleLanguage(); updateLanguage(); renderClients(); });
+      document.getElementById('logoutBtn').addEventListener('click', async () => { await signOut(auth); window.location.href = 'index.html'; });
+      document.getElementById('statusFilter').addEventListener('change', (e) => { currentFilter = e.target.value; renderClients(); });
+      document.getElementById('scheduleFilter').addEventListener('change', (e) => { currentScheduleFilter = e.target.value; renderClients(); });
+      document.getElementById('searchInput').addEventListener('input', debounce((e) => { currentSearch = e.target.value; renderClients(); }, 300));
+      document.getElementById('addClientBtn').addEventListener('click', openAddClientModal);
+      document.getElementById('addFirstClientBtn').addEventListener('click', openAddClientModal);
+      document.getElementById('importClientsBtn').addEventListener('click', openImportModal);
+      document.getElementById('importFirstBtn').addEventListener('click', openImportModal);
+      document.getElementById('closeClientModal').addEventListener('click', () => closeModal('clientModal'));
+      document.getElementById('cancelClientBtn').addEventListener('click', () => closeModal('clientModal'));
+      document.getElementById('saveClientBtn').addEventListener('click', saveClient);
+      document.querySelectorAll('#clientModal .tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('#clientModal .tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('#clientModal .tab-content').forEach(c => c.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+        });
+      });
+      document.getElementById('clientScheduleType').addEventListener('change', toggleCustomDays);
+      document.getElementById('closeViewClientModal').addEventListener('click', () => closeModal('viewClientModal'));
+      document.getElementById('closeViewClientBtn').addEventListener('click', () => closeModal('viewClientModal'));
+      document.getElementById('closeImportModal').addEventListener('click', () => closeModal('importModal'));
+      document.getElementById('cancelImportBtn').addEventListener('click', () => closeModal('importModal'));
+      document.getElementById('selectFileBtn').addEventListener('click', () => { document.getElementById('importFileInput').click(); });
+      document.getElementById('importFileInput').addEventListener('change', handleFileSelect);
+      document.getElementById('backImportBtn').addEventListener('click', () => { if (currentImportStep > 1) showImportStep(currentImportStep - 1); });
+      document.getElementById('nextImportBtn').addEventListener('click', () => { if (currentImportStep === 2 && generatePreview()) showImportStep(3); });
+      document.getElementById('startImportBtn').addEventListener('click', startImport);
+      document.getElementById('doneImportBtn').addEventListener('click', async () => { closeModal('importModal'); await loadClients(); });
+      document.getElementById('modalBackdrop').addEventListener('click', closeAllModals);
+    }
+  </script>
+</body>
+</html>

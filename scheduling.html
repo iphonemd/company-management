@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanPro - Scheduling</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+  <style>
+    /* Additional calendar-specific styles */
+    .calendar-container {
+      background: white;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--gray-200);
+      overflow: hidden;
+    }
+    
+    .calendar-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--gray-100);
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+    
+    .calendar-nav {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .calendar-title {
+      font-size: var(--text-xl);
+      font-weight: 600;
+      min-width: 200px;
+      text-align: center;
+    }
+    
+    .calendar-views {
+      display: flex;
+      gap: var(--space-1);
+    }
+    
+    .view-btn {
+      padding: var(--space-2) var(--space-4);
+      border: 1px solid var(--gray-300);
+      background: white;
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .view-btn:hover {
+      background: var(--gray-50);
+    }
+    
+    .view-btn.active {
+      background: var(--primary-600);
+      border-color: var(--primary-600);
+      color: white;
+    }
+    
+    .calendar-grid-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      background: var(--gray-50);
+      border-bottom: 1px solid var(--gray-200);
+    }
+    
+    .calendar-grid-header > div {
+      padding: var(--space-3);
+      text-align: center;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--gray-600);
+    }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+    
+    .calendar-cell {
+      min-height: 120px;
+      border-right: 1px solid var(--gray-100);
+      border-bottom: 1px solid var(--gray-100);
+      padding: var(--space-2);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    
+    .calendar-cell:nth-child(7n) {
+      border-right: none;
+    }
+    
+    .calendar-cell:hover {
+      background: var(--gray-50);
+    }
+    
+    .calendar-cell.other-month {
+      background: var(--gray-50);
+    }
+    
+    .calendar-cell.other-month .cell-date {
+      color: var(--gray-400);
+    }
+    
+    .calendar-cell.today {
+      background: var(--primary-50);
+    }
+    
+    .calendar-cell.today .cell-date {
+      background: var(--primary-600);
+      color: white;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .cell-date {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: var(--space-1);
+    }
+    
+    .cell-jobs {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .job-chip {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      transition: opacity var(--transition-fast);
+    }
+    
+    .job-chip:hover {
+      opacity: 0.8;
+    }
+    
+    .job-chip.morning {
+      background: var(--info-100);
+      color: var(--info-700);
+    }
+    
+    .job-chip.afternoon {
+      background: var(--secondary-100);
+      color: var(--secondary-700);
+    }
+    
+    .job-chip.completed {
+      background: var(--success-100);
+      color: var(--success-700);
+    }
+    
+    .job-chip.cancelled {
+      background: var(--gray-100);
+      color: var(--gray-500);
+      text-decoration: line-through;
+    }
+    
+    .more-jobs {
+      font-size: 11px;
+      color: var(--gray-500);
+      padding: 2px 6px;
+      cursor: pointer;
+    }
+    
+    .more-jobs:hover {
+      color: var(--primary-600);
+    }
+    
+    /* Week view */
+    .week-view {
+      display: none;
+    }
+    
+    .week-view.active {
+      display: block;
+    }
+    
+    .week-grid {
+      display: grid;
+      grid-template-columns: 80px repeat(7, 1fr);
+    }
+    
+    .week-header {
+      display: grid;
+      grid-template-columns: 80px repeat(7, 1fr);
+      background: var(--gray-50);
+      border-bottom: 1px solid var(--gray-200);
+    }
+    
+    .week-header > div {
+      padding: var(--space-3);
+      text-align: center;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--gray-600);
+    }
+    
+    .week-header .today-header {
+      background: var(--primary-100);
+      color: var(--primary-700);
+    }
+    
+    .time-slot-row {
+      display: grid;
+      grid-template-columns: 80px repeat(7, 1fr);
+      border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .time-label {
+      padding: var(--space-3);
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+      text-align: right;
+      background: var(--gray-50);
+      border-right: 1px solid var(--gray-200);
+    }
+    
+    .time-cell {
+      min-height: 80px;
+      padding: var(--space-2);
+      border-right: 1px solid var(--gray-100);
+    }
+    
+    .time-cell:last-child {
+      border-right: none;
+    }
+    
+    /* Day view */
+    .day-view {
+      display: none;
+    }
+    
+    .day-view.active {
+      display: block;
+    }
+    
+    .day-schedule {
+      padding: var(--space-4);
+    }
+    
+    .day-section {
+      margin-bottom: var(--space-6);
+    }
+    
+    .day-section-title {
+      font-size: var(--text-lg);
+      font-weight: 600;
+      margin-bottom: var(--space-3);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .job-card {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      margin-bottom: var(--space-3);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-4);
+      transition: box-shadow var(--transition-fast);
+    }
+    
+    .job-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    
+    .job-card-time {
+      text-align: center;
+      min-width: 60px;
+    }
+    
+    .job-card-time-slot {
+      font-size: var(--text-xs);
+      color: var(--gray-500);
+      text-transform: uppercase;
+    }
+    
+    .job-card-content {
+      flex: 1;
+    }
+    
+    .job-card-client {
+      font-weight: 600;
+      font-size: var(--text-lg);
+    }
+    
+    .job-card-address {
+      font-size: var(--text-sm);
+      color: var(--gray-500);
+    }
+    
+    .job-card-details {
+      display: flex;
+      gap: var(--space-4);
+      margin-top: var(--space-2);
+      flex-wrap: wrap;
+    }
+    
+    .job-card-detail {
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+    }
+    
+    .job-card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .month-view {
+      display: none;
+    }
+    
+    .month-view.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🧹</div>
+        <span class="sidebar-title">CleanPro</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">
+            <span class="nav-item-icon">📊</span>
+            <span class="nav-item-text" data-i18n="dashboard">Dashboard</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="employees.html" class="nav-item">
+            <span class="nav-item-icon">👥</span>
+            <span class="nav-item-text" data-i18n="employees">Employees</span>
+          </a>
+          <a href="clients.html" class="nav-item">
+            <span class="nav-item-icon">🏠</span>
+            <span class="nav-item-text" data-i18n="clients">Clients</span>
+          </a>
+          <a href="scheduling.html" class="nav-item active">
+            <span class="nav-item-icon">📅</span>
+            <span class="nav-item-text" data-i18n="scheduling">Scheduling</span>
+          </a>
+          <a href="timeclock.html" class="nav-item">
+            <span class="nav-item-icon">⏱️</span>
+            <span class="nav-item-text" data-i18n="timeClock">Time Clock</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title" data-i18n="finances">Finance</div>
+          <a href="finances.html" class="nav-item">
+            <span class="nav-item-icon">💰</span>
+            <span class="nav-item-text" data-i18n="finances">Finances</span>
+          </a>
+          <a href="reports.html" class="nav-item">
+            <span class="nav-item-icon">📈</span>
+            <span class="nav-item-text" data-i18n="reports">Reports</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="audit-log.html" class="nav-item">
+            <span class="nav-item-icon">📋</span>
+            <span class="nav-item-text" data-i18n="auditLog">Audit Log</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar" id="userAvatar">AD</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="userName">Admin</div>
+            <div class="sidebar-user-role" id="userRole">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <button class="header-menu-btn" id="menuToggle">☰</button>
+        
+        <div class="header-search">
+          <span class="header-search-icon">🔍</span>
+          <input type="text" class="header-search-input" placeholder="Search schedules..." id="searchInput">
+        </div>
+
+        <div class="header-actions">
+          <button class="header-btn lang-toggle" id="langToggle">
+            🌐 <span id="langLabel">ES</span>
+          </button>
+          <button class="header-btn" id="logoutBtn" title="Logout">🚪</button>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="scheduling">Scheduling</h1>
+            <p class="text-gray-500"><span id="scheduleCount">0</span> jobs this month</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-secondary" id="autoScheduleBtn">
+              <span>🔄</span>
+              <span data-i18n="generateSchedules">Generate Schedules</span>
+            </button>
+            <button class="btn btn-primary" id="addScheduleBtn">
+              <span>➕</span>
+              <span data-i18n="scheduleJob">Schedule Job</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Calendar Container -->
+        <div class="calendar-container">
+          <!-- Calendar Toolbar -->
+          <div class="calendar-toolbar">
+            <div class="calendar-nav">
+              <button class="btn btn-ghost btn-icon" id="prevBtn">◀</button>
+              <button class="btn btn-secondary btn-sm" id="todayBtn" data-i18n="today">Today</button>
+              <button class="btn btn-ghost btn-icon" id="nextBtn">▶</button>
+              <span class="calendar-title" id="calendarTitle">December 2024</span>
+            </div>
+            
+            <div class="calendar-views">
+              <button class="view-btn" data-view="day" data-i18n="viewDay">Day</button>
+              <button class="view-btn" data-view="week" data-i18n="viewWeek">Week</button>
+              <button class="view-btn active" data-view="month" data-i18n="viewMonth">Month</button>
+            </div>
+
+            <div class="flex gap-2">
+              <select class="form-select" id="teamFilter" style="width: auto;">
+                <option value="">All Teams</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Month View -->
+          <div class="month-view active" id="monthView">
+            <div class="calendar-grid-header" id="calendarHeader">
+              <!-- Day headers populated by JS -->
+            </div>
+            <div class="calendar-grid" id="calendarGrid">
+              <!-- Calendar cells populated by JS -->
+            </div>
+          </div>
+
+          <!-- Week View -->
+          <div class="week-view" id="weekView">
+            <div class="week-header" id="weekHeader">
+              <!-- Week headers populated by JS -->
+            </div>
+            <div id="weekContent">
+              <!-- Time slots populated by JS -->
+            </div>
+          </div>
+
+          <!-- Day View -->
+          <div class="day-view" id="dayView">
+            <div class="day-schedule" id="daySchedule">
+              <!-- Day jobs populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div class="modal-backdrop" id="sidebarOverlay"></div>
+
+  <!-- Modal Backdrop -->
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+
+  <!-- Schedule Job Modal -->
+  <div class="modal modal-lg" id="scheduleModal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="scheduleModalTitle" data-i18n="scheduleJob">Schedule Job</h3>
+      <button class="modal-close" id="closeScheduleModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="scheduleForm">
+        <input type="hidden" id="scheduleId">
+        
+        <div class="grid grid-cols-2">
+          <div class="form-group">
+            <label class="form-label form-label-required" data-i18n="selectClient">Select Client</label>
+            <select class="form-select" id="scheduleClient" required>
+              <option value="">-- Select Client --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label form-label-required" data-i18n="selectTeam">Select Team</label>
+            <select class="form-select" id="scheduleTeam" required>
+              <option value="">-- Select Team --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2">
+          <div class="form-group">
+            <label class="form-label form-label-required" data-i18n="selectDate">Date</label>
+            <input type="date" class="form-input" id="scheduleDate" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="timeSlot">Time Slot</label>
+            <select class="form-select" id="scheduleTimeSlot">
+              <option value="morning">🌅 Morning (8am - 12pm)</option>
+              <option value="afternoon">🌆 Afternoon (12pm - 5pm)</option>
+            </select>
+          </div>
+        </div>
+
+<!-- Client Info Preview -->
+        <div class="card mb-4 hidden" id="clientPreview">
+          <div class="card-body">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="font-semibold" id="previewClientName">Client Name</div>
+                <div class="text-sm text-gray-500" id="previewClientAddress">Address</div>
+                <div class="text-sm text-gray-500" id="previewClientHouseCode" style="display: none;">🔑 <span></span></div>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold text-primary" id="previewClientPrice">$0</div>
+                <div class="text-sm text-gray-500" id="previewClientSchedule">Weekly</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+<div class="form-group" id="addonsSection" style="display: none;">
+          <label class="form-label" data-i18n="addOns">Extra Services (Additional Charge)</label>
+          <div id="addonsContainer" class="flex flex-col gap-2">
+            <!-- Populated dynamically based on client's areas -->
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="estimatedDuration">Estimated Duration</label>
+          <select class="form-select" id="scheduleDuration">
+            <option value="1">1 hour</option>
+            <option value="1.5">1.5 hours</option>
+            <option value="2" selected>2 hours</option>
+            <option value="2.5">2.5 hours</option>
+            <option value="3">3 hours</option>
+            <option value="3.5">3.5 hours</option>
+            <option value="4">4 hours</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="status">Status</label>
+          <select class="form-select" id="scheduleStatus">
+            <option value="scheduled">Scheduled</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="rescheduled">Rescheduled</option>
+          </select>
+        </div>
+
+        
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="notes">Notes</label>
+          <textarea class="form-input" id="scheduleNotes" rows="2" placeholder="Special instructions..."></textarea>
+        </div>
+
+        <!-- Total Price -->
+        <div class="card" style="background: var(--primary-50); border-color: var(--primary-200);">
+          <div class="card-body">
+            <div class="flex justify-between items-center">
+              <span class="font-semibold" data-i18n="total">Total Price</span>
+              <span class="text-2xl font-bold text-primary" id="scheduleTotalPrice">$0.00</span>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelScheduleBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveScheduleBtn" data-i18n="save">Save</button>
+    </div>
+  </div>
+
+  <!-- View Schedule Modal -->
+  <div class="modal modal-lg" id="viewScheduleModal">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="details">Job Details</h3>
+      <button class="modal-close" id="closeViewScheduleModal">✕</button>
+    </div>
+    <div class="modal-body" id="viewScheduleContent">
+      <!-- Populated by JS -->
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-danger" id="deleteScheduleBtn" data-i18n="delete">Delete</button>
+      <button type="button" class="btn btn-secondary" id="closeViewScheduleBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-primary" id="editScheduleBtn" data-i18n="edit">Edit</button>
+    </div>
+  </div>
+
+  <!-- Auto Schedule Modal -->
+  <div class="modal modal-lg" id="autoScheduleModal">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="generateSchedules">Generate Schedules</h3>
+      <button class="modal-close" id="closeAutoScheduleModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="mb-4">Automatically generate schedules for clients based on their schedule preferences.</p>
+      
+      <div class="grid grid-cols-2">
+        <div class="form-group">
+          <label class="form-label">Start Date</label>
+          <input type="date" class="form-input" id="autoStartDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date</label>
+          <input type="date" class="form-input" id="autoEndDate">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Include Clients</label>
+        <select class="form-select" id="autoClientFilter">
+          <option value="all">All Active Clients</option>
+          <option value="unscheduled">Only Clients Without Upcoming Schedules</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Default Team Assignment</label>
+        <select class="form-select" id="autoDefaultTeam">
+          <option value="">Auto-assign (round robin)</option>
+        </select>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-body">
+          <div class="flex justify-between items-center">
+            <span>Estimated jobs to create:</span>
+            <span class="text-2xl font-bold text-primary" id="estimatedJobs">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelAutoScheduleBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="generateSchedulesBtn">Generate Schedules</button>
+    </div>
+  </div>
+
+  <!-- Day Jobs Modal (for clicking on a day) -->
+  <div class="modal modal-lg" id="dayJobsModal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="dayJobsTitle">Jobs for December 15, 2024</h3>
+      <button class="modal-close" id="closeDayJobsModal">✕</button>
+    </div>
+    <div class="modal-body" id="dayJobsContent">
+      <!-- Populated by JS -->
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="closeDayJobsBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-primary" id="addJobForDayBtn">
+        <span>➕</span> Add Job
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script type="module">
+    import { 
+      auth, db, onAuthStateChanged, signOut,
+      collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, 
+      query, where, orderBy, Timestamp
+    } from './js/firebase-config.js';
+    import { i18n } from './js/i18n.js';
+    import { 
+      showToast, openModal, closeModal, closeAllModals,
+      formatCurrency, formatDate, getInitials, confirmDialog,
+      getNextScheduleDate, addDays
+    } from './js/utils.js';
+    import { logScheduleAction, AuditActions } from './js/audit.js';
+
+    // ============================================
+    // STATE
+    // ============================================
+    let currentUser = null;
+    let currentAdmin = null;
+    let clients = [];
+    let teams = [];
+    let schedules = [];
+    
+    let currentView = 'month';
+    let currentDate = new Date();
+    let selectedDate = null;
+    let editingScheduleId = null;
+    let selectedClient = null;
+    let teamFilter = '';
+
+    // ============================================
+    // AUTHENTICATION CHECK
+    // ============================================
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        try {
+          const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+          if (adminDoc.exists()) {
+            currentAdmin = { id: adminDoc.id, ...adminDoc.data() };
+            initializePage();
+          } else {
+            window.location.href = 'index.html';
+          }
+        } catch (error) {
+          console.error('Error fetching admin:', error);
+          window.location.href = 'index.html';
+        }
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // ============================================
+    // INITIALIZE PAGE
+    // ============================================
+    async function initializePage() {
+      document.getElementById('userName').textContent = currentAdmin.name;
+      document.getElementById('userAvatar').textContent = getInitials(
+        currentAdmin.name.split(' ')[0], 
+        currentAdmin.name.split(' ')[1] || ''
+      );
+
+      updateLanguage();
+      i18n.updatePageTranslations();
+
+      await loadClients();
+      await loadTeams();
+      await loadSchedules();
+
+      renderCalendar();
+      setupEventListeners();
+
+      // Check URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('action') === 'add') {
+        openAddScheduleModal();
+      }
+    }
+
+    // ============================================
+    // LOAD DATA
+    // ============================================
+    async function loadClients() {
+      try {
+        const q = query(collection(db, 'clients'), where('isActive', '==', true), orderBy('lastName'));
+        const snapshot = await getDocs(q);
+        clients = [];
+        snapshot.forEach(doc => clients.push({ id: doc.id, ...doc.data() }));
+        populateClientSelect();
+      } catch (error) {
+        console.error('Error loading clients:', error);
+      }
+    }
+
+    async function loadTeams() {
+      try {
+        const q = query(collection(db, 'teams'), where('isActive', '==', true), orderBy('name'));
+        const snapshot = await getDocs(q);
+        teams = [];
+        snapshot.forEach(doc => teams.push({ id: doc.id, ...doc.data() }));
+        populateTeamSelect();
+      } catch (error) {
+        console.error('Error loading teams:', error);
+      }
+    }
+
+    async function loadSchedules() {
+      try {
+        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        
+        // Load schedules for current month view (with some buffer)
+        const startStr = formatDateStr(addDays(startOfMonth, -7));
+        const endStr = formatDateStr(addDays(endOfMonth, 7));
+
+        const q = query(
+          collection(db, 'schedules'),
+          where('date', '>=', startStr),
+          where('date', '<=', endStr)
+        );
+        const snapshot = await getDocs(q);
+        
+        schedules = [];
+        snapshot.forEach(doc => schedules.push({ id: doc.id, ...doc.data() }));
+        
+      } catch (error) {
+        console.error('Error loading schedules:', error);
+      }
+    }
+
+    // ============================================
+    // CALENDAR RENDERING
+    // ============================================
+    function renderCalendar() {
+      updateCalendarTitle();
+      updateScheduleCount();
+      
+      if (currentView === 'month') {
+        renderMonthView();
+      } else if (currentView === 'week') {
+        renderWeekView();
+      } else if (currentView === 'day') {
+        renderDayView();
+      }
+    }
+    
+    function updateScheduleCount() {
+      let filteredSchedules = schedules;
+      if (teamFilter) {
+        filteredSchedules = filteredSchedules.filter(s => s.teamId === teamFilter);
+      }
+      
+      let count = 0;
+      let label = '';
+      
+      if (currentView === 'month') {
+        count = filteredSchedules.filter(s => {
+          const d = new Date(s.date);
+          return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
+        }).length;
+        label = 'jobs this month';
+      } else if (currentView === 'week') {
+        const startOfWeek = getStartOfWeek(currentDate);
+        const endOfWeek = addDays(startOfWeek, 6);
+        const startStr = formatDateStr(startOfWeek);
+        const endStr = formatDateStr(endOfWeek);
+        count = filteredSchedules.filter(s => s.date >= startStr && s.date <= endStr).length;
+        label = 'jobs this week';
+      } else if (currentView === 'day') {
+        const dateStr = formatDateStr(currentDate);
+        count = filteredSchedules.filter(s => s.date === dateStr).length;
+        label = 'jobs today';
+      }
+      
+      document.getElementById('scheduleCount').textContent = count;
+      // Update the label text next to the count
+      const countParent = document.getElementById('scheduleCount').parentElement;
+      if (countParent) {
+        countParent.innerHTML = `<span id="scheduleCount">${count}</span> ${label}`;
+      }
+    }
+
+    function updateCalendarTitle() {
+      const title = document.getElementById('calendarTitle');
+      
+      if (currentView === 'month') {
+        title.textContent = i18n.getMonthName(currentDate.getMonth()) + ' ' + currentDate.getFullYear();
+      } else if (currentView === 'week') {
+        const startOfWeek = getStartOfWeek(currentDate);
+        const endOfWeek = addDays(startOfWeek, 6);
+        title.textContent = `${formatDate(startOfWeek, { month: 'short', day: 'numeric' })} - ${formatDate(endOfWeek, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      } else if (currentView === 'day') {
+        title.textContent = formatDate(currentDate, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      }
+    }
+
+    function renderMonthView() {
+      const header = document.getElementById('calendarHeader');
+      const grid = document.getElementById('calendarGrid');
+      
+      // Render header
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      header.innerHTML = days.map((d, i) => `<div>${i18n.getDayName(i, true)}</div>`).join('');
+      
+      // Get first day of month
+      const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      const startDay = firstDay.getDay();
+      
+      // Calculate start date (include previous month days)
+      const startDate = addDays(firstDay, -startDay);
+      
+      // Render 6 weeks
+      let html = '';
+      const today = new Date();
+      const todayStr = formatDateStr(today);
+      
+      for (let week = 0; week < 6; week++) {
+        for (let day = 0; day < 7; day++) {
+          const date = addDays(startDate, week * 7 + day);
+          const dateStr = formatDateStr(date);
+          const isOtherMonth = date.getMonth() !== currentDate.getMonth();
+          const isToday = dateStr === todayStr;
+          
+          // Get jobs for this day
+          let daySchedules = schedules.filter(s => s.date === dateStr);
+          if (teamFilter) {
+            daySchedules = daySchedules.filter(s => s.teamId === teamFilter);
+          }
+          
+          html += `
+            <div class="calendar-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}"
+                 data-date="${dateStr}" onclick="showDayJobs('${dateStr}')">
+              <div class="cell-date">${date.getDate()}</div>
+              <div class="cell-jobs">
+                ${renderJobChips(daySchedules, 3)}
+              </div>
+            </div>
+          `;
+        }
+      }
+      
+      grid.innerHTML = html;
+    }
+
+    function renderJobChips(daySchedules, maxShow = 3) {
+      if (daySchedules.length === 0) return '';
+      
+      const sorted = daySchedules.sort((a, b) => {
+        if (a.timeSlot === 'morning' && b.timeSlot === 'afternoon') return -1;
+        if (a.timeSlot === 'afternoon' && b.timeSlot === 'morning') return 1;
+        return 0;
+      });
+      
+      let html = '';
+      const toShow = sorted.slice(0, maxShow);
+      
+      toShow.forEach(schedule => {
+        const client = clients.find(c => c.id === schedule.clientId);
+        const clientName = client ? `${client.firstName} ${client.lastName.charAt(0)}.` : 'Unknown';
+        const statusClass = schedule.status === 'completed' ? 'completed' : 
+                           schedule.status === 'cancelled' ? 'cancelled' : 
+                           schedule.timeSlot;
+        
+        html += `
+          <div class="job-chip ${statusClass}" onclick="event.stopPropagation(); viewSchedule('${schedule.id}')" title="${clientName}">
+            ${clientName}
+          </div>
+        `;
+      });
+      
+      if (sorted.length > maxShow) {
+        html += `<div class="more-jobs">+${sorted.length - maxShow} more</div>`;
+      }
+      
+      return html;
+    }
+
+    function renderWeekView() {
+      const header = document.getElementById('weekHeader');
+      const content = document.getElementById('weekContent');
+      
+      const startOfWeek = getStartOfWeek(currentDate);
+      const today = formatDateStr(new Date());
+      
+      // Header
+      let headerHtml = '<div></div>';
+      for (let i = 0; i < 7; i++) {
+        const date = addDays(startOfWeek, i);
+        const dateStr = formatDateStr(date);
+        const isToday = dateStr === today;
+        headerHtml += `
+          <div class="${isToday ? 'today-header' : ''}">
+            <div>${i18n.getDayName(i, true)}</div>
+            <div class="font-semibold">${date.getDate()}</div>
+          </div>
+        `;
+      }
+      header.innerHTML = headerHtml;
+      
+      // Time slots
+      const timeSlots = [
+        { label: '🌅 Morning', value: 'morning' },
+        { label: '🌆 Afternoon', value: 'afternoon' }
+      ];
+      
+      let contentHtml = '';
+      timeSlots.forEach(slot => {
+        contentHtml += `<div class="time-slot-row">`;
+        contentHtml += `<div class="time-label">${slot.label}</div>`;
+        
+        for (let i = 0; i < 7; i++) {
+          const date = addDays(startOfWeek, i);
+          const dateStr = formatDateStr(date);
+          
+          let daySchedules = schedules.filter(s => s.date === dateStr && s.timeSlot === slot.value);
+          if (teamFilter) {
+            daySchedules = daySchedules.filter(s => s.teamId === teamFilter);
+          }
+          
+          contentHtml += `
+            <div class="time-cell" data-date="${dateStr}" data-slot="${slot.value}">
+              ${daySchedules.map(s => {
+                const client = clients.find(c => c.id === s.clientId);
+                const clientName = client ? `${client.firstName} ${client.lastName.charAt(0)}.` : 'Unknown';
+                return `<div class="job-chip ${s.status === 'completed' ? 'completed' : s.timeSlot}" 
+                            onclick="viewSchedule('${s.id}')">${clientName}</div>`;
+              }).join('')}
+            </div>
+          `;
+        }
+        contentHtml += `</div>`;
+      });
+      
+      content.innerHTML = contentHtml;
+    }
+
+    function renderDayView() {
+      const container = document.getElementById('daySchedule');
+      const dateStr = formatDateStr(currentDate);
+      
+      let daySchedules = schedules.filter(s => s.date === dateStr);
+      if (teamFilter) {
+        daySchedules = daySchedules.filter(s => s.teamId === teamFilter);
+      }
+      
+      const morningJobs = daySchedules.filter(s => s.timeSlot === 'morning');
+      const afternoonJobs = daySchedules.filter(s => s.timeSlot === 'afternoon');
+      
+      container.innerHTML = `
+        <div class="day-section">
+          <div class="day-section-title">🌅 ${i18n.t('morning')} (${morningJobs.length} jobs)</div>
+          ${morningJobs.length > 0 ? morningJobs.map(s => renderJobCard(s)).join('') : 
+            `<div class="text-gray-500 text-center p-4">No morning jobs scheduled</div>`}
+        </div>
+        
+        <div class="day-section">
+          <div class="day-section-title">🌆 ${i18n.t('afternoon')} (${afternoonJobs.length} jobs)</div>
+          ${afternoonJobs.length > 0 ? afternoonJobs.map(s => renderJobCard(s)).join('') : 
+            `<div class="text-gray-500 text-center p-4">No afternoon jobs scheduled</div>`}
+        </div>
+      `;
+    }
+
+    function renderJobCard(schedule) {
+      const client = clients.find(c => c.id === schedule.clientId);
+      const team = teams.find(t => t.id === schedule.teamId);
+      
+      if (!client) return '';
+      
+      const statusColors = {
+        scheduled: 'primary',
+        in_progress: 'warning',
+        completed: 'success',
+        cancelled: 'danger'
+      };
+      
+      return `
+        <div class="job-card" onclick="viewSchedule('${schedule.id}')">
+          <div class="job-card-time">
+            <div class="job-card-time-slot">${schedule.timeSlot}</div>
+          </div>
+          <div class="job-card-content">
+            <div class="job-card-client">${client.firstName} ${client.lastName}</div>
+            <div class="job-card-address">${client.address?.street || ''}, ${client.address?.city || ''}</div>
+            <div class="job-card-details">
+              <span class="badge badge-${schedule.serviceDetails?.type === 'full' ? 'primary' : 'secondary'}">
+                ${schedule.serviceDetails?.type === 'full' ? 'Full' : 'Half'}
+              </span>
+              <span class="badge badge-${statusColors[schedule.status] || 'secondary'}">
+                ${i18n.t(`jobStatus.${schedule.status}`) || schedule.status}
+              </span>
+              ${team ? `<span class="job-card-detail">👥 ${team.name}</span>` : ''}
+              <span class="job-card-detail">💰 ${formatCurrency(schedule.serviceDetails?.totalPrice || 0)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // SHOW DAY JOBS
+    // ============================================
+    window.showDayJobs = function(dateStr) {
+      selectedDate = dateStr;
+      
+      let daySchedules = schedules.filter(s => s.date === dateStr);
+      if (teamFilter) {
+        daySchedules = daySchedules.filter(s => s.teamId === teamFilter);
+      }
+
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      document.getElementById('dayJobsTitle').textContent = 
+        `Jobs for ${formatDate(date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`;
+      
+      const content = document.getElementById('dayJobsContent');
+      
+      if (daySchedules.length === 0) {
+        content.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📅</div>
+            <div class="empty-state-title">No jobs scheduled</div>
+            <p class="text-gray-500">Click "Add Job" to schedule a cleaning for this day</p>
+          </div>
+        `;
+      } else {
+        const morningJobs = daySchedules.filter(s => s.timeSlot === 'morning');
+        const afternoonJobs = daySchedules.filter(s => s.timeSlot === 'afternoon');
+        
+        content.innerHTML = `
+          ${morningJobs.length > 0 ? `
+            <div class="mb-4">
+              <h4 class="mb-2">🌅 ${i18n.t('morning')}</h4>
+              ${morningJobs.map(s => renderJobCard(s)).join('')}
+            </div>
+          ` : ''}
+          ${afternoonJobs.length > 0 ? `
+            <div>
+              <h4 class="mb-2">🌆 ${i18n.t('afternoon')}</h4>
+              ${afternoonJobs.map(s => renderJobCard(s)).join('')}
+            </div>
+          ` : ''}
+        `;
+      }
+      
+      openModal('dayJobsModal');
+    };
+
+    // ============================================
+    // SCHEDULE CRUD
+    // ============================================
+    function openAddScheduleModal(dateStr = null) {
+      editingScheduleId = null;
+      selectedClient = null;
+      document.getElementById('scheduleModalTitle').textContent = i18n.t('scheduleJob');
+      document.getElementById('scheduleForm').reset();
+      document.getElementById('clientPreview').classList.add('hidden');
+      
+      if (dateStr) {
+        document.getElementById('scheduleDate').value = dateStr;
+      } else {
+        document.getElementById('scheduleDate').value = formatDateStr(new Date());
+      }
+      
+      document.getElementById('scheduleStatus').value = 'scheduled';
+      updateTotalPrice();
+      openModal('scheduleModal');
+    }
+
+    window.viewSchedule = async function(id) {
+      // Close dayJobsModal first if open to prevent z-index issues
+      closeModal('dayJobsModal');
+      
+      const schedule = schedules.find(s => s.id === id);
+      if (!schedule) return;
+      
+      const client = clients.find(c => c.id === schedule.clientId);
+      const team = teams.find(t => t.id === schedule.teamId);
+      
+      const statusColors = {
+        scheduled: 'pending',
+        in_progress: 'active',
+        completed: 'completed',
+        cancelled: 'inactive'
+      };
+      
+      const [year, month, day] = schedule.date.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      
+      document.getElementById('viewScheduleContent').innerHTML = `
+        <div class="flex justify-between items-start mb-6">
+          <div>
+            <h2 class="text-2xl font-semibold">${client?.firstName || ''} ${client?.lastName || 'Unknown Client'}</h2>
+            <div class="text-gray-500">${client?.address?.street || ''}</div>
+            <div class="text-gray-500">${client?.address?.city || ''}, ${client?.address?.state || ''} ${client?.address?.zip || ''}</div>
+            ${client?.houseCode ? `<div class="text-gray-500 mt-1">🔑 ${client.houseCode}</div>` : ''}
+          </div>
+          <span class="status-badge ${statusColors[schedule.status] || 'pending'}">
+            ${i18n.t(`jobStatus.${schedule.status}`) || schedule.status}
+          </span>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <div class="card">
+            <div class="card-body">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <div class="text-sm text-gray-500">${i18n.t('date')}</div>
+                  <div class="font-semibold">${formatDate(date, { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">${i18n.t('timeSlot')}</div>
+                  <div class="font-semibold">${schedule.timeSlot === 'morning' ? '🌅 ' + i18n.t('morning') : '🌆 ' + i18n.t('afternoon')}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">${i18n.t('team')}</div>
+                  <div class="font-semibold">${team?.name || 'Unassigned'}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-500">${i18n.t('estimatedDuration')}</div>
+                  <div class="font-semibold">${schedule.estimatedDuration || 2} ${i18n.t('hours')}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="card-body">
+              ${schedule.serviceDetails?.addOns?.length > 0 ? `
+                <div class="text-sm text-gray-500 mb-2">${i18n.t('addOns')}</div>
+                <div class="flex flex-col gap-1 mb-3">
+                  ${schedule.serviceDetails.addOns.map(a => {
+                    const label = typeof a === 'object' ? a.area : a;
+                    const price = typeof a === 'object' ? a.price : 0;
+                    const floorLabels = { basement: '🏚️ Basement', mainLevel: '🏠 Main Level', upstairs: '⬆️ Upstairs' };
+                    return `<span class="badge badge-secondary">${floorLabels[label] || label}${price ? ' (+' + formatCurrency(price) + ')' : ''}</span>`;
+                  }).join('')}
+                </div>
+              ` : ''}
+              
+              <div class="pt-3 border-t">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-500">${i18n.t('total')}</span>
+                  <span class="text-2xl font-bold text-primary">${formatCurrency(schedule.serviceDetails?.totalPrice || 0)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        ${schedule.notes ? `
+          <div class="card">
+            <div class="card-body">
+              <div class="text-sm text-gray-500 mb-1">${i18n.t('notes')}</div>
+              <p>${schedule.notes}</p>
+            </div>
+          </div>
+        ` : ''}
+      `;
+      
+      document.getElementById('editScheduleBtn').onclick = () => {
+        closeModal('viewScheduleModal');
+        editSchedule(id);
+      };
+      
+      document.getElementById('deleteScheduleBtn').onclick = () => {
+        deleteSchedule(id);
+      };
+      
+      openModal('viewScheduleModal');
+    };
+
+    window.editSchedule = async function(id) {
+      const schedule = schedules.find(s => s.id === id);
+      if (!schedule) return;
+      
+      editingScheduleId = id;
+      document.getElementById('scheduleModalTitle').textContent = i18n.t('editSchedule');
+      
+      document.getElementById('scheduleClient').value = schedule.clientId;
+      document.getElementById('scheduleTeam').value = schedule.teamId;
+      document.getElementById('scheduleDate').value = schedule.date;
+      document.getElementById('scheduleTimeSlot').value = schedule.timeSlot;
+      document.getElementById('scheduleDuration').value = schedule.estimatedDuration || 2;
+      document.getElementById('scheduleStatus').value = schedule.status;
+      document.getElementById('scheduleNotes').value = schedule.notes || '';
+      
+      // Update client preview (this builds the add-ons)
+      onClientChange();
+      
+      // Set addons from saved schedule
+      const savedAddOns = schedule.serviceDetails?.addOns || [];
+      document.querySelectorAll('.addon-checkbox').forEach(checkbox => {
+        const areaKey = checkbox.dataset.area;
+        // Support both old format (string array) and new format (object array)
+        const isChecked = savedAddOns.some(a => 
+          (typeof a === 'string' && a === areaKey) || 
+          (typeof a === 'object' && a.area === areaKey)
+        );
+        checkbox.checked = isChecked;
+      });
+      
+      updateTotalPrice();
+      openModal('scheduleModal');
+    };
+
+    async function saveSchedule() {
+      const clientId = document.getElementById('scheduleClient').value;
+      const teamId = document.getElementById('scheduleTeam').value;
+      const date = document.getElementById('scheduleDate').value;
+      
+      if (!clientId || !teamId || !date) {
+        showToast('error', i18n.t('error'), i18n.t('required'));
+        return;
+      }
+      
+      const client = clients.find(c => c.id === clientId);
+      
+      // Calculate total price from base + add-ons
+      let totalPrice = client?.basePrice || 0;
+      const addOns = [];
+      
+      document.querySelectorAll('.addon-checkbox:checked').forEach(checkbox => {
+        const areaKey = checkbox.dataset.area;
+        const price = parseFloat(checkbox.dataset.price) || 0;
+        addOns.push({ area: areaKey, price: price });
+        totalPrice += price;
+      });
+      
+const scheduleData = {
+        clientId,
+        teamId,
+        date,
+        timeSlot: document.getElementById('scheduleTimeSlot').value,
+        serviceDetails: {
+          addOns,
+          totalPrice
+        },
+        estimatedDuration: parseFloat(document.getElementById('scheduleDuration').value),
+        status: document.getElementById('scheduleStatus').value,
+        notes: document.getElementById('scheduleNotes').value.trim(),
+        updatedAt: Timestamp.now()
+      };
+      
+      try {
+        if (editingScheduleId) {
+          await updateDoc(doc(db, 'schedules', editingScheduleId), scheduleData);
+          await logScheduleAction(AuditActions.UPDATE, editingScheduleId, 
+            `${client.firstName} ${client.lastName} - ${date}`);
+          showToast('success', i18n.t('success'), i18n.t('scheduleUpdated'));
+        } else {
+          scheduleData.createdAt = Timestamp.now();
+          const docRef = await addDoc(collection(db, 'schedules'), scheduleData);
+          await logScheduleAction(AuditActions.CREATE, docRef.id, 
+            `${client.firstName} ${client.lastName} - ${date}`);
+          showToast('success', i18n.t('success'), i18n.t('scheduleCreated'));
+        }
+        
+        closeModal('scheduleModal');
+        closeModal('dayJobsModal');
+        await loadSchedules();
+        renderCalendar();
+      } catch (error) {
+        console.error('Error saving schedule:', error);
+        showToast('error', i18n.t('error'), 'Failed to save schedule');
+      }
+    }
+
+    async function deleteSchedule(id) {
+      const schedule = schedules.find(s => s.id === id);
+      if (!schedule) return;
+      
+      const client = clients.find(c => c.id === schedule.clientId);
+      
+      const confirmed = await confirmDialog(
+        i18n.t('delete'),
+        i18n.t('confirmDeleteSchedule'),
+        i18n.t('delete'),
+        i18n.t('cancel')
+      );
+      
+      if (!confirmed) return;
+      
+      try {
+        await deleteDoc(doc(db, 'schedules', id));
+        await logScheduleAction(AuditActions.DELETE, id, 
+          `${client?.firstName || ''} ${client?.lastName || ''} - ${schedule.date}`);
+        showToast('success', i18n.t('success'), i18n.t('scheduleDeleted'));
+        
+        closeModal('viewScheduleModal');
+        closeModal('dayJobsModal');
+        await loadSchedules();
+        renderCalendar();
+      } catch (error) {
+        console.error('Error deleting schedule:', error);
+        showToast('error', i18n.t('error'), 'Failed to delete schedule');
+      }
+    }
+
+    // ============================================
+    // AUTO-SCHEDULE GENERATION
+    // ============================================
+    function openAutoScheduleModal() {
+      const today = new Date();
+      const nextWeek = addDays(today, 7);
+      const twoWeeksOut = addDays(today, 14);
+      
+      document.getElementById('autoStartDate').value = formatDateStr(nextWeek);
+      document.getElementById('autoEndDate').value = formatDateStr(twoWeeksOut);
+      
+      // Populate team select
+      const teamSelect = document.getElementById('autoDefaultTeam');
+      teamSelect.innerHTML = '<option value="">Auto-assign (round robin)</option>' +
+        teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+      
+      estimateJobs();
+      openModal('autoScheduleModal');
+    }
+
+    function estimateJobs() {
+      const startDate = new Date(document.getElementById('autoStartDate').value);
+      const endDate = new Date(document.getElementById('autoEndDate').value);
+      const filter = document.getElementById('autoClientFilter').value;
+      
+      if (isNaN(startDate) || isNaN(endDate)) {
+        document.getElementById('estimatedJobs').textContent = '0';
+        return;
+      }
+      
+      let eligibleClients = clients.filter(c => c.scheduleType !== 'oneTime');
+      
+      // Simple estimation based on schedule frequency
+      let totalJobs = 0;
+      const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      
+      eligibleClients.forEach(client => {
+        let interval = 7;
+        switch (client.scheduleType) {
+          case 'weekly': interval = 7; break;
+          case 'biweekly': interval = 14; break;
+          case 'every3weeks': interval = 21; break;
+          case 'monthly': interval = 30; break;
+          default: interval = 7;
+        }
+        totalJobs += Math.ceil(days / interval);
+      });
+      
+      document.getElementById('estimatedJobs').textContent = totalJobs;
+    }
+
+    async function generateSchedules() {
+      const startDate = new Date(document.getElementById('autoStartDate').value);
+      const endDate = new Date(document.getElementById('autoEndDate').value);
+      const defaultTeamId = document.getElementById('autoDefaultTeam').value;
+      
+      if (isNaN(startDate) || isNaN(endDate)) {
+        showToast('error', i18n.t('error'), 'Please select valid dates');
+        return;
+      }
+      
+      const eligibleClients = clients.filter(c => c.scheduleType && c.scheduleType !== 'oneTime');
+      
+      let created = 0;
+      let teamIndex = 0;
+      
+      for (const client of eligibleClients) {
+        // Calculate next service date based on schedule type
+        let interval = 7;
+        switch (client.scheduleType) {
+          case 'weekly': interval = 7; break;
+          case 'biweekly': interval = 14; break;
+          case 'every3weeks': interval = 21; break;
+          case 'monthly': interval = 30; break;
+          case 'custom': interval = client.customScheduleDays || 30; break;
+        }
+        
+        // Find preferred day
+        let currentDate = new Date(startDate);
+        if (client.preferredDay) {
+          const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+          const targetDay = dayMap[client.preferredDay];
+          while (currentDate.getDay() !== targetDay) {
+            currentDate = addDays(currentDate, 1);
+          }
+        }
+        
+        // Generate schedules
+        while (currentDate <= endDate) {
+          const dateStr = formatDateStr(currentDate);
+          
+          // Check if already scheduled
+          const existing = schedules.find(s => s.clientId === client.id && s.date === dateStr);
+          
+          if (!existing) {
+            // Assign team (round robin if not specified)
+            const teamId = defaultTeamId || (teams.length > 0 ? teams[teamIndex % teams.length].id : null);
+            teamIndex++;
+            
+            // Determine service type for alternating
+            let serviceType = client.serviceType || 'full';
+            if (serviceType === 'alternating') {
+              serviceType = client.lastServiceType === 'full' ? 'half' : 'full';
+            }
+            
+            const totalPrice = serviceType === 'full' ? (client.basePrice || 0) : (client.halfPrice || 0);
+            
+            const scheduleData = {
+              clientId: client.id,
+              teamId: teamId || '',
+              date: dateStr,
+              timeSlot: client.preferredTime || 'morning',
+              serviceDetails: {
+                type: serviceType,
+                areas: client.standardAreas || [],
+                addOns: [],
+                totalPrice
+              },
+              estimatedDuration: 2,
+              status: 'scheduled',
+              notes: '',
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now()
+            };
+            
+            try {
+              await addDoc(collection(db, 'schedules'), scheduleData);
+              created++;
+            } catch (error) {
+              console.error('Error creating schedule:', error);
+            }
+          }
+          
+          currentDate = addDays(currentDate, interval);
+        }
+      }
+      
+      await logScheduleAction(AuditActions.CREATE, null, `Auto-generated ${created} schedules`);
+      showToast('success', i18n.t('success'), `${created} schedules created`);
+      
+      closeModal('autoScheduleModal');
+      await loadSchedules();
+      renderCalendar();
+    }
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+function formatDateStr(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function getStartOfWeek(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      return addDays(d, -day);
+    }
+
+    // function formatDate(date, options) {
+    //   return i18n.formatDate(date, options);
+    // }
+
+    function populateClientSelect() {
+      const select = document.getElementById('scheduleClient');
+      select.innerHTML = '<option value="">-- Select Client --</option>' +
+        clients.map(c => `<option value="${c.id}">${c.lastName}, ${c.firstName} - ${c.address?.street || ''}</option>`).join('');
+    }
+
+    function populateTeamSelect() {
+      const select = document.getElementById('scheduleTeam');
+      select.innerHTML = '<option value="">-- Select Team --</option>' +
+        teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+      
+      const filterSelect = document.getElementById('teamFilter');
+      filterSelect.innerHTML = '<option value="">All Teams</option>' +
+        teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    }
+
+    function onClientChange() {
+      const clientId = document.getElementById('scheduleClient').value;
+      selectedClient = clients.find(c => c.id === clientId);
+      
+      const preview = document.getElementById('clientPreview');
+      const addonsSection = document.getElementById('addonsSection');
+      const addonsContainer = document.getElementById('addonsContainer');
+      
+      if (selectedClient) {
+        preview.classList.remove('hidden');
+        document.getElementById('previewClientName').textContent = 
+          `${selectedClient.firstName} ${selectedClient.lastName}`;
+        document.getElementById('previewClientAddress').textContent = 
+          selectedClient.address?.street || '';
+        document.getElementById('previewClientPrice').textContent = 
+          formatCurrency(selectedClient.basePrice || 0);
+        document.getElementById('previewClientSchedule').textContent = 
+          i18n.t(`scheduleTypes.${selectedClient.scheduleType}`) || selectedClient.scheduleType;
+        
+        // Show house code if available
+        const houseCodeEl = document.getElementById('previewClientHouseCode');
+        if (selectedClient.houseCode) {
+          houseCodeEl.style.display = 'block';
+          houseCodeEl.querySelector('span').textContent = selectedClient.houseCode;
+        } else {
+          houseCodeEl.style.display = 'none';
+        }
+        
+        // Build add-ons from client's areas that are NOT included in base
+        const areas = selectedClient.areas || {};
+        const extraAreas = [];
+        
+        const floorLabels = { basement: '🏚️ Basement', mainLevel: '🏠 Main Level', upstairs: '⬆️ Upstairs' };
+        
+        for (const [floorKey, floorData] of Object.entries(areas)) {
+          if (floorData && !floorData.includedInBase && floorData.extraPrice > 0) {
+            extraAreas.push({
+              key: floorKey,
+              label: floorLabels[floorKey] || floorKey,
+              price: floorData.extraPrice || 0,
+              frequency: floorData.extraFrequency || 'monthly'
+            });
+          }
+        }
+        
+        if (extraAreas.length > 0) {
+          addonsSection.style.display = 'block';
+          addonsContainer.innerHTML = extraAreas.map(area => `
+            <label class="form-check">
+              <input type="checkbox" class="form-check-input addon-checkbox" data-area="${area.key}" data-price="${area.price}" onchange="updateTotalPrice()">
+              <span class="form-check-label">${area.label} <span class="text-gray-500">(+${formatCurrency(area.price)})</span></span>
+            </label>
+          `).join('');
+        } else {
+          addonsSection.style.display = 'none';
+          addonsContainer.innerHTML = '';
+        }
+        
+        // Set preferred time slot
+        document.getElementById('scheduleTimeSlot').value = selectedClient.preferredTime || 'morning';
+      } else {
+        preview.classList.add('hidden');
+        addonsSection.style.display = 'none';
+        addonsContainer.innerHTML = '';
+      }
+      
+      updateTotalPrice();
+    }
+
+    function updateTotalPrice() {
+      if (!selectedClient) {
+        document.getElementById('scheduleTotalPrice').textContent = formatCurrency(0);
+        return;
+      }
+      
+      let total = selectedClient.basePrice || 0;
+      
+      // Add extra area charges from checked add-ons
+      document.querySelectorAll('.addon-checkbox:checked').forEach(checkbox => {
+        total += parseFloat(checkbox.dataset.price) || 0;
+      });
+      
+      document.getElementById('scheduleTotalPrice').textContent = formatCurrency(total);
+    }
+
+    function updateLanguage() {
+      const lang = i18n.getLanguage();
+      document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN';
+      i18n.updatePageTranslations();
+    }
+
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    function setupEventListeners() {
+      // Mobile menu
+      document.getElementById('menuToggle').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+      });
+
+      document.getElementById('sidebarOverlay').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+      });
+
+      // Language
+      document.getElementById('langToggle').addEventListener('click', () => {
+        i18n.toggleLanguage();
+        updateLanguage();
+        renderCalendar();
+      });
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await signOut(auth);
+        window.location.href = 'index.html';
+      });
+
+      // Calendar navigation
+      document.getElementById('prevBtn').addEventListener('click', () => {
+        if (currentView === 'month') {
+          currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+        } else if (currentView === 'week') {
+          currentDate = addDays(currentDate, -7);
+        } else {
+          currentDate = addDays(currentDate, -1);
+        }
+        loadSchedules().then(() => renderCalendar());
+      });
+
+      document.getElementById('nextBtn').addEventListener('click', () => {
+        if (currentView === 'month') {
+          currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+        } else if (currentView === 'week') {
+          currentDate = addDays(currentDate, 7);
+        } else {
+          currentDate = addDays(currentDate, 1);
+        }
+        loadSchedules().then(() => renderCalendar());
+      });
+
+      document.getElementById('todayBtn').addEventListener('click', () => {
+        currentDate = new Date();
+        loadSchedules().then(() => renderCalendar());
+      });
+
+      // View buttons
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          
+          currentView = btn.dataset.view;
+          
+          document.getElementById('monthView').classList.remove('active');
+          document.getElementById('weekView').classList.remove('active');
+          document.getElementById('dayView').classList.remove('active');
+          document.getElementById(currentView + 'View').classList.add('active');
+          
+          renderCalendar();
+        });
+      });
+
+      // Team filter
+      document.getElementById('teamFilter').addEventListener('change', (e) => {
+        teamFilter = e.target.value;
+        renderCalendar();
+      });
+
+      // Add schedule
+      document.getElementById('addScheduleBtn').addEventListener('click', () => openAddScheduleModal());
+
+      // Auto schedule
+      document.getElementById('autoScheduleBtn').addEventListener('click', openAutoScheduleModal);
+
+      // Schedule Modal
+      document.getElementById('closeScheduleModal').addEventListener('click', () => closeModal('scheduleModal'));
+      document.getElementById('cancelScheduleBtn').addEventListener('click', () => closeModal('scheduleModal'));
+      document.getElementById('saveScheduleBtn').addEventListener('click', saveSchedule);
+      
+      document.getElementById('scheduleClient').addEventListener('change', onClientChange);
+
+      // View Schedule Modal
+      document.getElementById('closeViewScheduleModal').addEventListener('click', () => closeModal('viewScheduleModal'));
+      document.getElementById('closeViewScheduleBtn').addEventListener('click', () => closeModal('viewScheduleModal'));
+
+      // Auto Schedule Modal
+      document.getElementById('closeAutoScheduleModal').addEventListener('click', () => closeModal('autoScheduleModal'));
+      document.getElementById('cancelAutoScheduleBtn').addEventListener('click', () => closeModal('autoScheduleModal'));
+      document.getElementById('generateSchedulesBtn').addEventListener('click', generateSchedules);
+      document.getElementById('autoStartDate').addEventListener('change', estimateJobs);
+      document.getElementById('autoEndDate').addEventListener('change', estimateJobs);
+      document.getElementById('autoClientFilter').addEventListener('change', estimateJobs);
+
+      // Day Jobs Modal
+      document.getElementById('closeDayJobsModal').addEventListener('click', () => closeModal('dayJobsModal'));
+      document.getElementById('closeDayJobsBtn').addEventListener('click', () => closeModal('dayJobsModal'));
+      document.getElementById('addJobForDayBtn').addEventListener('click', () => {
+        closeModal('dayJobsModal');
+        openAddScheduleModal(selectedDate);
+      });
+
+      // Modal backdrop
+      document.getElementById('modalBackdrop').addEventListener('click', closeAllModals);
+    }
+  </script>
+</body>
+</html>

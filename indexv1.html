@@ -1,0 +1,2584 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ciber Developers | Your Idea, Our Code</title>
+    <style>
+      :root {
+        --primary-color: #00c8ff;
+        --secondary-color: #0a1929;
+        --accent-color: #9c27b0;
+        --text-color: #ffffff;
+        --gradient-1: linear-gradient(
+          135deg,
+          rgba(0, 200, 255, 1) 0%,
+          rgba(156, 39, 176, 0.8) 100%
+        );
+        --gradient-2: linear-gradient(
+          135deg,
+          rgba(10, 25, 41, 0.95) 0%,
+          rgba(156, 39, 176, 0.3) 100%
+        );
+        --font-main: "Outfit", sans-serif;
+        --font-code: "JetBrains Mono", monospace;
+      }
+
+      @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: var(--font-main);
+        background-color: var(--secondary-color);
+        color: var(--text-color);
+        overflow-x: hidden;
+        line-height: 1.6;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--secondary-color);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--primary-color);
+        border-radius: 3px;
+      }
+
+      /* Utilities */
+      .container {
+        width: 100%;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
+      }
+
+      /* Background Elements */
+      .bg-grid {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: linear-gradient(
+            var(--secondary-color) 1px,
+            transparent 1px
+          ),
+          linear-gradient(90deg, var(--secondary-color) 1px, transparent 1px);
+        background-size: 40px 40px;
+        background-position: center center;
+        opacity: 0.05;
+        z-index: -1;
+      }
+
+      .bg-glow {
+        position: fixed;
+        top: -40%;
+        right: -20%;
+        width: 80vw;
+        height: 80vh;
+        background: radial-gradient(
+          circle,
+          rgba(0, 200, 255, 0.15) 0%,
+          transparent 70%
+        );
+        z-index: -1;
+        filter: blur(40px);
+      }
+
+      .bg-glow-2 {
+        position: fixed;
+        bottom: -30%;
+        left: -20%;
+        width: 70vw;
+        height: 70vh;
+        background: radial-gradient(
+          circle,
+          rgba(156, 39, 176, 0.1) 0%,
+          transparent 70%
+        );
+        z-index: -1;
+        filter: blur(40px);
+      }
+
+      /* Navbar */
+      .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        padding: 1.5rem 0;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        background: rgba(10, 25, 41, 0.8);
+      }
+
+      .navbar.scrolled {
+        padding: 1rem 0;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .nav-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .logo {
+        height: 40px;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 2.5rem;
+      }
+
+      .nav-link {
+        color: var(--text-color);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 1rem;
+        position: relative;
+        transition: all 0.3s ease;
+      }
+
+      .nav-link:after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--primary-color);
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover:after {
+        width: 100%;
+      }
+
+      .mobile-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-color);
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+
+      /* Hero Section */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        padding: 8rem 0;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 2;
+      }
+
+      .hero h1 {
+        font-size: 4.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        line-height: 1.2;
+      }
+
+      .hero h1 span {
+        background: var(--gradient-1);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .hero p {
+        font-size: 1.25rem;
+        margin-bottom: 2.5rem;
+        max-width: 600px;
+        opacity: 0.9;
+      }
+
+      .cta-buttons {
+        display: flex;
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.75rem;
+        border-radius: 50px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      .btn-primary {
+        background: var(--gradient-1);
+        color: var(--text-color);
+        box-shadow: 0 8px 15px rgba(0, 200, 255, 0.3);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--text-color);
+        border: 2px solid var(--primary-color);
+      }
+
+      .btn:hover {
+        transform: translateY(-3px);
+      }
+
+      .btn-primary:hover {
+        box-shadow: 0 12px 20px rgba(0, 200, 255, 0.4);
+      }
+
+      .btn-secondary:hover {
+        background: rgba(0, 200, 255, 0.1);
+      }
+
+      .animated-code {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        font-family: var(--font-code);
+        font-size: 0.9rem;
+        opacity: 0.6;
+        background: var(--secondary-color);
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        width: 400px;
+        max-width: 90%;
+        height: 700px;
+        overflow: hidden;
+        border-left: 3px solid var(--primary-color);
+      }
+
+      .animated-code pre {
+        margin: 0;
+        overflow-x: auto;
+        height: 100%;
+      }
+
+      .animated-code .line {
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+
+      .animated-code .keyword {
+        color: var(--primary-color);
+      }
+
+      .animated-code .string {
+        color: #ff7b72;
+      }
+
+      .animated-code .function {
+        color: #d2a8ff;
+      }
+
+      .animated-code .comment {
+        color: #8b949e;
+      }
+
+      /* Services Section */
+      .services {
+        padding: 8rem 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .section-header {
+        text-align: center;
+        margin-bottom: 5rem;
+      }
+
+      .section-header h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        position: relative;
+        display: inline-block;
+      }
+
+      .section-header h2:after {
+        content: "";
+        position: absolute;
+        bottom: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 4px;
+        background: var(--gradient-1);
+        border-radius: 2px;
+      }
+
+      .section-header p {
+        font-size: 1.1rem;
+        max-width: 700px;
+        margin: 0 auto;
+        opacity: 0.9;
+      }
+
+      .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2.5rem;
+        margin-top: 3rem;
+      }
+
+      .service-card {
+        background: var(--gradient-2);
+        border-radius: 20px;
+        padding: 2rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        height: 100%;
+      }
+
+      .service-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 25px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .service-card:before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--gradient-1);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+      }
+
+      .service-card:hover:before {
+        opacity: 0.05;
+      }
+
+      .service-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 60px;
+        height: 60px;
+        border-radius: 15px;
+        margin-bottom: 1.5rem;
+        background: rgba(0, 200, 255, 0.1);
+        color: var(--primary-color);
+        font-size: 1.75rem;
+      }
+
+      .service-card h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+      }
+
+      .service-card p {
+        opacity: 0.9;
+        margin-bottom: 1.5rem;
+      }
+
+      .learn-more {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .learn-more:hover {
+        gap: 0.75rem;
+      }
+
+      /* Portfolio Section */
+      .portfolio {
+        padding: 8rem 0;
+        position: relative;
+        background: rgba(10, 25, 41, 0.5);
+      }
+
+      .portfolio-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 2.5rem;
+        margin-top: 3rem;
+      }
+
+      .portfolio-item {
+        border-radius: 20px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        aspect-ratio: 16/10;
+        transition: all 0.3s ease;
+      }
+
+      .portfolio-item:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 25px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .portfolio-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: all 0.5s ease;
+      }
+
+      .portfolio-item:hover .portfolio-image {
+        transform: scale(1.05);
+      }
+
+      .portfolio-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 2rem;
+        background: linear-gradient(
+          0deg,
+          rgba(10, 25, 41, 0.9) 0%,
+          rgba(10, 25, 41, 0) 100%
+        );
+        transform: translateY(20%);
+        opacity: 0;
+        transition: all 0.3s ease;
+      }
+
+      .portfolio-item:hover .portfolio-overlay {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      .portfolio-overlay h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .portfolio-overlay p {
+        font-size: 0.95rem;
+        opacity: 0.9;
+        margin-bottom: 1rem;
+      }
+
+      .portfolio-tags {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .portfolio-tag {
+        background: rgba(0, 200, 255, 0.1);
+        color: var(--primary-color);
+        padding: 0.25rem 0.75rem;
+        border-radius: 30px;
+        font-size: 0.8rem;
+      }
+
+      /* Quote Section */
+      .quote-section {
+        padding: 8rem 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .quote-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .quote-form {
+        background: var(--gradient-2);
+        border-radius: 20px;
+        padding: 3rem;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      .quote-form:before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: var(--gradient-1);
+        z-index: 2;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-group.full-width {
+        grid-column: 1 / 3;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+
+      .form-control {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 0.875rem 1rem;
+        color: var(--text-color);
+        font-family: var(--font-main);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.1);
+      }
+
+      textarea.form-control {
+        resize: vertical;
+        min-height: 150px;
+      }
+
+      .budget-slider {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.1);
+        outline: none;
+        margin-top: 1rem;
+      }
+
+      .budget-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .budget-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+      }
+
+      .budget-value {
+        margin-top: 0.5rem;
+        font-weight: 500;
+        color: var(--primary-color);
+      }
+
+      .submit-btn {
+        background: var(--gradient-1);
+        color: var(--text-color);
+        border: none;
+        padding: 1rem 2rem;
+        font-family: var(--font-main);
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 15px rgba(0, 200, 255, 0.3);
+      }
+
+      .submit-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 20px rgba(0, 200, 255, 0.4);
+      }
+
+      /* Contact Section */
+      .contact {
+        padding: 8rem 0;
+        position: relative;
+        background: rgba(10, 25, 41, 0.5);
+      }
+
+      .contact-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4rem;
+        align-items: center;
+      }
+
+      .contact-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .contact-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+
+      .contact-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+        background: rgba(0, 200, 255, 0.1);
+        color: var(--primary-color);
+        font-size: 1.25rem;
+        flex-shrink: 0;
+      }
+
+      .contact-details h3 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+
+      .contact-details p,
+      .contact-details a {
+        color: var(--text-color);
+        opacity: 0.9;
+        text-decoration: none;
+        transition: all 0.3s ease;
+      }
+
+      .contact-details a:hover {
+        color: var(--primary-color);
+        opacity: 1;
+      }
+
+      .contact-map {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        height: 400px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      /* Footer */
+      .footer {
+        padding: 5rem 0 2rem;
+        position: relative;
+        background: var(--secondary-color);
+      }
+
+      .footer-top {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 4rem;
+        margin-bottom: 4rem;
+      }
+
+      .footer-logo {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .footer-logo img {
+        height: 35px;
+      }
+
+      .footer-about p {
+        opacity: 0.8;
+        margin-bottom: 1.5rem;
+      }
+
+      .social-links {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .social-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-color);
+        text-decoration: none;
+        transition: all 0.3s ease;
+      }
+
+      .social-link:hover {
+        background: var(--primary-color);
+        transform: translateY(-3px);
+      }
+
+      .footer-title {
+        font-size: 1.25rem;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+      }
+
+      .footer-links {
+        list-style: none;
+      }
+
+      .footer-links li {
+        margin-bottom: 0.75rem;
+      }
+
+      .footer-links a {
+        color: var(--text-color);
+        opacity: 0.8;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .footer-links a:hover {
+        color: var(--primary-color);
+        opacity: 1;
+        gap: 0.75rem;
+      }
+
+      .footer-bottom {
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        text-align: center;
+        opacity: 0.7;
+        font-size: 0.9rem;
+      }
+
+      /* Animations */
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-20px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 0.5;
+        }
+        50% {
+          opacity: 0.8;
+        }
+        100% {
+          opacity: 0.5;
+        }
+      }
+
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
+
+      .animate-pulse {
+        animation: pulse 3s ease-in-out infinite;
+      }
+
+      /* Glass morphism effect */
+      .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Responsive styles */
+      @media (max-width: 1200px) {
+        .hero h1 {
+          font-size: 3.5rem;
+        }
+
+        .animated-code {
+          width: 350px;
+        }
+
+        .footer-top {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 3rem;
+        }
+      }
+
+      @media (max-width: 992px) {
+        .hero h1 {
+          font-size: 3rem;
+        }
+
+        .animated-code {
+          position: relative;
+          top: auto;
+          transform: none;
+          margin-top: 3rem;
+          width: 100%;
+        }
+
+        .contact-container {
+          grid-template-columns: 1fr;
+          gap: 3rem;
+        }
+
+        .contact-map {
+          height: 350px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .hero h1 {
+          font-size: 2.5rem;
+        }
+
+        .hero p {
+          font-size: 1.1rem;
+        }
+
+        .section-header h2 {
+          font-size: 2rem;
+        }
+
+        .cta-buttons {
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .cta-buttons .btn {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .portfolio-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .form-group.full-width {
+          grid-column: 1;
+        }
+
+        .mobile-toggle {
+          display: block;
+        }
+
+        .nav-links {
+          position: fixed;
+          top: 80px;
+          left: 0;
+          width: 100%;
+          flex-direction: column;
+          align-items: center;
+          background: rgba(10, 25, 41, 0.95);
+          backdrop-filter: blur(10px);
+          padding: 2rem 0;
+          gap: 1.5rem;
+          transform: translateY(-200%);
+          transition: transform 0.3s ease;
+        }
+
+        .nav-links.active {
+          transform: translateY(0);
+        }
+
+        .footer-top {
+          grid-template-columns: 1fr;
+          gap: 2rem;
+          text-align: center;
+        }
+
+        .footer-logo {
+          justify-content: center;
+        }
+
+        .social-links {
+          justify-content: center;
+        }
+      }
+
+      /* Cursor effects */
+      .cursor-effect {
+        position: fixed;
+        width: 30px;
+        height: 30px;
+        border: 2px solid var(--primary-color);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 9999;
+        transition: transform 0.1s ease;
+        display: none;
+      }
+
+      .cursor-effect-inner {
+        position: fixed;
+        width: 6px;
+        height: 6px;
+        background: var(--primary-color);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 9999;
+        display: none;
+      }
+
+      @media (min-width: 1025px) {
+        .cursor-effect,
+        .cursor-effect-inner {
+          display: block;
+        }
+      }
+
+      /* Loading animations */
+      .loading-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          var(--primary-color),
+          transparent
+        );
+        z-index: 9999;
+        animation: loading 1.5s ease-in-out infinite;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .loading .loading-bar {
+        opacity: 1;
+      }
+
+      @keyframes loading {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
+      }
+
+      /* Modern toggle switch */
+      .theme-toggle {
+        position: relative;
+        width: 60px;
+        height: 30px;
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+        overflow: hidden;
+      }
+
+      .theme-toggle:before {
+        content: "";
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        left: 4px;
+        top: 4px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        transition: all 0.3s ease;
+      }
+
+      .theme-toggle.dark:before {
+        transform: translateX(30px);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Background Elements -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+    <div class="bg-glow-2"></div>
+
+    <!-- Custom Cursor -->
+    <div class="cursor-effect"></div>
+    <div class="cursor-effect-inner"></div>
+
+    <!-- Loading Bar -->
+    <div class="loading-bar"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="container nav-content">
+        <div class="logo-container">
+          <img src="images/logo.png" alt="Ciber Developers Logo" class="logo" />
+        </div>
+        <div class="nav-links">
+          <a href="#home" class="nav-link">Home</a>
+          <a href="#services" class="nav-link">Services</a>
+          <a href="#portfolio" class="nav-link">Portfolio</a>
+          <a href="#quote" class="nav-link">Get a Quote</a>
+          <a href="#contact" class="nav-link">Contact</a>
+        </div>
+        <button class="mobile-toggle">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h1>Your <span>Idea</span>, Our <span>Code</span></h1>
+          <p>
+            We transform complex business challenges into elegant digital
+            solutions. Delivering cutting-edge web applications with futuristic
+            design and flawless functionality.
+          </p>
+          <div class="cta-buttons">
+            <a href="#quote" class="btn btn-primary">
+              Get a Free Quote
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+            <a href="#portfolio" class="btn btn-secondary">
+              View Our Work
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+            </a>
+          </div>
+
+          <div class="animated-code animate-float">
+            <pre>
+<span class="line"><span class="keyword">const</span> <span class="function">createAmazingWebsite</span> = <span class="keyword">async</span> () => {</span>
+<span class="line">  <span class="keyword">const</span> clientIdea = <span class="string">'Your brilliant concept'</span>;</span>
+<span class="line">  <span class="keyword">const</span> ourExpertise = <span class="keyword">await</span> ciberDev.getTeam();</span>
+<span class="line">  </span>
+<span class="line">  <span class="comment">// Transform idea into reality</span></span>
+<span class="line">  <span class="keyword">const</span> amazingProduct = <span class="keyword">await</span> ourExpertise</span>
+<span class="line">    .design(clientIdea)</span>
+<span class="line">    .develop()</span>
+<span class="line">    .optimize();</span>
+<span class="line">    </span>
+<span class="line">  <span class="keyword">return</span> amazingProduct;</span>
+<span class="line">};</span>
+                </pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="services">
+      <div class="container">
+        <div class="section-header">
+          <h2>Our Services</h2>
+          <p>
+            We offer comprehensive web development solutions tailored to your
+            specific business needs. From concept to deployment, we handle every
+            aspect of your digital journey.
+          </p>
+        </div>
+
+        <div class="services-grid">
+          <div class="service-card">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+            </div>
+            <h3>Web Development</h3>
+            <p>
+              Custom web applications built with the latest technologies. We
+              create responsive, high-performance websites that deliver
+              exceptional user experiences.
+            </p>
+            <a href="#" class="learn-more">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+
+          <div class="service-card">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+            </div>
+            <h3>UI/UX Design</h3>
+            <p>
+              Stunning, intuitive interfaces designed with user experience at
+              the forefront. We craft designs that not only look amazing but
+              also drive conversions.
+            </p>
+            <a href="#" class="learn-more">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+
+          <div class="service-card">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                <path d="M2 2l7.586 7.586"></path>
+                <circle cx="11" cy="11" r="2"></circle>
+              </svg>
+            </div>
+            <h3>E-commerce Solutions</h3>
+            <p>
+              Complete online store development with secure payment gateways,
+              inventory management, and customer-friendly shopping experiences.
+            </p>
+            <a href="#" class="learn-more">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+
+          <div class="service-card">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"
+                ></path>
+                <line x1="2" y1="20" x2="2" y2="20"></line>
+              </svg>
+            </div>
+            <h3>Progressive Web Apps</h3>
+            <p>
+              Develop fast, reliable, and engaging web applications that work
+              offline and deliver app-like experiences to your users across all
+              devices.
+            </p>
+            <a href="#" class="learn-more">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+
+          <div class="service-card">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+            </div>
+            <h3>Custom CMS Solutions</h3>
+            <p>
+              Tailor-made content management systems that give you complete
+              control over your website content with user-friendly interfaces.
+            </p>
+            <a href="#" class="learn-more">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+
+          <div class="service-card">
+            <div class="service-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M18 10h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v6H2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"
+                ></path>
+              </svg>
+            </div>
+            <h3>API Development & Integration</h3>
+            <p>
+              Building robust APIs and seamlessly integrating third-party
+              services to enhance your web application's functionality and
+              features.
+            </p>
+            <a href="#" class="learn-more">
+              Learn More
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Portfolio Section -->
+    <section id="portfolio" class="portfolio">
+      <div class="container">
+        <div class="section-header">
+          <h2>Our Work</h2>
+          <p>
+            Explore our latest projects and see how we've helped businesses
+            across industries achieve their digital goals with innovative web
+            solutions.
+          </p>
+        </div>
+
+        <div class="portfolio-grid">
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="E-commerce Website"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>LuxuryMart</h3>
+              <p>
+                A premium e-commerce platform with advanced filtering and
+                payment options.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">React</span>
+                <span class="portfolio-tag">Node.js</span>
+                <span class="portfolio-tag">MongoDB</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="Real Estate App"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>PropertyFinder</h3>
+              <p>
+                Real estate platform with interactive maps and virtual tours.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">Vue.js</span>
+                <span class="portfolio-tag">Express</span>
+                <span class="portfolio-tag">PostgreSQL</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="Health & Fitness App"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>FitTrack</h3>
+              <p>
+                Fitness tracking application with personalized workout plans and
+                nutrition guides.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">React Native</span>
+                <span class="portfolio-tag">Firebase</span>
+                <span class="portfolio-tag">GraphQL</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="Finance Dashboard"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>FinVision</h3>
+              <p>
+                Financial analytics dashboard with real-time data visualization.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">Angular</span>
+                <span class="portfolio-tag">D3.js</span>
+                <span class="portfolio-tag">Python</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="Educational Platform"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>EduHub</h3>
+              <p>
+                Online learning platform with course management and interactive
+                content.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">Next.js</span>
+                <span class="portfolio-tag">Strapi</span>
+                <span class="portfolio-tag">AWS</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="portfolio-item">
+            <img
+              src="/api/placeholder/600/400"
+              alt="Travel Booking App"
+              class="portfolio-image"
+            />
+            <div class="portfolio-overlay">
+              <h3>TravelEase</h3>
+              <p>
+                Travel booking platform with personalized recommendations and
+                itinerary planning.
+              </p>
+              <div class="portfolio-tags">
+                <span class="portfolio-tag">Svelte</span>
+                <span class="portfolio-tag">Go</span>
+                <span class="portfolio-tag">MySQL</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quote Section -->
+    <section id="quote" class="quote-section">
+      <div class="container">
+        <div class="section-header">
+          <h2>Get a Quote</h2>
+          <p>
+            Tell us about your project and get a free consultation and price
+            estimate. We'll help turn your idea into reality.
+          </p>
+        </div>
+
+        <div class="quote-container">
+          <form class="quote-form">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="name" class="form-label">Your Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  class="form-control"
+                  placeholder="John Doe"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <input
+                  type="email"
+                  id="email"
+                  class="form-control"
+                  placeholder="john@example.com"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input
+                  type="tel"
+                  id="phone"
+                  class="form-control"
+                  placeholder="(123) 456-7890"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="company" class="form-label">Company Name</label>
+                <input
+                  type="text"
+                  id="company"
+                  class="form-control"
+                  placeholder="Your Company"
+                />
+              </div>
+
+              <div class="form-group full-width">
+                <label for="project-type" class="form-label"
+                  >Project Type</label
+                >
+                <select id="project-type" class="form-control">
+                  <option value="" disabled selected>
+                    Select project type
+                  </option>
+                  <option value="website">Website Development</option>
+                  <option value="ecommerce">E-commerce Development</option>
+                  <option value="webapp">Web Application</option>
+                  <option value="mobile">Mobile App Development</option>
+                  <option value="redesign">Website Redesign</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="budget" class="form-label">Project Budget</label>
+                <input
+                  type="range"
+                  id="budget"
+                  class="budget-slider"
+                  min="500"
+                  max="50000"
+                  step="100"
+                  value="1500"
+                />
+                <div class="budget-value">$1,500</div>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="description" class="form-label"
+                  >Project Description</label
+                >
+                <textarea
+                  id="description"
+                  class="form-control"
+                  rows="6"
+                  placeholder="Tell us about your project, goals, and specific requirements..."
+                ></textarea>
+              </div>
+
+              <div class="form-group full-width">
+                <button type="submit" class="submit-btn">
+                  Request Quote
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+      <div class="container">
+        <div class="section-header">
+          <h2>Contact Us</h2>
+          <p>
+            Have questions or want to discuss your project? Get in touch with
+            our team and we'll get back to you as soon as possible.
+          </p>
+        </div>
+
+        <div class="contact-container">
+          <div class="contact-info">
+            <div class="contact-item">
+              <div class="contact-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                  ></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+              </div>
+              <div class="contact-details">
+                <h3>Our Location</h3>
+                <p>1234 Tech Boulevard, Silicon Valley, CA 94110</p>
+              </div>
+            </div>
+
+            <div class="contact-item">
+              <div class="contact-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                  ></path>
+                </svg>
+              </div>
+              <div class="contact-details">
+                <h3>Phone Number</h3>
+                <p>[Phone Number Placeholder]</p>
+              </div>
+            </div>
+
+            <div class="contact-item">
+              <div class="contact-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                  ></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </div>
+              <div class="contact-details">
+                <h3>Email Address</h3>
+                <a href="mailto:david@ciberdevelopers.com"
+                  >david@ciberdevelopers.com</a
+                >
+              </div>
+            </div>
+
+            <div class="contact-item">
+              <div class="contact-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+              <div class="contact-details">
+                <h3>Working Hours</h3>
+                <p>Monday - Friday: 9AM - 6PM<br />Weekend: By Appointment</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-map">
+            <img
+              src="/api/placeholder/800/400"
+              alt="Map"
+              style="width: 100%; height: 100%; object-fit: cover"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-top">
+          <div class="footer-about">
+            <div class="footer-logo">
+              <img src="/api/placeholder/120/40" alt="Ciber Developers Logo" />
+            </div>
+            <p>
+              Ciber Developers is a leading web development company specializing
+              in creating innovative, high-performance digital solutions for
+              businesses of all sizes.
+            </p>
+            <div class="social-links">
+              <a href="#" class="social-link">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"
+                  ></path>
+                </svg>
+              </a>
+              <a href="#" class="social-link">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"
+                  ></path>
+                </svg>
+              </a>
+              <a href="#" class="social-link">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path
+                    d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"
+                  ></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+              </a>
+              <a href="#" class="social-link">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"
+                  ></path>
+                  <rect x="2" y="9" width="4" height="12"></rect>
+                  <circle cx="4" cy="4" r="2"></circle>
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <div class="footer-nav">
+            <h3 class="footer-title">Quick Links</h3>
+            <ul class="footer-links">
+              <li>
+                <a href="#home">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Home
+                </a>
+              </li>
+              <li>
+                <a href="#services">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Services
+                </a>
+              </li>
+              <li>
+                <a href="#portfolio">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                  viewBox="<svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Portfolio
+                </a>
+              </li>
+              <li>
+                <a href="#quote">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Get a Quote
+                </a>
+              </li>
+              <li>
+                <a href="#contact">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Contact
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="footer-services">
+            <h3 class="footer-title">Services</h3>
+            <ul class="footer-links">
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Web Development
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  UI/UX Design
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  E-commerce Solutions
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  Progressive Web Apps
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                  API Development
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="footer-contact">
+            <h3 class="footer-title">Contact</h3>
+            <ul class="footer-links">
+              <li>
+                <a href="mailto:david@ciberdevelopers.com">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                    ></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                  david@ciberdevelopers.com
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                    ></path>
+                  </svg>
+                  [Phone Number Placeholder]
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                    ></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  1234 Tech Boulevard, Silicon Valley, CA 94110
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p>
+            &copy; 2025 Ciber Developers. All rights reserved | Your idea, our
+            code.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+      // DOM Elements
+      const navbar = document.querySelector(".navbar");
+      const mobileToggle = document.querySelector(".mobile-toggle");
+      const navLinks = document.querySelector(".nav-links");
+      const cursorEffect = document.querySelector(".cursor-effect");
+      const cursorEffectInner = document.querySelector(".cursor-effect-inner");
+      const budgetSlider = document.getElementById("budget");
+      const budgetValue = document.querySelector(".budget-value");
+      const body = document.body;
+
+      // Navbar Scroll Effect
+      window.addEventListener("scroll", () => {
+        if (window.scrollY > 50) {
+          navbar.classList.add("scrolled");
+        } else {
+          navbar.classList.remove("scrolled");
+        }
+      });
+
+      // Mobile Menu Toggle
+      mobileToggle.addEventListener("click", () => {
+        navLinks.classList.toggle("active");
+      });
+
+      // Close mobile menu when clicking on a link
+      document.querySelectorAll(".nav-link").forEach((link) => {
+        link.addEventListener("click", () => {
+          navLinks.classList.remove("active");
+        });
+      });
+
+      // Custom Cursor Effect
+      /*if (window.innerWidth > 1024) {
+        document.addEventListener("mousemove", (e) => {
+          cursorEffect.style.top = e.clientY + "px";
+          cursorEffect.style.left = e.clientX + "px";
+
+          cursorEffectInner.style.top = e.clientY + "px";
+          cursorEffectInner.style.left = e.clientX + "px";
+        }); 
+
+        // Link hover effect
+        const links = document.querySelectorAll(
+          "a, button, .service-card, .portfolio-item"
+        );
+        links.forEach((link) => {
+          link.addEventListener("mouseenter", () => {
+            cursorEffect.style.transform = "translate(-50%, -50%) scale(1.5)";
+            cursorEffect.style.border = "1px solid var(--primary-color)";
+            cursorEffect.style.background = "rgba(0, 200, 255, 0.1)";
+          });
+
+          link.addEventListener("mouseleave", () => {
+            cursorEffect.style.transform = "translate(-50%, -50%) scale(1)";
+            cursorEffect.style.border = "2px solid var(--primary-color)";
+            cursorEffect.style.background = "transparent";
+          });
+        });
+      }*/
+
+      // Budget slider
+      if (budgetSlider) {
+        budgetSlider.addEventListener("input", () => {
+          const value = budgetSlider.value;
+          budgetValue.textContent = `$${parseInt(value).toLocaleString()}`;
+        });
+      }
+
+      // Smooth scroll for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute("href"));
+          if (target) {
+            window.scrollTo({
+              top: target.offsetTop - 80,
+              behavior: "smooth",
+            });
+          }
+        });
+      });
+
+      // Typed.js-like effect for the code animation
+      /*const codeLines = document.querySelectorAll(".animated-code .line");
+      let lineIndex = 0;
+      let charIndex = 0;
+
+      function typeLine() {
+        if (lineIndex < codeLines.length) {
+          const line = codeLines[lineIndex];
+          const text = line.getAttribute("data-text") || line.innerHTML;
+          line.innerHTML = text.substring(0, charIndex);
+
+          charIndex++;
+
+          if (charIndex > text.length) {
+            charIndex = 0;
+            lineIndex++;
+            setTimeout(typeLine, 100);
+          } else {
+            setTimeout(typeLine, 20);
+          }
+        } else {
+          // Reset and repeat the animation
+          lineIndex = 0;
+          charIndex = 0;
+          setTimeout(typeLine, 3000);
+        }
+      }
+
+      // Store the original text and clear it before starting the animation
+      codeLines.forEach((line) => {
+        line.setAttribute("data-text", line.innerHTML);
+        line.innerHTML = "";
+      });
+
+      // Start the typing animation
+      setTimeout(typeLine, 1000); */
+
+      // Intersection Observer for animation
+      const animateOnScroll = () => {
+        const elements = document.querySelectorAll(
+          ".service-card, .portfolio-item, .quote-form, .contact-item"
+        );
+
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.style.opacity = "1";
+                entry.target.style.transform = "translateY(0)";
+              }
+            });
+          },
+          { threshold: 0.1 }
+        );
+
+        elements.forEach((element) => {
+          element.style.opacity = "0";
+          element.style.transform = "translateY(20px)";
+          element.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+          observer.observe(element);
+        });
+      };
+
+      // Initialize animations when DOM is loaded
+      document.addEventListener("DOMContentLoaded", () => {
+        animateOnScroll();
+
+        // Simulate page loading
+        body.classList.add("loading");
+        setTimeout(() => {
+          body.classList.remove("loading");
+        }, 1500);
+      });
+
+      // Page transition effect
+      const links = document.querySelectorAll('a:not([href^="#"])');
+      links.forEach((link) => {
+        link.addEventListener("click", (e) => {
+          if (
+            !link.hasAttribute("target") &&
+            link.hostname === window.location.hostname
+          ) {
+            e.preventDefault();
+            body.classList.add("loading");
+
+            setTimeout(() => {
+              window.location = link.href;
+            }, 500);
+          }
+        });
+      });
+
+      // Parallax effect
+      window.addEventListener("scroll", () => {
+        const scrollPosition = window.pageYOffset;
+
+        document.querySelectorAll(".bg-glow, .bg-glow-2").forEach((element) => {
+          const speed = element.classList.contains("bg-glow") ? 0.5 : 0.3;
+          element.style.transform = `translateY(${scrollPosition * speed}px)`;
+        });
+      });
+
+      // Theme Toggle (Light/Dark Mode)
+      const themeToggle = document.querySelector(".theme-toggle");
+      if (themeToggle) {
+        themeToggle.addEventListener("click", () => {
+          themeToggle.classList.toggle("dark");
+          document.documentElement.classList.toggle("light-theme");
+        });
+      }
+
+      // Preloader animation
+      window.addEventListener("load", () => {
+        const preloader = document.querySelector(".preloader");
+        if (preloader) {
+          preloader.classList.add("loaded");
+          setTimeout(() => {
+            preloader.style.display = "none";
+          }, 1000);
+        }
+      });
+
+      // Add 3D tilt effect to cards
+      const tiltElements = document.querySelectorAll(
+        ".service-card, .portfolio-item"
+      );
+
+      tiltElements.forEach((element) => {
+        element.addEventListener("mousemove", (e) => {
+          const rect = element.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          const xPercent = x / rect.width;
+          const yPercent = y / rect.height;
+
+          const rotateX = (0.5 - yPercent) * 10;
+          const rotateY = (xPercent - 0.5) * 10;
+
+          element.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+          element.style.boxShadow = `
+              0 20px 30px rgba(0,0,0,0.2),
+              ${rotateY / 2}px ${rotateX / 2}px 15px rgba(0,0,0,0.1)
+          `;
+        });
+
+        element.addEventListener("mouseleave", () => {
+          element.style.transform = "";
+          element.style.boxShadow = "";
+        });
+      });
+
+      // Advanced scroll animations with GSAP-like effects
+      const fadeInElements = document.querySelectorAll(
+        ".hero h1, .hero p, .cta-buttons, .section-header, .animated-code"
+      );
+
+      const fadeIn = (element, delay = 0) => {
+        setTimeout(() => {
+          element.style.opacity = "0";
+          element.style.transform = "translateY(20px)";
+          element.style.transition = "opacity 0.8s ease, transform 0.8s ease";
+
+          setTimeout(() => {
+            element.style.opacity = "1";
+            element.style.transform = "translateY(0)";
+          }, 100);
+        }, delay);
+      };
+
+      fadeInElements.forEach((element, index) => {
+        fadeIn(element, index * 200);
+      });
+
+      // Portfolio hover effect
+      const portfolioItems = document.querySelectorAll(".portfolio-item");
+
+      portfolioItems.forEach((item) => {
+        const overlay = item.querySelector(".portfolio-overlay");
+
+        item.addEventListener("mouseenter", () => {
+          overlay.style.opacity = "1";
+          overlay.style.transform = "translateY(0)";
+        });
+
+        item.addEventListener("mouseleave", () => {
+          overlay.style.opacity = "0";
+          overlay.style.transform = "translateY(20%)";
+        });
+      });
+
+      // Gradient background animation
+      const gradientBg = document.createElement("div");
+      gradientBg.classList.add("gradient-bg-animation");
+      gradientBg.style.position = "fixed";
+      gradientBg.style.top = "0";
+      gradientBg.style.left = "0";
+      gradientBg.style.width = "100%";
+      gradientBg.style.height = "100%";
+      gradientBg.style.zIndex = "-2";
+      gradientBg.style.opacity = "0.2";
+      document.body.appendChild(gradientBg);
+
+      let angle = 0;
+      const animateGradient = () => {
+        angle = (angle + 0.2) % 360;
+        gradientBg.style.background = `linear-gradient(${angle}deg, rgba(0,200,255,0.1), rgba(156,39,176,0.1), rgba(0,200,255,0.1))`;
+        requestAnimationFrame(animateGradient);
+      };
+
+      animateGradient();
+
+      // Form validation
+      const form = document.querySelector(".quote-form");
+      if (form) {
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+
+          // Simple validation
+          let valid = true;
+          const inputs = form.querySelectorAll(
+            "input[required], textarea[required]"
+          );
+
+          inputs.forEach((input) => {
+            if (!input.value.trim()) {
+              input.style.borderColor = "red";
+              valid = false;
+            } else {
+              input.style.borderColor = "";
+            }
+          });
+
+          if (valid) {
+            // Success message
+            const submitBtn = form.querySelector(".submit-btn");
+            const originalText = submitBtn.innerHTML;
+
+            submitBtn.innerHTML = "Sending...";
+            submitBtn.disabled = true;
+
+            setTimeout(() => {
+              submitBtn.innerHTML = "Request Sent!";
+              submitBtn.style.background = "#4CAF50";
+
+              // Reset form
+              setTimeout(() => {
+                form.reset();
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.background = "";
+              }, 3000);
+            }, 1500);
+          }
+        });
+      }
+
+      // Interactive particles effect (simplified version)
+      const createParticles = () => {
+        const particlesContainer = document.createElement("div");
+        particlesContainer.style.position = "fixed";
+        particlesContainer.style.top = "0";
+        particlesContainer.style.left = "0";
+        particlesContainer.style.width = "100%";
+        particlesContainer.style.height = "100%";
+        particlesContainer.style.pointerEvents = "none";
+        particlesContainer.style.zIndex = "-1";
+        document.body.appendChild(particlesContainer);
+
+        for (let i = 0; i < 50; i++) {
+          const particle = document.createElement("div");
+          particle.style.position = "absolute";
+          particle.style.width = Math.random() * 5 + 1 + "px";
+          particle.style.height = particle.style.width;
+          particle.style.background = "rgba(0, 200, 255, 0.2)";
+          particle.style.borderRadius = "50%";
+          particle.style.top = Math.random() * 100 + "vh";
+          particle.style.left = Math.random() * 100 + "vw";
+          particle.style.boxShadow = "0 0 10px rgba(0, 200, 255, 0.5)";
+
+          // Random animation
+          const duration = Math.random() * 20 + 10;
+          particle.style.animation = `float ${duration}s linear infinite`;
+
+          // Set custom properties for movement
+          particle.setAttribute("data-speed-x", Math.random() * 0.2 - 0.1);
+          particle.setAttribute("data-speed-y", Math.random() * 0.2 - 0.1);
+
+          particlesContainer.appendChild(particle);
+        }
+
+        // Move particles
+        const moveParticles = () => {
+          const particles = particlesContainer.querySelectorAll("div");
+
+          particles.forEach((particle) => {
+            const x = parseFloat(particle.style.left);
+            const y = parseFloat(particle.style.top);
+            const speedX = parseFloat(particle.getAttribute("data-speed-x"));
+            const speedY = parseFloat(particle.getAttribute("data-speed-y"));
+
+            particle.style.left = x + speedX + "vw";
+            particle.style.top = y + speedY + "vh";
+
+            // Loop around screen
+            if (x > 100) particle.style.left = "0vw";
+            if (x < 0) particle.style.left = "100vw";
+            if (y > 100) particle.style.top = "0vh";
+            if (y < 0) particle.style.top = "100vh";
+          });
+
+          requestAnimationFrame(moveParticles);
+        };
+
+        moveParticles();
+      };
+
+      // Only initialize particles on desktop
+      if (window.innerWidth > 1024) {
+        createParticles();
+      }
+    </script>
+  </body>
+</html>
