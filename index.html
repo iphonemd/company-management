@@ -97,7 +97,7 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script type="module">
-    import { auth, signInWithEmailAndPassword, onAuthStateChanged, db, doc, getDoc, validateConfig } from './js/firebase-config.js';
+    import { auth, signInWithEmailAndPassword, onAuthStateChanged, db, doc, getDoc, getDocs, collection, query, where, validateConfig, Timestamp, addDoc } from './js/firebase-config.js';
     import { i18n } from './js/i18n.js';
 
     // DOM Elements
@@ -134,19 +134,35 @@
     // Check if already logged in
     onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Check if user is admin
         try {
+          // First check if user is admin
           const adminDoc = await getDoc(doc(db, 'admins', user.uid));
           if (adminDoc.exists()) {
-            // Redirect to dashboard
             window.location.href = 'dashboard.html';
-          } else {
-            // Not an admin, sign out
-            await auth.signOut();
-            showError(i18n.t('loginError'));
+            return;
           }
+          
+          // Then check if user has an employee account in the users collection
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.isActive) {
+              // Redirect employees to timeclock
+              window.location.href = 'timeclock.html';
+              return;
+            } else {
+              // Account is disabled
+              await auth.signOut();
+              showError('Your account has been disabled. Please contact your administrator.');
+              return;
+            }
+          }
+          
+          // User exists in Firebase Auth but not in our system
+          await auth.signOut();
+          showError(i18n.t('loginError'));
         } catch (error) {
-          console.error('Error checking admin status:', error);
+          console.error('Error checking user status:', error);
         }
       }
     });
@@ -173,30 +189,72 @@
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Verify user is an admin
+        // First check if user is admin
         const adminDoc = await getDoc(doc(db, 'admins', user.uid));
         
         if (adminDoc.exists()) {
-          // Success - redirect to dashboard
+          // Admin login - redirect to dashboard
           showToast('success', i18n.t('success'), i18n.t('login') + ' successful!');
-          
-          // Log the login action (we'll implement audit logging)
           await logAuditAction('login', 'auth', user.uid, adminDoc.data().name);
           
           setTimeout(() => {
             window.location.href = 'dashboard.html';
           }, 500);
-        } else {
-          // Not an admin
-          await auth.signOut();
-          showError('Access denied. You are not registered as an administrator.');
-          resetButton();
+          return;
         }
+        
+        // Check if user is an employee with an account
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          
+          if (!userData.isActive) {
+            await auth.signOut();
+            showError('Your account has been disabled. Please contact your administrator.');
+            resetButton();
+            return;
+          }
+          
+          // Update last login
+          const { updateDoc } = await import('./js/firebase-config.js');
+          await updateDoc(doc(db, 'users', user.uid), {
+            lastLogin: Timestamp.now()
+          });
+          
+          // Employee login - redirect to timeclock
+          showToast('success', i18n.t('success'), 'Welcome back!');
+          await logAuditAction('login', 'auth', user.uid, userData.firstName + ' ' + userData.lastName);
+          
+          setTimeout(() => {
+            window.location.href = 'timeclock.html';
+          }, 500);
+          return;
+        }
+        
+        // User exists in Firebase Auth but not in admins or users collection
+        // Check if they might be in employees collection by email (for migration)
+        const employeesQuery = query(collection(db, 'employees'), where('email', '==', email));
+        const employeesSnapshot = await getDocs(employeesQuery);
+        
+        if (!employeesSnapshot.empty) {
+          // Employee exists but doesn't have a user account yet
+          await auth.signOut();
+          showError('Your login account has not been set up yet. Please contact your administrator.');
+          resetButton();
+          return;
+        }
+        
+        // Not authorized at all
+        await auth.signOut();
+        showError('Access denied. You are not registered in the system.');
+        resetButton();
+        
       } catch (error) {
         console.error('Login error:', error);
         
         let errorMessage = i18n.t('loginError');
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
           errorMessage = i18n.t('loginError');
         } else if (error.code === 'auth/too-many-requests') {
           errorMessage = 'Too many failed attempts. Please try again later.';
@@ -238,13 +296,12 @@
     }
 
     // Audit logging function
-    async function logAuditAction(action, module, targetId, adminName) {
+    async function logAuditAction(action, module, targetId, userName) {
       try {
-        const { addDoc, collection, Timestamp } = await import('./js/firebase-config.js');
         await addDoc(collection(db, 'auditLog'), {
           timestamp: Timestamp.now(),
           adminId: auth.currentUser?.uid || 'unknown',
-          adminName: adminName || 'Unknown',
+          adminName: userName || 'Unknown',
           action: action,
           module: module,
           targetId: targetId,

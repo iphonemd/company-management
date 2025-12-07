@@ -111,6 +111,45 @@
               <h1 class="page-title" data-i18n="employeeList">Employee List</h1>
               <p class="text-gray-500"><span id="employeeCount">0</span> <span data-i18n="totalEmployees">total employees</span></p>
             </div>
+
+            <!-- Create accont modal and button -->
+<div class="modal" id="createAccountModal">
+  <div class="modal-header">
+    <h3 class="modal-title">🔐 Create Login Account</h3>
+    <button class="modal-close" onclick="closeModal('createAccountModal')">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="card mb-4" style="background: var(--primary-50); border-color: var(--primary-200);">
+      <div class="card-body">
+        <p class="font-semibold" id="accountEmpName">Employee Name</p>
+        <p class="text-gray-500" id="accountEmpEmail">employee@email.com</p>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label class="form-label">Temporary Password for Employee</label>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" class="form-input" id="tempPassword" readonly style="font-family: monospace; font-size: 1.2em;">
+        <button type="button" class="btn btn-secondary" onclick="regeneratePassword()">🔄 New</button>
+      </div>
+      <p class="form-helper">Give this password to the employee. They should change it after first login.</p>
+    </div>
+    
+    <hr style="margin: 20px 0;">
+    
+    <div class="form-group">
+      <label class="form-label form-label-required">Your Admin Password</label>
+      <input type="password" class="form-input" id="adminPasswordInput" placeholder="Enter your password to confirm">
+      <p class="form-helper">Required to stay logged in after creating the account.</p>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" onclick="closeModal('createAccountModal')">Cancel</button>
+    <button type="button" class="btn btn-primary" id="confirmCreateAccountBtn" onclick="confirmCreateAccount()">
+      ✅ Create Account
+    </button>
+  </div>
+</div>
             <div class="page-actions">
               <button class="btn btn-primary" id="addEmployeeBtn">
                 <span>➕</span>
@@ -140,6 +179,7 @@
                     <th data-i18n="hourlyRate">Hourly Rate</th>
                     <th data-i18n="status">Status</th>
                     <th data-i18n="actions">Actions</th>
+                    <th>Account</th>
                   </tr>
                 </thead>
                 <tbody id="employeesBody">
@@ -356,6 +396,13 @@
     } from './js/utils.js';
     import { logEmployeeAction, logTeamAction, AuditActions, trackChanges } from './js/audit.js';
 
+    import { 
+      createEmployeeAccount, 
+      createEmployeeAccountSimple,
+      syncPendingUserAccounts,
+      generateTempPassword 
+    } from './js/user-management.js';
+
     // ============================================
     // STATE
     // ============================================
@@ -367,6 +414,8 @@
     let currentSearch = '';
     let editingEmployeeId = null;
     let editingTeamId = null;
+    let selectedEmployeeForAccount = null;
+    let currentAdminEmail = null; // Store admin email on login
 
     // ============================================
     // AUTHENTICATION CHECK
@@ -395,6 +444,8 @@
     // INITIALIZE PAGE
     // ============================================
     async function initializePage() {
+      // Store admin email for re-auth
+      currentAdminEmail = currentUser.email;
       // Set user info in sidebar
       document.getElementById('userName').textContent = currentAdmin.name;
       document.getElementById('userAvatar').textContent = getInitials(
@@ -412,6 +463,12 @@
 
       // Setup event listeners
       setupEventListeners();
+
+        // Sync any pending user accounts from previous session
+      const syncResult = await syncPendingUserAccounts();
+      if (syncResult.synced > 0) {
+        showToast('success', 'Synced', `${syncResult.synced} pending user account(s) completed.`);
+      }
 
       // Check URL params for actions
       const urlParams = new URLSearchParams(window.location.search);
@@ -533,6 +590,16 @@
                 <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteEmployee('${emp.id}')" title="Delete">🗑️</button>
               </div>
             </td>
+            <td>
+              ${emp.hasAccount ? 
+                `<span class="badge badge-success">✅ Has Login</span>` : 
+                emp.email ? 
+                  `<button class="btn btn-xs btn-primary" onclick="openCreateAccountModal('${emp.id}')">
+                    🔐 Create Login
+                  </button>` :
+                  `<span class="text-gray-400 text-sm">No email</span>`
+              }
+            </td>
           </tr>
         `;
       }).join('');
@@ -615,6 +682,164 @@
       populateEmployeeTeamSelect();
       openModal('employeeModal');
     }
+    // Create new account
+    // Open the create account modal
+    window.openCreateAccountModal = function(empId) {
+      const emp = employees.find(e => e.id === empId);
+      if (!emp) return;
+      
+      if (!emp.email) {
+        showToast('error', 'Error', 'Employee must have an email address to create a login account.');
+        return;
+      }
+      
+      selectedEmployeeForAccount = emp;
+      document.getElementById('accountEmpName').textContent = emp.firstName + ' ' + emp.lastName;
+      document.getElementById('accountEmpEmail').textContent = emp.email;
+      document.getElementById('tempPassword').value = generateTempPassword(10);
+      document.getElementById('adminPasswordInput').value = '';
+      
+      openModal('createAccountModal');
+    };
+
+    // Confirm and create the account
+    window.confirmCreateAccount = async function() {
+      if (!selectedEmployeeForAccount) return;
+      
+      const tempPassword = document.getElementById('tempPassword').value;
+      const adminPassword = document.getElementById('adminPasswordInput').value;
+      
+      if (!tempPassword || tempPassword.length < 6) {
+        showToast('error', 'Error', 'Password must be at least 6 characters');
+        return;
+      }
+      
+      if (!adminPassword) {
+        showToast('error', 'Error', 'Please enter your admin password');
+        return;
+      }
+      
+      const btn = document.getElementById('confirmCreateAccountBtn');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Creating...';
+      
+      try {
+        const result = await createEmployeeAccount(
+          selectedEmployeeForAccount.email,
+          tempPassword,
+          {
+            employeeId: selectedEmployeeForAccount.id,
+            firstName: selectedEmployeeForAccount.firstName,
+            lastName: selectedEmployeeForAccount.lastName,
+            teamId: selectedEmployeeForAccount.teamId,
+            role: selectedEmployeeForAccount.role || 'employee'
+          },
+          currentAdminEmail,
+          adminPassword
+        );
+        
+        if (result.success) {
+          closeModal('createAccountModal');
+          showToast('success', 'Account Created!', 
+            `Login account created for ${selectedEmployeeForAccount.firstName}. ` +
+            `Their temporary password is: ${tempPassword}`
+          );
+          
+          // Reload employees to show updated status
+          await loadEmployees();
+        } else {
+          showToast('error', 'Error', result.error);
+        }
+      } catch (error) {
+        console.error('Error creating account:', error);
+        showToast('error', 'Error', 'Failed to create account. Please try again.');
+      }
+      
+      btn.disabled = false;
+      btn.innerHTML = '✅ Create Account';
+    };
+
+
+
+    // Regenerate password
+    window.regeneratePassword = function() {
+      document.getElementById('tempPassword').value = generateTempPassword(10);
+    };
+
+    window.createAccount = function(empId) {
+      const emp = employees.find(e => e.id === empId);
+      if (!emp) return;
+      
+      if (!emp.email) {
+        showToast('error', 'Error', 'Employee must have an email address to create an account');
+        return;
+      }
+      
+      selectedEmployeeForAccount = emp;
+      document.getElementById('accountEmpName').textContent = emp.firstName + ' ' + emp.lastName;
+      document.getElementById('accountEmpEmail').textContent = emp.email;
+      document.getElementById('tempPassword').value = generateTempPassword();
+      
+      openModal('createAccountModal');
+    };
+
+    document.getElementById('confirmCreateAccountBtn').addEventListener('click', async () => {
+      if (!selectedEmployeeForAccount) return;
+      
+      const password = document.getElementById('tempPassword').value;
+      if (!password || password.length < 6) {
+        showToast('error', 'Error', 'Password must be at least 6 characters');
+        return;
+      }
+      
+      // Show loading
+      const btn = document.getElementById('confirmCreateAccountBtn');
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+      
+      try {
+        const result = await createEmployeeAccount(
+          selectedEmployeeForAccount.email,
+          password,
+          {
+            employeeId: selectedEmployeeForAccount.id,
+            firstName: selectedEmployeeForAccount.firstName,
+            lastName: selectedEmployeeForAccount.lastName,
+            teamId: selectedEmployeeForAccount.teamId,
+            role: selectedEmployeeForAccount.role || 'employee'
+          }
+        );
+        
+        if (result.success) {
+          // Update the employee record to indicate they have an account
+          await updateDoc(doc(db, 'employees', selectedEmployeeForAccount.id), {
+            hasAccount: true,
+            userId: result.uid
+          });
+          
+          showToast('success', 'Success', 'Account created! Employee can now log in.');
+          closeModal('createAccountModal');
+          
+          // Note: Admin may be signed out - handle re-authentication
+          if (!auth.currentUser) {
+            showToast('warning', 'Session Expired', 'Please log in again');
+            setTimeout(() => {
+              window.location.href = 'index.html';
+            }, 2000);
+          } else {
+            await loadEmployees();
+          }
+        } else {
+          showToast('error', 'Error', result.error);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('error', 'Error', 'Failed to create account');
+      }
+      
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
+    });
 
     window.editEmployee = async function(id) {
       editingEmployeeId = id;
