@@ -129,7 +129,7 @@
     <div class="form-group">
       <label class="form-label">Temporary Password for Employee</label>
       <div style="display: flex; gap: 8px;">
-        <input type="text" class="form-input" id="tempPassword" readonly style="font-family: monospace; font-size: 1.2em;">
+        <input type="text" class="form-input" id="tempPassword" style="font-family: monospace; font-size: 1.2em;">
         <button type="button" class="btn btn-secondary" onclick="regeneratePassword()">🔄 New</button>
       </div>
       <p class="form-helper">Give this password to the employee. They should change it after first login.</p>
@@ -158,12 +158,15 @@
             </div>
           </div>
 
-          <!-- Filters -->
+          <!-- Filters - Changed to dropdown -->
           <div class="search-filters">
             <div class="filter-group">
-              <button class="filter-btn active" data-filter="all" data-i18n="all">All</button>
-              <button class="filter-btn" data-filter="active" data-i18n="active">Active</button>
-              <button class="filter-btn" data-filter="inactive" data-i18n="inactive">Inactive</button>
+              <label class="form-label" style="margin-right: 8px; margin-bottom: 0; display: flex; align-items: center;">Filter:</label>
+              <select class="form-select" id="statusFilter" style="min-width: 150px;">
+                <option value="all" data-i18n="all">All</option>
+                <option value="active" data-i18n="active">Active</option>
+                <option value="inactive" data-i18n="inactive">Inactive</option>
+              </select>
             </div>
           </div>
 
@@ -458,8 +461,9 @@
       i18n.updatePageTranslations();
 
       // Load data
-      await loadTeams();
       await loadEmployees();
+      await loadTeams();
+
 
       // Setup event listeners
       setupEventListeners();
@@ -684,6 +688,8 @@
     }
     // Create new account
     // Open the create account modal
+    // Make closeModal available globally for inline onclick handlers
+    window.closeModal = closeModal;
     window.openCreateAccountModal = function(empId) {
       const emp = employees.find(e => e.id === empId);
       if (!emp) return;
@@ -786,7 +792,7 @@
     document.getElementById('confirmCreateAccountBtn').addEventListener('click', async () => {
       if (!selectedEmployeeForAccount) return;
       
-      const password = document.getElementById('tempPassword').value;
+      const password = document.getElementById('tempPassword').value.trim();
       if (!password || password.length < 6) {
         showToast('error', 'Error', 'Password must be at least 6 characters');
         return;
@@ -1221,14 +1227,10 @@
         });
       });
 
-      // Filter buttons
-      document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          currentFilter = btn.dataset.filter;
-          renderEmployees();
-        });
+      // Filter dropdown (changed from buttons)
+      document.getElementById('statusFilter').addEventListener('change', (e) => {
+        currentFilter = e.target.value;
+        renderEmployees();
       });
 
       // Search

@@ -828,9 +828,9 @@
         });
         
         // If no logs exist, generate sample data for demo
-        if (auditLogs.length === 0) {
+        /* if (auditLogs.length === 0) {
           generateSampleLogs();
-        }
+        } */
         
         updateStats();
       } catch (error) {
@@ -839,7 +839,7 @@
       }
     }
 
-    function generateSampleLogs() {
+    /* function generateSampleLogs() {
       const actions = ['create', 'update', 'delete', 'login', 'export'];
       const entities = ['client', 'employee', 'team', 'schedule', 'payment', 'expense', 'invoice'];
       const descriptions = {
@@ -885,9 +885,9 @@
         const bDate = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp);
         return bDate - aDate;
       });
-    }
+    } */
 
-    function generateSampleChanges() {
+    /* function generateSampleChanges() {
       const fields = ['status', 'price', 'phone', 'email', 'notes', 'scheduleType'];
       const field = fields[Math.floor(Math.random() * fields.length)];
       
@@ -906,7 +906,7 @@
       }
       
       return changes;
-    }
+    } */
 
     // ============================================
     // FILTER & RENDER
