@@ -6,6 +6,7 @@
   <title>CleanPro - Finances</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     /* Finance-specific styles */
     .finance-summary {
@@ -312,19 +313,39 @@
     .expense-category-icon.office { background: var(--gray-100); }
     .expense-category-icon.other { background: var(--gray-100); }
 
+    /* Status dropdown for payments/invoices */
+    .status-select {
+      padding: 4px 8px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--gray-300);
+      font-size: var(--text-sm);
+      cursor: pointer;
+      min-width: 100px;
+    }
+    .status-select.paid { background: var(--success-100); border-color: var(--success-300); color: var(--success-700); }
+    .status-select.pending { background: var(--warning-100); border-color: var(--warning-300); color: var(--warning-700); }
+    .status-select.overdue { background: var(--danger-100); border-color: var(--danger-300); color: var(--danger-700); }
+    .status-select.draft { background: var(--gray-100); border-color: var(--gray-300); color: var(--gray-700); }
+    .status-select.sent { background: var(--info-100); border-color: var(--info-300); color: var(--info-700); }
+    
+    /* Source badge for payments */
+    .source-badge {
+      font-size: var(--text-xs);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      background: var(--info-100);
+      color: var(--info-700);
+    }
+
     @media print {
-  body * {
-    visibility: hidden;
-  }
-  #invoicePreviewContent, #invoicePreviewContent * {
-    visibility: visible;
-  }
-  #invoicePreviewContent {
-    position: absolute;
-    left: 0;
-    top: 0;
-  }
-}
+      body * { visibility: hidden; }
+      #invoicePreviewModal { position: fixed !important; left: 0 !important; top: 0 !important; width: 100% !important; height: auto !important; margin: 0 !important; padding: 0 !important; background: white !important; z-index: 99999 !important; overflow: visible !important; }
+      #invoicePreviewModal, #invoicePreviewModal * { visibility: visible !important; }
+      #invoicePreviewModal .modal-header, #invoicePreviewModal .modal-footer { display: none !important; }
+      #invoicePreviewContent { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; padding: 20px !important; margin: 0 !important; overflow: visible !important; }
+      .invoice-preview { border: none !important; box-shadow: none !important; max-width: 100% !important; padding: 20px !important; }
+      .modal-backdrop { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -491,6 +512,7 @@
         <!-- Tabs -->
         <div class="tabs mb-4">
           <button class="tab active" data-tab="payments" data-i18n="payments">Payments</button>
+          <button class="tab" data-tab="completedJobs">Completed Jobs</button>
           <button class="tab" data-tab="expenses" data-i18n="expenses">Expenses</button>
           <button class="tab" data-tab="invoices" data-i18n="invoices">Invoices</button>
         </div>
@@ -500,12 +522,19 @@
           <div class="card">
             <div class="card-header">
               <h3 class="card-title" data-i18n="recentPayments">Recent Payments</h3>
-              <select class="form-select" id="paymentStatusFilter" style="width: auto;">
-                <option value="">All Status</option>
-                <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
-                <option value="overdue">Overdue</option>
-              </select>
+              <div class="flex gap-2">
+                <select class="form-select" id="paymentStatusFilter" style="width: auto;">
+                  <option value="">All Status</option>
+                  <option value="paid">Paid</option>
+                  <option value="pending">Pending</option>
+                  <option value="overdue">Overdue</option>
+                </select>
+                <select class="form-select" id="paymentSourceFilter" style="width: auto;">
+                  <option value="">All Sources</option>
+                  <option value="cleaning">Cleaning Jobs</option>
+                  <option value="invoice">Invoices</option>
+                </select>
+              </div>
             </div>
             <div class="table-container">
               <table class="table" id="paymentsTable">
@@ -533,6 +562,42 @@
           </div>
         </div>
 
+
+        <!-- Completed Jobs Tab -->
+        <div class="tab-content" id="completedJobsTab">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Completed Jobs</h3>
+              <select class="form-select" id="completedJobsFilter" style="width: auto;">
+                <option value="">All Payment Status</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Pending Payment</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </div>
+            <div class="table-container">
+              <table class="table" id="completedJobsTable">
+                <thead>
+                  <tr>
+                    <th>Completed Date</th>
+                    <th data-i18n="clients">Client</th>
+                    <th>Address</th>
+                    <th>Service</th>
+                    <th data-i18n="amount">Amount</th>
+                    <th>Payment Status</th>
+                    <th data-i18n="actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="completedJobsBody"></tbody>
+              </table>
+            </div>
+            <div class="empty-state hidden" id="noCompletedJobs">
+              <div class="empty-state-icon">🏠</div>
+              <div class="empty-state-title">No completed jobs found</div>
+              <p class="text-gray-500">Completed cleaning jobs will appear here</p>
+            </div>
+          </div>
+        </div>
         <!-- Expenses Tab -->
         <div class="tab-content" id="expensesTab">
           <div class="card">
@@ -841,7 +906,6 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" id="cancelInvoiceBtn" data-i18n="cancel">Cancel</button>
-      <button type="button" class="btn btn-secondary" id="previewInvoiceBtn">👁️ Preview</button>
       <button type="button" class="btn btn-primary" id="saveInvoiceBtn" data-i18n="save">Save Invoice</button>
     </div>
   </div>
@@ -855,9 +919,38 @@
     <div class="modal-body" id="invoicePreviewContent">
       <!-- Populated by JS -->
     </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="closePreviewBtn" data-i18n="close">Close</button>
+        <button type="button" class="btn btn-info" id="sendInvoiceBtn">📧 Send Invoice</button>
+        <button type="button" class="btn btn-primary" id="printInvoiceBtn">🖨️ Print</button>
+      </div>
+  </div>
+
+  <!-- Send Invoice Modal -->
+  <div class="modal" id="sendInvoiceModal">
+    <div class="modal-header">
+      <h3 class="modal-title">Send Invoice</h3>
+      <button class="modal-close" id="closeSendInvoiceModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="sendInvoiceForm">
+        <div class="form-group">
+          <label class="form-label form-label-required">Recipient Email</label>
+          <input type="email" class="form-input" id="sendInvoiceEmail" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subject</label>
+          <input type="text" class="form-input" id="sendInvoiceSubject" value="Invoice from CleanPro">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message</label>
+          <textarea class="form-input" id="sendInvoiceMessage" rows="4">Please find attached your invoice. Payment is due within 7 days.</textarea>
+        </div>
+      </form>
+    </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" id="closePreviewBtn" data-i18n="close">Close</button>
-      <button type="button" class="btn btn-primary" id="printInvoiceBtn">🖨️ Print</button>
+      <button type="button" class="btn btn-secondary" id="cancelSendInvoiceBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirmSendInvoiceBtn">📧 Send Invoice</button>
     </div>
   </div>
 
@@ -887,6 +980,7 @@
     let expenses = [];
     let invoices = [];
     let schedules = [];
+    let completedSchedules = [];
     
     let currentDateRange = 'week';
     let startDate = null;
@@ -894,6 +988,14 @@
     let editingExpenseId = null;
     let editingPaymentId = null;
     let invoiceItems = [];
+    let currentInvoiceId = null;
+
+    // ============================================
+    // HELPER DATE FUNCTION
+    // ============================================
+    function toLocalDateString(date) {
+      return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+    }
 
     // ============================================
     // AUTHENTICATION CHECK
@@ -937,6 +1039,9 @@
       // Load data
       await loadClients();
       await loadData();
+      
+      // Auto-update payment statuses (overdue for cleanings immediately, invoices after 1 week)
+      await autoUpdatePaymentStatuses();
 
       setupEventListeners();
 
@@ -944,6 +1049,57 @@
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('action') === 'expense') {
         openExpenseModal();
+      }
+    }
+
+    // ============================================
+    // AUTO UPDATE PAYMENT STATUSES
+    // ============================================
+    async function autoUpdatePaymentStatuses() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let updatedCount = 0;
+      
+      // Update cleaning job payments - overdue immediately if not paid same day
+      for (const payment of payments) {
+        if (payment.status === 'pending' && !payment.invoiceId) {
+          const paymentDate = payment.date?.toDate ? payment.date.toDate() : new Date(payment.date);
+          paymentDate.setHours(0, 0, 0, 0);
+          if (paymentDate < today) {
+            try {
+              await updateDoc(doc(db, 'payments', payment.id), { status: 'overdue', updatedAt: Timestamp.now() });
+              payment.status = 'overdue';
+              updatedCount++;
+            } catch (error) { console.error('Error updating payment status:', error); }
+          }
+        }
+      }
+      
+      // Update invoice-linked payments - overdue after due date (1 week)
+      for (const invoice of invoices) {
+        if (invoice.status === 'sent') {
+          const dueDate = invoice.dueDate?.toDate ? invoice.dueDate.toDate() : new Date(invoice.dueDate);
+          dueDate.setHours(0, 0, 0, 0);
+          if (dueDate < today) {
+            try {
+              await updateDoc(doc(db, 'invoices', invoice.id), { status: 'overdue', updatedAt: Timestamp.now() });
+              invoice.status = 'overdue';
+              const linkedPayment = payments.find(p => p.invoiceId === invoice.id);
+              if (linkedPayment && linkedPayment.status !== 'paid') {
+                await updateDoc(doc(db, 'payments', linkedPayment.id), { status: 'overdue', updatedAt: Timestamp.now() });
+                linkedPayment.status = 'overdue';
+              }
+              updatedCount++;
+            } catch (error) { console.error('Error updating invoice status:', error); }
+          }
+        }
+      }
+      
+      if (updatedCount > 0) {
+        showToast('info', 'Status Updated', `${updatedCount} payment(s) marked as overdue`);
+        updateSummary();
+        renderPayments();
+        renderInvoices();
       }
     }
 
@@ -1011,13 +1167,24 @@
         loadPayments(),
         loadExpenses(),
         loadInvoices(),
-        loadSchedules()
+        loadSchedules(),
+        loadCompletedSchedules()
       ]);
       
       updateSummary();
       renderPayments();
       renderExpenses();
       renderInvoices();
+      renderCompletedJobs();
+    }
+
+    async function loadCompletedSchedules() {
+      try {
+        const q = query(collection(db, 'schedules'), where('status', '==', 'completed'), orderBy('date', 'desc'));
+        const snapshot = await getDocs(q);
+        completedSchedules = [];
+        snapshot.forEach(doc => { completedSchedules.push({ id: doc.id, ...doc.data() }); });
+      } catch (error) { console.error('Error loading completed schedules:', error); }
     }
 
     async function loadPayments() {
@@ -1109,10 +1276,243 @@
       document.getElementById('netProfit').textContent = formatCurrency(netProfit);
       document.getElementById('pendingPayments').textContent = formatCurrency(pendingPayments);
     }
+    // ============================================
+    // PAYMENT STATUS FUNCTIONS
+    // ============================================
+    window.updatePaymentStatus = async function(id, newStatus) {
+      try {
+        await updateDoc(doc(db, 'payments', id), { 
+          status: newStatus, 
+          updatedAt: Timestamp.now(), 
+          ...(newStatus === 'paid' ? { paidAt: Timestamp.now() } : {}) 
+        });
+        const payment = payments.find(p => p.id === id);
+        if (payment?.invoiceId && newStatus === 'paid') {
+          await updateDoc(doc(db, 'invoices', payment.invoiceId), { status: 'paid', updatedAt: Timestamp.now() });
+        }
+        await logPaymentAction(AuditActions.UPDATE, id, `Status changed to ${newStatus}`);
+        showToast('success', 'Success', `Payment status updated to ${newStatus}`);
+        await loadPayments();
+        await loadInvoices();
+        updateSummary();
+        renderPayments();
+        renderInvoices();
+        renderCompletedJobs();
+      } catch (error) { 
+        console.error('Error:', error); 
+        showToast('error', 'Error', 'Failed to update'); 
+      }
+    };
+
+    window.updateJobPaymentStatus = async function(scheduleId, paymentId, newStatus) {
+      try {
+        if (paymentId) {
+          await updateDoc(doc(db, 'payments', paymentId), { 
+            status: newStatus, 
+            updatedAt: Timestamp.now(), 
+            ...(newStatus === 'paid' ? { paidAt: Timestamp.now() } : {}) 
+          });
+        } else {
+          const schedule = completedSchedules.find(s => s.id === scheduleId);
+          if (schedule) {
+            await addDoc(collection(db, 'payments'), { 
+              scheduleId, 
+              clientId: schedule.clientId, 
+              date: Timestamp.now(), 
+              amount: schedule.serviceDetails?.totalPrice || 0, 
+              status: newStatus, 
+              createdAt: Timestamp.now() 
+            });
+          }
+        }
+        showToast('success', 'Success', `Payment status updated to ${newStatus}`);
+        await loadPayments();
+        updateSummary();
+        renderPayments();
+        renderCompletedJobs();
+      } catch (error) { 
+        console.error('Error:', error); 
+        showToast('error', 'Error', 'Failed to update'); 
+      }
+    };
+
+    window.markJobAsPaid = async function(scheduleId, paymentId) { 
+      await updateJobPaymentStatus(scheduleId, paymentId, 'paid'); 
+    };
+
+    // ============================================
+    // INVOICE STATUS FUNCTIONS
+    // ============================================
+
+    window.updateInvoiceStatus = async function(id, newStatus) {
+      try {
+        await updateDoc(doc(db, 'invoices', id), { status: newStatus, updatedAt: Timestamp.now() });
+        if (newStatus === 'paid') {
+          const linkedPayment = payments.find(p => p.invoiceId === id);
+          if (linkedPayment) {
+            await updateDoc(doc(db, 'payments', linkedPayment.id), { status: 'paid', paidAt: Timestamp.now(), updatedAt: Timestamp.now() });
+          }
+        }
+        showToast('success', 'Success', `Invoice status updated to ${newStatus}`);
+        await loadInvoices();
+        await loadPayments();
+        updateSummary();
+        renderInvoices();
+        renderPayments();
+      } catch (error) { 
+        console.error('Error:', error); 
+        showToast('error', 'Error', 'Failed to update'); 
+      }
+    };
+
+    // ============================================
+    // SEND INVOICE FUNCTIONS
+    // ============================================
+
+    window.sendInvoice = function(id) {
+      currentInvoiceId = id;
+      const invoice = invoices.find(i => i.id === id);
+      if (!invoice) return;
+      const client = clients[invoice.clientId] || {};
+      document.getElementById('sendInvoiceEmail').value = client.email || '';
+      document.getElementById('sendInvoiceSubject').value = `Invoice ${invoice.invoiceNumber} from CleanPro`;
+      openModal('sendInvoiceModal');
+    };
+
+    async function confirmSendInvoice() {
+      const email = document.getElementById('sendInvoiceEmail').value;
+      const subject = document.getElementById('sendInvoiceSubject').value;
+      const message = document.getElementById('sendInvoiceMessage').value;
+      
+      if (!email) {
+        showToast('error', 'Error', 'Please enter an email address');
+        return;
+      }
+      
+      const invoice = invoices.find(i => i.id === currentInvoiceId);
+      if (!invoice) {
+        showToast('error', 'Error', 'Invoice not found');
+        return;
+      }
+      
+      const client = clients[invoice.clientId] || {};
+      const dueDate = invoice.dueDate?.toDate ? invoice.dueDate.toDate() : new Date(invoice.dueDate);
+      
+      // Show loading state
+      const sendBtn = document.getElementById('confirmSendInvoiceBtn');
+      const originalText = sendBtn.innerHTML;
+      sendBtn.innerHTML = '⏳ Preparing...';
+      sendBtn.disabled = true;
+      
+      try {
+        // Generate PDF
+
+        // Update invoice status FIRST
+        await updateDoc(doc(db, 'invoices', currentInvoiceId), {
+          status: 'sent',
+          sentAt: Timestamp.now(),
+          sentTo: email,
+          updatedAt: Timestamp.now()
+        });
+
+        // Update local invoice object so PDF shows correct status
+         invoice.status = 'sent';
+
+        const pdfDoc = generateInvoicePDF(invoice, client);
+        const pdfBlob = pdfDoc.output('blob');
+        const fileName = `Invoice-${invoice.invoiceNumber}.pdf`;
+        
+        // Try Web Share API (works great on mobile)
+        if (navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], fileName, { type: 'application/pdf' })] })) {
+          const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+          
+          await navigator.share({
+            title: subject,
+            text: message,
+            files: [file]
+          });
+          
+          showToast('success', 'Success', 'Invoice shared successfully');
+        } else {
+          // Fallback: Download PDF + Open mailto
+          pdfDoc.save(fileName);          
+          const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message + '\n\n---\nPlease find the invoice PDF attached.\nInvoice #: ' + invoice.invoiceNumber + '\nAmount: ' + formatCurrency(invoice.total || 0) + '\nDue Date: ' + formatDate(dueDate, { month: 'long', day: 'numeric', year: 'numeric' }))}`;
+          
+          window.open(mailtoLink, '_blank');
+          
+          showToast('info', 'PDF Downloaded', 'Please attach the downloaded PDF to your email');
+        }
+        
+        // Update invoice status to sent
+        await updateDoc(doc(db, 'invoices', currentInvoiceId), {
+          status: 'sent',
+          sentAt: Timestamp.now(),
+          sentTo: email,
+          updatedAt: Timestamp.now()
+        });
+        
+        closeModal('sendInvoiceModal');
+        await loadInvoices();
+        renderInvoices();
+        
+      } catch (error) {
+        // User cancelled share or error occurred
+        if (error.name !== 'AbortError') {
+          console.error('Error:', error);
+          showToast('error', 'Error', 'Failed to send invoice');
+        }
+      } finally {
+        sendBtn.innerHTML = originalText;
+        sendBtn.disabled = false;
+      }
+    }
 
     // ============================================
     // RENDER FUNCTIONS
     // ============================================
+
+    function renderCompletedJobs() {
+      const tbody = document.getElementById('completedJobsBody');
+      const emptyState = document.getElementById('noCompletedJobs');
+      const table = document.getElementById('completedJobsTable');
+      const filter = document.getElementById('completedJobsFilter')?.value || '';
+      
+      let jobsWithPaymentStatus = completedSchedules.map(schedule => {
+        const payment = payments.find(p => p.scheduleId === schedule.id);
+        return { ...schedule, paymentStatus: payment?.status || 'pending', paymentId: payment?.id };
+      });
+      
+      if (filter) jobsWithPaymentStatus = jobsWithPaymentStatus.filter(j => j.paymentStatus === filter);
+      
+      if (jobsWithPaymentStatus.length === 0) { 
+        table.classList.add('hidden'); 
+        emptyState.classList.remove('hidden'); 
+        return; 
+      }
+      table.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+      
+      tbody.innerHTML = jobsWithPaymentStatus.map(job => {
+        const client = clients[job.clientId] || {};
+        const completedDate = job.actualEndTime?.toDate ? job.actualEndTime.toDate() : (job.date ? new Date(job.date) : new Date());
+        return `<tr>
+          <td>${formatDate(completedDate, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+          <td><div class="font-semibold">${client.firstName || ''} ${client.lastName || 'Unknown'}</div></td>
+          <td><div class="text-sm">${client.address?.street || ''}</div><div class="text-xs text-gray-500">${client.address?.city || ''}</div></td>
+          <td>${job.serviceDetails?.type === 'full' ? 'Full House' : 'Half House'}</td>
+          <td class="font-semibold">${formatCurrency(job.serviceDetails?.totalPrice || 0)}</td>
+          <td>
+            <select class="status-select ${job.paymentStatus}" onchange="updateJobPaymentStatus('${job.id}', '${job.paymentId || ''}', this.value)">
+              <option value="pending" ${job.paymentStatus === 'pending' ? 'selected' : ''}>Pending</option>
+              <option value="paid" ${job.paymentStatus === 'paid' ? 'selected' : ''}>Paid</option>
+              <option value="overdue" ${job.paymentStatus === 'overdue' ? 'selected' : ''}>Overdue</option>
+            </select>
+          </td>
+          <td>${job.paymentStatus !== 'paid' ? `<button class="btn btn-success btn-sm" onclick="markJobAsPaid('${job.id}', '${job.paymentId || ''}')">Mark Paid</button>` : ''}</td>
+        </tr>`;
+      }).join('');
+    }
+
     function renderPayments() {
       const tbody = document.getElementById('paymentsBody');
       const emptyState = document.getElementById('noPayments');
@@ -1301,7 +1701,8 @@
       editingExpenseId = null;
       document.getElementById('expenseModalTitle').textContent = i18n.t('addExpense');
       document.getElementById('expenseForm').reset();
-      document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+      const today = new Date();
+      document.getElementById('expenseDate').value = toLocalDateString(new Date());
       document.getElementById('recurringOptions').classList.add('hidden');
       openModal('expenseModal');
     }
@@ -1314,7 +1715,7 @@
       document.getElementById('expenseModalTitle').textContent = i18n.t('editExpense');
       
       const date = expense.date?.toDate ? expense.date.toDate() : new Date(expense.date);
-      document.getElementById('expenseDate').value = date.toISOString().split('T')[0];
+      document.getElementById('expenseDate').value = toLocalDateString(new Date());
       document.getElementById('expenseCategory').value = expense.category || '';
       document.getElementById('expenseDescription').value = expense.description || '';
       document.getElementById('expenseAmount').value = expense.amount || '';
@@ -1331,8 +1732,11 @@
     };
 
     async function saveExpense() {
-      const date = document.getElementById('expenseDate').value;
+      const dateStr = document.getElementById('expenseDate').value;
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const date = new Date(year, month - 1, day, 12, 0, 0);      
       const category = document.getElementById('expenseCategory').value;
+      
       const description = document.getElementById('expenseDescription').value;
       const amount = parseFloat(document.getElementById('expenseAmount').value);
       
@@ -1456,11 +1860,12 @@
       document.getElementById('invoiceNumber').value = invoiceNum;
       
       // Set dates
-      document.getElementById('invoiceDate').value = new Date().toISOString().split('T')[0];
+      const today = new Date();
+      const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      document.getElementById('invoiceDate').value = todayStr;      
       const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 30);
-      document.getElementById('invoiceDueDate').value = dueDate.toISOString().split('T')[0];
-      
+      dueDate.setDate(dueDate.getDate() + 7);
+      document.getElementById('invoiceDueDate').value = toLocalDateString(dueDate);
       openModal('invoiceModal');
     }
 
@@ -1560,11 +1965,19 @@
       
       const subtotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
       
+      // Fix date parsing to avoid timezone issues
+      const invoiceDateStr = document.getElementById('invoiceDate').value;
+      const dueDateStr = document.getElementById('invoiceDueDate').value;
+      const [iYear, iMonth, iDay] = invoiceDateStr.split('-').map(Number);
+      const [dYear, dMonth, dDay] = dueDateStr.split('-').map(Number);
+      const invoiceDate = new Date(iYear, iMonth - 1, iDay, 12, 0, 0);
+      const dueDate = new Date(dYear, dMonth - 1, dDay, 12, 0, 0);
+      
       const invoiceData = {
         clientId,
         invoiceNumber: document.getElementById('invoiceNumber').value,
-        invoiceDate: Timestamp.fromDate(new Date(document.getElementById('invoiceDate').value)),
-        dueDate: Timestamp.fromDate(new Date(document.getElementById('invoiceDueDate').value)),
+        invoiceDate: Timestamp.fromDate(invoiceDate),
+        dueDate: Timestamp.fromDate(dueDate),
         items: invoiceItems,
         subtotal,
         tax: 0,
@@ -1577,10 +1990,25 @@
       
       try {
         const docRef = await addDoc(collection(db, 'invoices'), invoiceData);
+        
+        // Create linked payment record (INSIDE the try block)
+        await addDoc(collection(db, 'payments'), {
+          invoiceId: docRef.id,
+          clientId,
+          date: Timestamp.fromDate(invoiceDate),
+          amount: subtotal,
+          status: 'pending',
+          source: 'invoice',
+          createdAt: Timestamp.now()
+        });
+        
         showToast('success', i18n.t('success'), 'Invoice created');
         closeModal('invoiceModal');
         await loadInvoices();
+        await loadPayments();
+        updateSummary();
         renderInvoices();
+        renderPayments();
       } catch (error) {
         console.error('Error creating invoice:', error);
         showToast('error', i18n.t('error'), 'Failed to create invoice');
@@ -1588,6 +2016,7 @@
     }
 
     window.viewInvoice = function(id) {
+      currentInvoiceId = id;
       const invoice = invoices.find(i => i.id === id);
       if (!invoice) return;
       
@@ -1711,6 +2140,8 @@
       if (!confirmed) return;
       
       try {
+        const linkedPayment = payments.find(p => p.invoiceId === id);
+        if  (linkedPayment) await deleteDoc(doc(db, 'payments', linkedPayment.id));
         await deleteDoc(doc(db, 'invoices', id));
         showToast('success', i18n.t('success'), 'Invoice deleted');
         await loadInvoices();
@@ -1721,10 +2152,188 @@
       }
     }; 
 
-function printInvoice() {
-  window.print();
-}
+    function generateInvoicePDF(invoice, client, returnBase64 = false) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      const invoiceDate = invoice.invoiceDate?.toDate ? invoice.invoiceDate.toDate() : new Date(invoice.invoiceDate);
+      const dueDate = invoice.dueDate?.toDate ? invoice.dueDate.toDate() : new Date(invoice.dueDate);
+      
+      // Colors
+      const primaryColor = [79, 70, 229]; // Indigo
+      const grayColor = [107, 114, 128];
+      const darkColor = [31, 41, 55];
+      
+      // Header
+      doc.setFillColor(...primaryColor);
+      doc.rect(0, 0, 220, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(28);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CleanPro', 20, 26);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Professional Cleaning Services', 20, 34);
+      
+      // Invoice Title
+      doc.setTextColor(...darkColor);
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('INVOICE', 150, 60, { align: 'center' });
+      
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...grayColor);
+      doc.text(`#${invoice.invoiceNumber}`, 150, 68, { align: 'center' });
+      
+      // Bill To Section
+      doc.setFontSize(10);
+      doc.setTextColor(...primaryColor);
+      doc.setFont('helvetica', 'bold');
+      doc.text('BILL TO', 20, 60);
+      
+      doc.setTextColor(...darkColor);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text(`${client.firstName || ''} ${client.lastName || ''}`, 20, 68);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(...grayColor);
+      let yPos = 74;
+      if (client.address?.street) { doc.text(client.address.street, 20, yPos); yPos += 5; }
+      if (client.address?.city) { doc.text(`${client.address.city}, ${client.address.state || ''} ${client.address.zip || ''}`, 20, yPos); yPos += 5; }
+      if (client.email) { doc.text(client.email, 20, yPos); yPos += 5; }
+      if (client.phone) { doc.text(client.phone, 20, yPos); }
+      
+      // Invoice Details Box
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(120, 75, 70, 30, 2, 2, 'F');
+      
+      doc.setFontSize(9);
+      doc.setTextColor(...grayColor);
+      doc.text('Invoice Date:', 125, 84);
+      doc.text('Due Date:', 125, 92);
+      doc.text('Status:', 125, 100);
+      
+      doc.setTextColor(...darkColor);
+      doc.setFont('helvetica', 'bold');
+      doc.text(formatDate(invoiceDate, { month: 'short', day: 'numeric', year: 'numeric' }), 160, 84);
+      doc.text(formatDate(dueDate, { month: 'short', day: 'numeric', year: 'numeric' }), 160, 92);
+      
+      // Status badge
+      const statusColors = { draft: [107, 114, 128], sent: [59, 130, 246], paid: [34, 197, 94], overdue: [239, 68, 68] };
+      const statusColor = statusColors[invoice.status] || statusColors.draft;
+      doc.setTextColor(...statusColor);
+      doc.text(invoice.status.toUpperCase(), 160, 100);
+      
+      // Items Table Header
+      const tableTop = 115;
+      doc.setFillColor(...primaryColor);
+      doc.rect(20, tableTop, 170, 10, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Description', 25, tableTop + 7);
+      doc.text('Qty', 120, tableTop + 7);
+      doc.text('Rate', 140, tableTop + 7);
+      doc.text('Amount', 170, tableTop + 7);
+      
+      // Items
+      doc.setTextColor(...darkColor);
+      doc.setFont('helvetica', 'normal');
+      let itemY = tableTop + 18;
+      
+      (invoice.items || []).forEach((item, index) => {
+        if (index % 2 === 0) {
+          doc.setFillColor(249, 250, 251);
+          doc.rect(20, itemY - 5, 170, 10, 'F');
+        }
+        doc.text(item.description || '', 25, itemY);
+        doc.text(String(item.quantity || 0), 120, itemY);
+        doc.text(formatCurrency(item.rate || 0), 140, itemY);
+        doc.text(formatCurrency((item.quantity || 0) * (item.rate || 0)), 170, itemY);
+        itemY += 10;
+      });
+      
+      // Totals
+      const totalsY = itemY + 10;
+      doc.setDrawColor(229, 231, 235);
+      doc.line(120, totalsY - 5, 190, totalsY - 5);
+      
+      doc.setTextColor(...grayColor);
+      doc.text('Subtotal:', 140, totalsY);
+      doc.setTextColor(...darkColor);
+      doc.text(formatCurrency(invoice.subtotal || 0), 170, totalsY);
+      
+      doc.setTextColor(...grayColor);
+      doc.text('Tax:', 140, totalsY + 8);
+      doc.setTextColor(...darkColor);
+      doc.text(formatCurrency(invoice.tax || 0), 170, totalsY + 8);
+      
+      doc.setDrawColor(...primaryColor);
+      doc.setLineWidth(0.5);
+      doc.line(120, totalsY + 12, 190, totalsY + 12);
+      
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...primaryColor);
+      doc.text('Total:', 140, totalsY + 22);
+      doc.text(formatCurrency(invoice.total || 0), 170, totalsY + 22);
+      
+      // Notes
+      if (invoice.notes) {
+        const notesY = totalsY + 40;
+        doc.setFontSize(10);
+        doc.setTextColor(...primaryColor);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Notes:', 20, notesY);
+        doc.setTextColor(...grayColor);
+        doc.setFont('helvetica', 'normal');
+        doc.text(invoice.notes, 20, notesY + 7);
+      }
+      
+      // Footer
+      doc.setFillColor(249, 250, 251);
+      doc.rect(0, 270, 220, 30, 'F');
+      doc.setFontSize(10);
+      doc.setTextColor(...grayColor);
+      doc.text('Thank you for your business!', 105, 282, { align: 'center' });
+      doc.setFontSize(8);
+      doc.text('CleanPro Professional Cleaning Services', 105, 288, { align: 'center' });
+      
+      if (returnBase64) {
+        return doc.output('datauristring').split(',')[1];
+      }
+      return doc;
+    }
 
+    function printInvoice() {
+      const invoice = invoices.find(i => i.id === currentInvoiceId);
+      if (!invoice) {
+        showToast('error', 'Error', 'Invoice not found');
+        return;
+      }
+      const client = clients[invoice.clientId] || {};
+      const doc = generateInvoicePDF(invoice, client);
+      doc.autoPrint();
+      window.open(doc.output('bloburl'), '_blank');
+    }
+
+
+    function downloadInvoicePDF() {
+      const invoice = invoices.find(i => i.id === currentInvoiceId);
+      if (!invoice) {
+        showToast('error', 'Error', 'Invoice not found');
+        return;
+      }
+      const client = clients[invoice.clientId] || {};
+      const doc = generateInvoicePDF(invoice, client);
+      doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
+    }
 
     // ============================================
     // HELPER FUNCTIONS
@@ -1805,6 +2414,10 @@ function printInvoice() {
       document.getElementById('cancelPaymentBtn').addEventListener('click', () => closeModal('paymentModal'));
       document.getElementById('savePaymentBtn').addEventListener('click', savePayment);
 
+      //Render Payments
+      document.getElementById('paymentSourceFilter')?.addEventListener('change', renderPayments);
+      document.getElementById('completedJobsFilter')?.addEventListener('change', renderCompletedJobs);
+
       // Invoice Modal
       document.getElementById('createInvoiceBtn').addEventListener('click', openInvoiceModal);
       document.getElementById('createFirstInvoiceBtn')?.addEventListener('click', openInvoiceModal);
@@ -1815,13 +2428,24 @@ function printInvoice() {
       document.getElementById('invoiceClient').addEventListener('change', onClientSelect);
 
       // Invoice Preview
-      document.getElementById('previewInvoiceBtn').addEventListener('click', () => {
-        // Quick preview based on form data
-        showToast('info', 'Preview', 'Save the invoice first to see full preview');
-      });
       document.getElementById('closePreviewModal').addEventListener('click', () => closeModal('invoicePreviewModal'));
       document.getElementById('closePreviewBtn').addEventListener('click', () => closeModal('invoicePreviewModal'));
       document.getElementById('printInvoiceBtn').addEventListener('click', printInvoice);
+
+      // Send Invoice Modal
+      document.getElementById('closeSendInvoiceModal')?.addEventListener('click', () => closeModal('sendInvoiceModal'));
+      document.getElementById('cancelSendInvoiceBtn')?.addEventListener('click', () => closeModal('sendInvoiceModal'));
+      document.getElementById('confirmSendInvoiceBtn')?.addEventListener('click', confirmSendInvoice);
+      document.getElementById('sendInvoiceBtn')?.addEventListener('click', () => {
+        if (currentInvoiceId) { closeModal('invoicePreviewModal'); sendInvoice(currentInvoiceId); }
+      });
+
+      document.getElementById('sendInvoiceBtn').addEventListener('click', () => {
+        if (currentInvoiceId) {
+          closeModal('invoicePreviewModal');
+          sendInvoice(currentInvoiceId);
+        }
+      });      
 
       // Modal backdrop
       document.getElementById('modalBackdrop').addEventListener('click', closeAllModals);
