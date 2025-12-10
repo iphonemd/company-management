@@ -234,6 +234,40 @@ const translations = {
     timeEntryUpdated: "Time entry updated",
     breakTime: "Break",
     overtime: "Overtime",
+    // Employee Hours Page
+    employeeHours: "Employee Hours",
+    trackManageHours: "Track and manage employee work hours",
+    quickPayroll: "Quick Payroll",
+    employeeDetails: "Employee Details",
+    payrollReport: "Payroll Report",
+    exportCSV: "Export CSV",
+    printPayroll: "Print Payroll",
+    mondayToSunday: "Monday - Sunday",
+    weekOf: "Week of",
+    grossPay: "Gross Pay",
+    totals: "TOTALS",
+    totalHours: "Total Hours",
+    totalPayroll: "Total Payroll",
+    overtimeHours: "Overtime Hours",
+    editHours: "Edit Hours",
+    weekTotal: "Week Total",
+    addTimeEntry: "Add Time Entry",
+    addEntry: "Add Entry",
+    noEntry: "No entry",
+    optional: "optional",
+    entryNotesPlaceholder: "e.g., Covered for sick employee",
+    clear: "Clear",
+    print: "Print",
+    hr: "hr",
+    hoursUpdated: "Hours updated successfully",
+    failedToSaveHours: "Failed to save hours",
+    payrollExported: "Payroll exported to CSV",
+    failedToLoadEmployees: "Failed to load employees",
+    failedToLoadTimeEntries: "Failed to load time entries",
+    fillRequiredFields: "Please fill in all required fields",
+    failedToSaveEntry: "Failed to save time entry",
+    searchEmployees: "Search employees...",
+    saveChanges: "Save Changes",
 
     // Finances
     revenue: "Revenue",
@@ -635,6 +669,41 @@ const translations = {
     breakTime: "Descanso",
     overtime: "Tiempo Extra",
 
+        // Employee Hours Page
+    employeeHours: "Horas de Empleados",
+    trackManageHours: "Rastrea y administra las horas de trabajo",
+    quickPayroll: "Nómina Rápida",
+    employeeDetails: "Detalles del Empleado",
+    payrollReport: "Reporte de Nómina",
+    exportCSV: "Exportar CSV",
+    printPayroll: "Imprimir Nómina",
+    mondayToSunday: "Lunes - Domingo",
+    weekOf: "Semana del",
+    grossPay: "Pago Bruto",
+    totals: "TOTALES",
+    totalHours: "Horas Totales",
+    totalPayroll: "Nómina Total",
+    overtimeHours: "Horas Extra",
+    editHours: "Editar Horas",
+    weekTotal: "Total de la Semana",
+    addTimeEntry: "Agregar Entrada de Tiempo",
+    addEntry: "Agregar Entrada",
+    noEntry: "Sin entrada",
+    optional: "opcional",
+    entryNotesPlaceholder: "ej., Cubriendo a empleado enfermo",
+    clear: "Limpiar",
+    print: "Imprimir",
+    hr: "hr",
+    hoursUpdated: "Horas actualizadas exitosamente",
+    failedToSaveHours: "Error al guardar horas",
+    payrollExported: "Nómina exportada a CSV",
+    failedToLoadEmployees: "Error al cargar empleados",
+    failedToLoadTimeEntries: "Error al cargar entradas de tiempo",
+    fillRequiredFields: "Por favor complete todos los campos requeridos",
+    failedToSaveEntry: "Error al guardar entrada de tiempo",
+    searchEmployees: "Buscar empleados...",
+    saveChanges: "Guardar Cambios",
+
     // Finances
     revenue: "Ingresos",
     expenses: "Gastos",
@@ -804,6 +873,8 @@ const translations = {
     duplicateFound: "Duplicado encontrado"
   }
 };
+
+
 
 // ============================================
 // i18n CLASS
