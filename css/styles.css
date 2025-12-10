@@ -345,6 +345,8 @@ button {
 @media (max-width: 1023px) {
   .sidebar {
     transform: translateX(-100%);
+        z-index: 1001 !important; /* ABOVE backdrop */
+
   }
   .sidebar.open {
     transform: translateX(0);
