@@ -1090,8 +1090,8 @@
             <div class="job-card-client">${client.firstName} ${client.lastName}</div>
             <div class="job-card-address">${client.address?.street || ''}, ${client.address?.city || ''}</div>
             <div class="job-card-details">
-              <span class="badge badge-${schedule.serviceDetails?.type === 'full' ? 'primary' : 'secondary'}">
-                ${schedule.serviceDetails?.type === 'full' ? 'Full' : 'Half'}
+              <span class="badge badge-primary">
+                ${getServiceSummary(client)}
               </span>
               <span class="badge badge-${statusColors[schedule.status] || 'secondary'}">
                 ${i18n.t(`jobStatus.${schedule.status}`) || schedule.status}
@@ -1502,23 +1502,23 @@ const scheduleData = {
             // Assign team (round robin if not specified)
             const teamId = defaultTeamId || (teams.length > 0 ? teams[teamIndex % teams.length].id : null);
             teamIndex++;
-            
-            // Determine service type for alternating
-            let serviceType = client.serviceType || 'full';
-            if (serviceType === 'alternating') {
-              serviceType = client.lastServiceType === 'full' ? 'half' : 'full';
-            }
-            
-            const totalPrice = serviceType === 'full' ? (client.basePrice || 0) : (client.halfPrice || 0);
-            
+                        
+            // Calculate total price from base + any extras due this visit
+            const totalPrice = client.basePrice || 0;
+
+            // Build areas list from client's included floors
+            const includedAreas = [];
+            if (client.areas?.basement?.includedInBase) includedAreas.push('basement');
+            if (client.areas?.mainLevel?.includedInBase) includedAreas.push('mainLevel');
+            if (client.areas?.upstairs?.includedInBase) includedAreas.push('upstairs');
+
             const scheduleData = {
               clientId: client.id,
               teamId: teamId || '',
               date: dateStr,
               timeSlot: client.preferredTime || 'morning',
               serviceDetails: {
-                type: serviceType,
-                areas: client.standardAreas || [],
+                areas: includedAreas,
                 addOns: [],
                 totalPrice
               },
@@ -1563,6 +1563,17 @@ function formatDateStr(date) {
       const d = new Date(date);
       const day = d.getDay();
       return addDays(d, -day);
+    }
+
+    function getServiceSummary(client) {
+      if (!client?.areas) return 'Standard';
+      
+      const floors = [];
+      if (client.areas.basement?.includedInBase) floors.push('Basement');
+      if (client.areas.mainLevel?.includedInBase) floors.push('Main');
+      if (client.areas.upstairs?.includedInBase) floors.push('Upstairs');
+      
+      return floors.length > 0 ? floors.join('+') : 'Standard';
     }
 
     // function formatDate(date, options) {

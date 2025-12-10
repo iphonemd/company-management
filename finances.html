@@ -1499,7 +1499,7 @@
           <td>${formatDate(completedDate, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
           <td><div class="font-semibold">${client.firstName || ''} ${client.lastName || 'Unknown'}</div></td>
           <td><div class="text-sm">${client.address?.street || ''}</div><div class="text-xs text-gray-500">${client.address?.city || ''}</div></td>
-          <td>${job.serviceDetails?.type === 'full' ? 'Full House' : 'Half House'}</td>
+          <td>${getServiceSummary(clients[job.clientId])}</td>
           <td class="font-semibold">${formatCurrency(job.serviceDetails?.totalPrice || 0)}</td>
           <td>
             <select class="status-select ${job.paymentStatus}" onchange="updateJobPaymentStatus('${job.id}', '${job.paymentId || ''}', this.value)">
@@ -1558,7 +1558,7 @@
             <td>
               <div class="font-semibold">${client?.firstName || ''} ${client?.lastName || 'Unknown'}</div>
             </td>
-            <td>${schedule?.serviceDetails?.type === 'full' ? 'Full House' : 'Half House'}</td>
+            <td>${getServiceSummary(clients[payment.clientId])}</td>
             <td>
               <span>${methodIcons[payment.paymentMethod] || ''} ${payment.paymentMethod || '-'}</span>
             </td>
@@ -1686,6 +1686,8 @@
             <td>
               <div class="table-actions">
                 <button class="btn btn-ghost btn-icon btn-sm" onclick="viewInvoice('${invoice.id}')" title="View">👁️</button>
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="printInvoiceById('${invoice.id}')" title="Print">🖨️</button>
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="sendInvoice('${invoice.id}')" title="Send">📧</button>
                 <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteInvoice('${invoice.id}')" title="Delete">🗑️</button>
               </div>
             </td>
@@ -1715,7 +1717,7 @@
       document.getElementById('expenseModalTitle').textContent = i18n.t('editExpense');
       
       const date = expense.date?.toDate ? expense.date.toDate() : new Date(expense.date);
-      document.getElementById('expenseDate').value = toLocalDateString(new Date());
+      document.getElementById('expenseDate').value = toLocalDateString(date);
       document.getElementById('expenseCategory').value = expense.category || '';
       document.getElementById('expenseDescription').value = expense.description || '';
       document.getElementById('expenseAmount').value = expense.amount || '';
@@ -1861,7 +1863,7 @@
       
       // Set dates
       const today = new Date();
-      const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      document.getElementById('invoiceDate').value = toLocalDateString(today);
       document.getElementById('invoiceDate').value = todayStr;      
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 7);
@@ -2335,6 +2337,18 @@
       doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
     }
 
+    window.printInvoiceById = function(id) {
+      const invoice = invoices.find(i => i.id === id);
+      if (!invoice) {
+        showToast('error', 'Error', 'Invoice not found');
+        return;
+      }
+      const client = clients[invoice.clientId] || {};
+      const pdfDoc = generateInvoicePDF(invoice, client);
+      pdfDoc.autoPrint();
+      window.open(pdfDoc.output('bloburl'), '_blank');
+    };
+
     // ============================================
     // HELPER FUNCTIONS
     // ============================================
@@ -2342,6 +2356,17 @@
       const lang = i18n.getLanguage();
       document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN';
       i18n.updatePageTranslations();
+    }
+
+    function getServiceSummary(client) {
+      if (!client?.areas) return 'Standard';
+      
+      const floors = [];
+      if (client.areas.basement?.includedInBase) floors.push('Basement');
+      if (client.areas.mainLevel?.includedInBase) floors.push('Main');
+      if (client.areas.upstairs?.includedInBase) floors.push('Upstairs');
+      
+      return floors.length > 0 ? floors.join('+') : 'Standard';
     }
 
     // ============================================
