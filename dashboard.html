@@ -438,8 +438,8 @@
             </td>
             <td>${team.name}</td>
             <td>
-              <span class="badge badge-${job.serviceDetails?.type === 'full' ? 'primary' : 'secondary'}">
-                ${job.serviceDetails?.type === 'full' ? i18n.t('serviceTypes.full') : i18n.t('serviceTypes.half')}
+              <span class="badge badge-primary">
+                ${getServiceSummary(client)}
               </span>
             </td>
             <td>
@@ -588,6 +588,23 @@
         map[doc.id] = { id: doc.id, ...doc.data() };
       });
       return map;
+    }
+
+    function toLocalDateString(date) {
+      return date.getFullYear() + '-' + 
+        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(date.getDate()).padStart(2, '0');
+    }
+
+    function getServiceSummary(client) {
+      if (!client?.areas) return 'Standard';
+      
+      const floors = [];
+      if (client.areas.basement?.includedInBase) floors.push('Basement');
+      if (client.areas.mainLevel?.includedInBase) floors.push('Main');
+      if (client.areas.upstairs?.includedInBase) floors.push('Upstairs');
+      
+      return floors.length > 0 ? floors.join('+') : 'Standard';
     }
 
     // ============================================

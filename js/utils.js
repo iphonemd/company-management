@@ -29,7 +29,16 @@ export function formatTime(date) {
 }
 
 export function getToday() {
-  return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  return now.getFullYear() + '-' + 
+    String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+    String(now.getDate()).padStart(2, '0');
+}
+
+export function toLocalDateString(date) {
+  return date.getFullYear() + '-' + 
+    String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+    String(date.getDate()).padStart(2, '0');
 }
 
 export function getStartOfWeek(date = new Date()) {
@@ -471,6 +480,17 @@ export function getServiceTypeLabel(type) {
     custom: i18n.t('serviceTypes.custom')
   };
   return labels[type] || type;
+}
+
+export function getServiceSummary(client) {
+  if (!client?.areas) return 'Standard';
+  
+  const floors = [];
+  if (client.areas.basement?.includedInBase) floors.push('Basement');
+  if (client.areas.mainLevel?.includedInBase) floors.push('Main');
+  if (client.areas.upstairs?.includedInBase) floors.push('Upstairs');
+  
+  return floors.length > 0 ? floors.join(' + ') : 'Standard';
 }
 
 // ============================================

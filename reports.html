@@ -584,7 +584,7 @@
             <!-- Service Type Distribution -->
             <div class="chart-card">
               <div class="chart-card-header">
-                <h3 class="chart-card-title">Service Types</h3>
+                <h3 class="chart-card-title">Service Areas Distribution</h3>
               </div>
               <div class="chart-card-body">
                 <div class="chart-container">
@@ -1209,16 +1209,29 @@
     function renderServiceTypeChart(filteredSchedules) {
       const ctx = document.getElementById('serviceTypeChart').getContext('2d');
       
-      const fullCount = filteredSchedules.filter(s => s.serviceDetails?.type === 'full').length;
-      const halfCount = filteredSchedules.filter(s => s.serviceDetails?.type === 'half').length;
+      // Count schedules by included floors
+      const floorCounts = {
+        basement: 0,
+        mainLevel: 0,
+        upstairs: 0
+      };
+      
+      filteredSchedules.forEach(s => {
+        const client = clients.find(c => c.id === s.clientId);
+        if (client?.areas) {
+          if (client.areas.basement?.includedInBase) floorCounts.basement++;
+          if (client.areas.mainLevel?.includedInBase) floorCounts.mainLevel++;
+          if (client.areas.upstairs?.includedInBase) floorCounts.upstairs++;
+        }
+      });
       
       charts.serviceType = new Chart(ctx, {
         type: 'pie',
         data: {
-          labels: ['Full House', 'Half House'],
+          labels: ['Basement', 'Main Level', 'Upstairs'],
           datasets: [{
-            data: [fullCount, halfCount],
-            backgroundColor: ['#0d9488', '#f97316']
+            data: [floorCounts.basement, floorCounts.mainLevel, floorCounts.upstairs],
+            backgroundColor: ['#8b5cf6', '#0d9488', '#f97316']
           }]
         },
         options: {
@@ -1860,7 +1873,7 @@
             Date: s.date,
             Client: client ? `${client.firstName} ${client.lastName}` : 'Unknown',
             Team: team?.name || 'Unassigned',
-            Service: s.serviceDetails?.type || 'full',
+            Service: getServiceSummary(s.clientId),
             Status: s.status,
             Price: s.serviceDetails?.totalPrice || 0
           };
@@ -1869,7 +1882,7 @@
           const client = clients.find(c => c.id === p.clientId);
           const date = p.date?.toDate ? p.date.toDate() : new Date(p.date);
           return {
-            Date: date.toISOString().split('T')[0],
+            Date: toLocalDateString(date),
             Client: client ? `${client.firstName} ${client.lastName}` : 'Unknown',
             Amount: p.amount || 0,
             Method: p.paymentMethod || '-',
@@ -1879,7 +1892,7 @@
         expenses: expenses.map(e => {
           const date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
           return {
-            Date: date.toISOString().split('T')[0],
+            Date: toLocalDateString(date),
             Category: e.category,
             Description: e.description,
             Vendor: e.vendor || '-',
@@ -1915,7 +1928,7 @@
       XLSX.utils.book_append_sheet(wb, clientsWS, 'Clients');
       
       // Save
-      XLSX.writeFile(wb, `CleanPro_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(wb, `CleanPro_Report_${toLocalDateString(new Date())}.xlsx`);
       showToast('success', 'Export Complete', 'Excel file downloaded');
     }
 
@@ -1928,7 +1941,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `CleanPro_Schedules_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `CleanPro_Schedules_${toLocalDateString(new Date())}.csv`;
       a.click();
       
       showToast('success', 'Export Complete', 'CSV file downloaded');
@@ -1955,6 +1968,24 @@
         }
         return date >= startDate && date <= endDate;
       });
+    }
+
+    function getServiceSummary(clientId) {
+      const client = clients.find(c => c.id === clientId);
+      if (!client?.areas) return 'Standard';
+      
+      const floors = [];
+      if (client.areas.basement?.includedInBase) floors.push('Basement');
+      if (client.areas.mainLevel?.includedInBase) floors.push('Main');
+      if (client.areas.upstairs?.includedInBase) floors.push('Upstairs');
+      
+      return floors.length > 0 ? floors.join('+') : 'Standard';
+    }
+
+    function toLocalDateString(date) {
+      return date.getFullYear() + '-' + 
+        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(date.getDate()).padStart(2, '0');
     }
 
     function getAvatarColor(name) {
