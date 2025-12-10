@@ -1115,7 +1115,6 @@
     function renderRevenueChart() {
       const ctx = document.getElementById('revenueChart').getContext('2d');
       
-      // Generate sample data based on date range
       const labels = [];
       const data = [];
       const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
@@ -1136,11 +1135,24 @@
           data.push(dayRevenue);
         }
       } else {
-        // Weekly
+        // Weekly - use real payment data
         const weeks = Math.ceil(days / 7);
         for (let i = 0; i < Math.min(weeks, 12); i++) {
+          const weekStart = new Date(startDate);
+          weekStart.setDate(startDate.getDate() + (i * 7));
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          weekEnd.setHours(23, 59, 59, 999);
+          
           labels.push(`Week ${i + 1}`);
-          data.push(Math.random() * 2000 + 1000); // Sample data
+          
+          const weekRevenue = payments
+            .filter(p => {
+              const pDate = p.date?.toDate ? p.date.toDate() : new Date(p.date);
+              return pDate >= weekStart && pDate <= weekEnd && p.status === 'paid';
+            })
+            .reduce((sum, p) => sum + (p.amount || 0), 0);
+          data.push(weekRevenue);
         }
       }
       
@@ -1490,21 +1502,27 @@
     // CLIENTS REPORT
     // ============================================
     function renderClientsReport() {
-      // Client Growth Chart
+      // Client Growth Chart - use real client createdAt dates
       const ctx = document.getElementById('clientGrowthChart').getContext('2d');
       
       const months = [];
       const data = [];
-      let cumulative = 0;
       
       for (let i = 11; i >= 0; i--) {
         const date = new Date();
         date.setMonth(date.getMonth() - i);
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+        
         months.push(i18n.getMonthName(date.getMonth(), true));
         
-        // Sample growth data
-        cumulative += Math.floor(Math.random() * 3);
-        data.push(cumulative + clients.length - 10);
+        // Count clients created up to this month end
+        const clientCount = clients.filter(c => {
+          const createdAt = c.createdAt?.toDate ? c.createdAt.toDate() : new Date(c.createdAt || 0);
+          return createdAt <= monthEnd;
+        }).length;
+        
+        data.push(clientCount);
       }
       
       charts.clientGrowth = new Chart(ctx, {
@@ -1632,12 +1650,34 @@
         }
       });
       
-      // Hours Worked
+      // Hours Worked - use real timeEntries data
       const hoursCtx = document.getElementById('hoursWorkedChart').getContext('2d');
       
-      // Sample data for hours
-      const empLabels = employees.slice(0, 8).map(e => e.firstName);
-      const hoursData = empLabels.map(() => Math.floor(Math.random() * 30) + 20);
+      // Calculate actual hours from timeEntries for each employee
+      const filteredTimeEntries = filterByDate(timeEntries, 'clockIn');
+      const employeeHours = {};
+      
+      filteredTimeEntries.forEach(entry => {
+        if (entry.clockIn && entry.clockOut) {
+          const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
+          const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
+          const hours = (clockOut - clockIn) / (1000 * 60 * 60);
+          employeeHours[entry.odooEmployeeId || entry.odooUserId] = (employeeHours[entry.odooEmployeeId || entry.odooUserId] || 0) + hours;
+        }
+      });
+      
+      // Map to employee names and sort by hours
+      const empHoursData = employees
+        .map(emp => ({
+          name: emp.firstName,
+          odooId: emp.odooEmployeeId || emp.odooUserId,
+          hours: employeeHours[emp.odooEmployeeId] || employeeHours[emp.odooUserId] || 0
+        }))
+        .sort((a, b) => b.hours - a.hours)
+        .slice(0, 8);
+      
+      const empLabels = empHoursData.map(e => e.name);
+      const hoursData = empHoursData.map(e => Math.round(e.hours * 10) / 10);
       
       charts.hoursWorked = new Chart(hoursCtx, {
         type: 'bar',
@@ -1664,18 +1704,32 @@
     function renderEmployeePerformanceTable() {
       const tbody = document.getElementById('employeePerformanceBody');
       
+      // Calculate actual hours from timeEntries
+      const filteredTimeEntries = filterByDate(timeEntries, 'clockIn');
+      const employeeHours = {};
+      
+      filteredTimeEntries.forEach(entry => {
+        if (entry.clockIn && entry.clockOut) {
+          const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
+          const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
+          const hours = (clockOut - clockIn) / (1000 * 60 * 60);
+          const odooId = entry.odooEmployeeId || entry.odooUserId;
+          employeeHours[odooId] = (employeeHours[odooId] || 0) + hours;
+        }
+      });
+      
       const empStats = employees.map(emp => {
         const team = teams.find(t => t.id === emp.teamId);
         const teamSchedules = schedules.filter(s => s.teamId === emp.teamId && s.status === 'completed');
         const jobs = Math.floor(teamSchedules.length / (team?.memberIds?.length || 1));
-        const hours = Math.floor(Math.random() * 30) + 20;
+        const hours = employeeHours[emp.odooEmployeeId] || employeeHours[emp.odooUserId] || 0;
         const revenue = teamSchedules.reduce((sum, s) => sum + (s.serviceDetails?.totalPrice || 0), 0) / (team?.memberIds?.length || 1);
         
         return {
           ...emp,
           team: team?.name || '-',
           jobs,
-          hours,
+          hours: Math.round(hours * 10) / 10,
           avgTime: jobs > 0 ? (hours / jobs).toFixed(1) : '-',
           revenue
         };
@@ -1748,7 +1802,7 @@
         }
       });
       
-      // Completion Trend
+      // Completion Trend - use real schedule data
       const trendCtx = document.getElementById('completionTrendChart').getContext('2d');
       
       const weeks = [];
@@ -1756,11 +1810,24 @@
       
       for (let i = 11; i >= 0; i--) {
         const weekStart = new Date();
-        weekStart.setDate(weekStart.getDate() - (i * 7));
+        weekStart.setDate(weekStart.getDate() - (i * 7) - weekStart.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+        
         weeks.push(`W${12 - i}`);
         
-        // Sample completion rate
-        completionRates.push(85 + Math.random() * 15);
+        // Calculate real completion rate for this week
+        const weekSchedules = schedules.filter(s => {
+          const sDate = new Date(s.date);
+          return sDate >= weekStart && sDate <= weekEnd;
+        });
+        
+        const weekCompleted = weekSchedules.filter(s => s.status === 'completed').length;
+        const weekTotal = weekSchedules.length;
+        const rate = weekTotal > 0 ? (weekCompleted / weekTotal * 100) : 0;
+        completionRates.push(Math.round(rate * 10) / 10);
       }
       
       charts.completionTrend = new Chart(trendCtx, {
@@ -1782,8 +1849,7 @@
           plugins: { legend: { display: false } },
           scales: {
             y: {
-              beginAtZero: false,
-              min: 70,
+              beginAtZero: true,
               max: 100,
               ticks: { callback: value => value + '%' }
             }
@@ -1798,17 +1864,34 @@
     function renderOperationsSummary() {
       const tbody = document.getElementById('operationsSummaryBody');
       
+      // Current period
       const filteredSchedules = filterByDate(schedules, 'date');
       const completed = filteredSchedules.filter(s => s.status === 'completed').length;
       const total = filteredSchedules.length;
       const cancelled = filteredSchedules.filter(s => s.status === 'cancelled').length;
       
+      // Calculate previous period (same duration before current period)
+      const periodDuration = endDate - startDate;
+      const prevEndDate = new Date(startDate.getTime() - 1);
+      const prevStartDate = new Date(prevEndDate.getTime() - periodDuration);
+      
+      const prevSchedules = schedules.filter(s => {
+        const sDate = new Date(s.date);
+        return sDate >= prevStartDate && sDate <= prevEndDate;
+      });
+      const prevCompleted = prevSchedules.filter(s => s.status === 'completed').length;
+      const prevTotal = prevSchedules.length;
+      const prevCancelled = prevSchedules.filter(s => s.status === 'cancelled').length;
+      
+      // Calculate days in period for "per day" metric
+      const daysInPeriod = Math.max(1, Math.ceil(periodDuration / (1000 * 60 * 60 * 24)));
+      
       const metrics = [
-        { name: 'Total Jobs Scheduled', current: total, previous: Math.floor(total * 0.9), format: 'number' },
-        { name: 'Jobs Completed', current: completed, previous: Math.floor(completed * 0.85), format: 'number' },
-        { name: 'Completion Rate', current: total > 0 ? (completed / total * 100) : 0, previous: 88, format: 'percent' },
-        { name: 'Cancellation Rate', current: total > 0 ? (cancelled / total * 100) : 0, previous: 5, format: 'percent' },
-        { name: 'Avg Jobs per Day', current: total / 30, previous: (total * 0.9) / 30, format: 'decimal' }
+        { name: 'Total Jobs Scheduled', current: total, previous: prevTotal, format: 'number' },
+        { name: 'Jobs Completed', current: completed, previous: prevCompleted, format: 'number' },
+        { name: 'Completion Rate', current: total > 0 ? (completed / total * 100) : 0, previous: prevTotal > 0 ? (prevCompleted / prevTotal * 100) : 0, format: 'percent' },
+        { name: 'Cancellation Rate', current: total > 0 ? (cancelled / total * 100) : 0, previous: prevTotal > 0 ? (prevCancelled / prevTotal * 100) : 0, format: 'percent' },
+        { name: 'Avg Jobs per Day', current: total / daysInPeriod, previous: prevTotal / daysInPeriod, format: 'decimal' }
       ];
       
       tbody.innerHTML = metrics.map(m => {

@@ -157,6 +157,21 @@
       color: var(--secondary-600);
     }
     
+    .activity-icon.import {
+      background: var(--info-100);
+      color: var(--info-600);
+    }
+    
+    .activity-icon.logout {
+      background: var(--gray-100);
+      color: var(--gray-600);
+    }
+    
+    .activity-icon.status_change {
+      background: var(--secondary-100);
+      color: var(--secondary-600);
+    }
+    
     .activity-card {
       background: white;
       border-radius: var(--radius-lg);
@@ -302,6 +317,16 @@
       color: var(--gray-700);
     }
     
+    .entity-badge.timeEntries {
+      background: var(--purple-100, #f3e8ff);
+      color: var(--purple-700, #7c3aed);
+    }
+    
+    .entity-badge.auth {
+      background: var(--gray-800);
+      color: white;
+    }
+    
     .entity-badge.system {
       background: var(--gray-800);
       color: white;
@@ -341,6 +366,21 @@
     .action-badge.export {
       background: var(--info-100);
       color: var(--info-700);
+    }
+    
+    .action-badge.import {
+      background: var(--info-100);
+      color: var(--info-700);
+    }
+    
+    .action-badge.logout {
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+    
+    .action-badge.status_change {
+      background: var(--secondary-100);
+      color: var(--secondary-700);
     }
     
     /* Table view */
@@ -409,6 +449,12 @@
       font-size: var(--text-sm);
       color: var(--gray-500);
       margin: 0 var(--space-4);
+    }
+
+    #paginationNumbers {
+      display: flex;
+      flex-direction: row;
+      gap: var(--space-2);
     }
     
     /* Empty state */
@@ -594,7 +640,10 @@
                   <option value="create">Create</option>
                   <option value="update">Update</option>
                   <option value="delete">Delete</option>
+                  <option value="status_change">Status Change</option>
                   <option value="login">Login</option>
+                  <option value="logout">Logout</option>
+                  <option value="import">Import</option>
                   <option value="export">Export</option>
                 </select>
               </div>
@@ -603,13 +652,15 @@
                 <label class="form-label">Entity Type</label>
                 <select class="form-select" id="entityFilter">
                   <option value="">All Entities</option>
-                  <option value="client">Clients</option>
-                  <option value="employee">Employees</option>
-                  <option value="team">Teams</option>
-                  <option value="schedule">Schedules</option>
-                  <option value="payment">Payments</option>
-                  <option value="expense">Expenses</option>
-                  <option value="invoice">Invoices</option>
+                  <option value="clients">Clients</option>
+                  <option value="employees">Employees</option>
+                  <option value="teams">Teams</option>
+                  <option value="schedules">Schedules</option>
+                  <option value="payments">Payments</option>
+                  <option value="expenses">Expenses</option>
+                  <option value="invoices">Invoices</option>
+                  <option value="timeEntries">Time Entries</option>
+                  <option value="auth">Authentication</option>
                 </select>
               </div>
               
@@ -636,7 +687,7 @@
         <!-- View Toggle -->
         <div class="flex justify-between items-center mb-4">
           <div class="text-sm text-gray-500">
-            Showing <span id="showingCount">0</span> of <span id="totalCount">0</span> entries
+            Showing <span id="showingStart">0</span>-<span id="showingEnd">0</span> of <span id="totalCount">0</span> entries
           </div>
           <div class="view-toggle">
             <button class="view-toggle-btn active" data-view="timeline" id="timelineViewBtn">
@@ -726,7 +777,7 @@
     } from './js/firebase-config.js';
     import { i18n } from './js/i18n.js';
     import { 
-      showToast, openModal, closeModal, formatDate, getInitials, debounce
+      showToast, openModal, closeModal, formatDate, getInitials, debounce, toLocalDateString
     } from './js/utils.js';
 
     // ============================================
@@ -816,97 +867,38 @@
     async function loadAuditLogs() {
       try {
         const q = query(
-          collection(db, 'auditLogs'),
+          collection(db, 'auditLog'),
           orderBy('timestamp', 'desc'),
           limit(1000)
         );
         const snapshot = await getDocs(q);
         
         auditLogs = [];
-        snapshot.forEach(doc => {
-          auditLogs.push({ id: doc.id, ...doc.data() });
+        snapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          // Map audit.js fields to audit-log.html expected fields
+          auditLogs.push({ 
+            id: docSnap.id, 
+            action: data.action,
+            entityType: data.module || data.targetType || 'system',
+            entityId: data.targetId || null,
+            description: data.targetName ? `${data.action} ${data.module}: ${data.targetName}` : `${data.action} ${data.module}`,
+            userId: data.adminId,
+            userName: data.adminName || 'System',
+            timestamp: data.timestamp,
+            changes: data.changes,
+            userAgent: data.userAgent || null,
+            ipAddress: data.ipAddress || null
+          });
         });
-        
-        // If no logs exist, generate sample data for demo
-        /* if (auditLogs.length === 0) {
-          generateSampleLogs();
-        } */
         
         updateStats();
       } catch (error) {
         console.error('Error loading audit logs:', error);
-        generateSampleLogs();
+        showToast('error', 'Error', 'Failed to load audit logs');
       }
     }
 
-    /* function generateSampleLogs() {
-      const actions = ['create', 'update', 'delete', 'login', 'export'];
-      const entities = ['client', 'employee', 'team', 'schedule', 'payment', 'expense', 'invoice'];
-      const descriptions = {
-        client: ['John Smith', 'Maria Garcia', 'James Wilson', 'Sarah Johnson', 'Michael Brown'],
-        employee: ['Carlos Rodriguez', 'Ana Martinez', 'David Lee', 'Lisa Chen'],
-        team: ['Team Alpha', 'Team Beta', 'Morning Crew', 'Afternoon Squad'],
-        schedule: ['Dec 5 - Johnson', 'Dec 6 - Smith', 'Dec 7 - Garcia'],
-        payment: ['$150 - Cash', '$200 - Card', '$175 - Venmo'],
-        expense: ['Cleaning supplies', 'Vehicle gas', 'Equipment repair'],
-        invoice: ['INV-001', 'INV-002', 'INV-003']
-      };
-      
-      const now = new Date();
-      
-      for (let i = 0; i < 100; i++) {
-        const action = actions[Math.floor(Math.random() * actions.length)];
-        const entity = entities[Math.floor(Math.random() * entities.length)];
-        const desc = descriptions[entity][Math.floor(Math.random() * descriptions[entity].length)];
-        
-        const timestamp = new Date(now);
-        timestamp.setHours(timestamp.getHours() - Math.floor(Math.random() * 168)); // Last week
-        
-        const log = {
-          id: `log_${i}`,
-          action,
-          entityType: entity,
-          entityId: `${entity}_${Math.floor(Math.random() * 100)}`,
-          description: `${action === 'create' ? 'Created' : action === 'update' ? 'Updated' : action === 'delete' ? 'Deleted' : action === 'login' ? 'Logged in' : 'Exported'} ${entity}: ${desc}`,
-          userId: currentAdmin.id,
-          userName: currentAdmin.name,
-          timestamp: { toDate: () => timestamp },
-          changes: action === 'update' ? generateSampleChanges() : null,
-          ipAddress: '192.168.1.' + Math.floor(Math.random() * 255),
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'
-        };
-        
-        auditLogs.push(log);
-      }
-      
-      // Sort by timestamp descending
-      auditLogs.sort((a, b) => {
-        const aDate = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp);
-        const bDate = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp);
-        return bDate - aDate;
-      });
-    } */
-
-    /* function generateSampleChanges() {
-      const fields = ['status', 'price', 'phone', 'email', 'notes', 'scheduleType'];
-      const field = fields[Math.floor(Math.random() * fields.length)];
-      
-      const changes = {};
-      
-      if (field === 'status') {
-        changes[field] = { old: 'scheduled', new: 'completed' };
-      } else if (field === 'price') {
-        changes[field] = { old: '$150', new: '$175' };
-      } else if (field === 'phone') {
-        changes[field] = { old: '555-1234', new: '555-5678' };
-      } else if (field === 'scheduleType') {
-        changes[field] = { old: 'weekly', new: 'biweekly' };
-      } else {
-        changes[field] = { old: 'Old value', new: 'New value' };
-      }
-      
-      return changes;
-    } */
 
     // ============================================
     // FILTER & RENDER
@@ -979,10 +971,11 @@
 
     function render() {
       const start = (currentPage - 1) * pageSize;
-      const end = start + pageSize;
+      const end = Math.min(start + pageSize, filteredLogs.length);
       const pageLogs = filteredLogs.slice(start, end);
       
-      document.getElementById('showingCount').textContent = pageLogs.length;
+      document.getElementById('showingStart').textContent = filteredLogs.length > 0 ? start + 1 : 0;
+      document.getElementById('showingEnd').textContent = end;
       document.getElementById('totalCount').textContent = filteredLogs.length;
       
       if (currentView === 'timeline') {
@@ -1022,18 +1015,23 @@
           update: '✏️',
           delete: '🗑️',
           login: '🔑',
-          export: '📥',
+          logout: '🚪',
+          status_change: '🔄',
+          import: '📥',
+          export: '📤',
           view: '👁️'
         };
         
         const entityIcons = {
-          client: '🏠',
-          employee: '👤',
-          team: '👥',
-          schedule: '📅',
-          payment: '💳',
-          expense: '💸',
-          invoice: '📄',
+          clients: '🏠',
+          employees: '👤',
+          teams: '👥',
+          schedules: '📅',
+          payments: '💳',
+          expenses: '💸',
+          invoices: '📄',
+          timeEntries: '⏱️',
+          auth: '🔑',
           system: '⚙️'
         };
         
@@ -1073,7 +1071,28 @@
     }
 
     function renderChanges(changes) {
-      if (!changes || Object.keys(changes).length === 0) return '';
+      if (!changes) return '';
+      
+      // Handle array format (from trackChanges in audit.js)
+      if (Array.isArray(changes)) {
+        if (changes.length === 0) return '';
+        return `
+          <div class="activity-changes">
+            <div class="activity-changes-title">Changes</div>
+            ${changes.map(change => `
+              <div class="change-item">
+                <span class="change-field">${change.field}:</span>
+                <span class="change-old">${change.oldValue ?? 'empty'}</span>
+                <span class="change-arrow">→</span>
+                <span class="change-new">${change.newValue ?? 'empty'}</span>
+              </div>
+            `).join('')} 
+          </div>
+        `;
+      }
+      
+      // Handle object format (legacy)
+      if (Object.keys(changes).length === 0) return '';
       
       return `
         <div class="activity-changes">
@@ -1081,13 +1100,50 @@
           ${Object.entries(changes).map(([field, change]) => `
             <div class="change-item">
               <span class="change-field">${field}:</span>
-              <span class="change-old">${change.old || 'empty'}</span>
+              <span class="change-old">${change.old ?? change.oldValue ?? 'empty'}</span>
               <span class="change-arrow">→</span>
-              <span class="change-new">${change.new || 'empty'}</span>
+              <span class="change-new">${change.new ?? change.newValue ?? 'empty'}</span>
             </div>
-          `).join('')}
+          `).join('')} 
         </div>
       `;
+    }
+
+    function renderDetailChanges(changes) {
+      if (!changes) return '';
+      
+      // Handle array format (from trackChanges in audit.js)
+      if (Array.isArray(changes)) {
+        if (changes.length === 0) return '<p class="text-gray-500">No changes recorded</p>';
+        return changes.map(change => `
+          <div class="flex items-center gap-4 py-2 border-b last:border-0">
+            <div class="font-medium w-32">${change.field}</div>
+            <div class="flex-1">
+              <span class="text-danger line-through">${change.oldValue ?? 'empty'}</span>
+            </div>
+            <div class="text-gray-400">→</div>
+            <div class="flex-1">
+              <span class="text-success">${change.newValue ?? 'empty'}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+      
+      // Handle object format (legacy)
+      if (Object.keys(changes).length === 0) return '<p class="text-gray-500">No changes recorded</p>';
+      
+      return Object.entries(changes).map(([field, change]) => `
+        <div class="flex items-center gap-4 py-2 border-b last:border-0">
+          <div class="font-medium w-32">${field}</div>
+          <div class="flex-1">
+            <span class="text-danger line-through">${change.old ?? change.oldValue ?? 'empty'}</span>
+          </div>
+          <div class="text-gray-400">→</div>
+          <div class="flex-1">
+            <span class="text-success">${change.new ?? change.newValue ?? 'empty'}</span>
+          </div>
+        </div>
+      `).join('');
     }
 
     function renderTable(logs) {
@@ -1209,21 +1265,11 @@
               <h4 class="font-semibold">Changes Made</h4>
             </div>
             <div class="card-body">
-              ${Object.entries(log.changes).map(([field, change]) => `
-                <div class="flex items-center gap-4 py-2 border-b last:border-0">
-                  <div class="font-medium w-32">${field}</div>
-                  <div class="flex-1">
-                    <span class="text-danger line-through">${change.old || 'empty'}</span>
-                  </div>
-                  <div class="text-gray-400">→</div>
-                  <div class="flex-1">
-                    <span class="text-success">${change.new || 'empty'}</span>
-                  </div>
-                </div>
-              `).join('')}
+              ${renderDetailChanges(log.changes)}
             </div>
           </div>
         ` : ''}
+        
         
         <div class="card">
           <div class="card-header">
@@ -1281,7 +1327,7 @@
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Audit Log');
-      XLSX.writeFile(wb, `CleanPro_AuditLog_${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(wb, `CleanPro_AuditLog_${toLocalDateString(new Date())}.xlsx`);
       
       showToast('success', 'Export Complete', 'Audit log downloaded');
     }
