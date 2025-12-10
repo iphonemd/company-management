@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CleanPro - Employee Hours</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+  <style>
+    .week-nav { display: flex; align-items: center; gap: var(--space-3); background: white; padding: var(--space-3) var(--space-4); border-radius: var(--radius-xl); box-shadow: var(--shadow-md); margin-bottom: var(--space-4); }
+    .week-nav-btn { background: var(--gray-100); border: none; width: 40px; height: 40px; border-radius: var(--radius-lg); cursor: pointer; font-size: var(--text-lg); display: flex; align-items: center; justify-content: center; transition: all var(--transition-fast); }
+    .week-nav-btn:hover { background: var(--primary-100); color: var(--primary-700); }
+    .week-display { flex: 1; text-align: center; }
+    .week-dates { font-size: var(--text-lg); font-weight: 600; color: var(--gray-900); }
+    .week-label { font-size: var(--text-sm); color: var(--gray-500); }
+    .week-today-btn { background: var(--primary-500); color: white; border: none; padding: var(--space-2) var(--space-4); border-radius: var(--radius-lg); font-weight: 600; cursor: pointer; transition: all var(--transition-fast); }
+    .week-today-btn:hover { background: var(--primary-600); }
+    .filters-bar { display: flex; flex-wrap: wrap; gap: var(--space-3); background: white; padding: var(--space-3) var(--space-4); border-radius: var(--radius-xl); box-shadow: var(--shadow-md); margin-bottom: var(--space-4); align-items: center; }
+    .filter-group { display: flex; align-items: center; gap: var(--space-2); }
+    .filter-label { font-size: var(--text-sm); font-weight: 500; color: var(--gray-600); }
+    .filter-select { padding: var(--space-2) var(--space-3); border: 1px solid var(--gray-300); border-radius: var(--radius-lg); font-size: var(--text-sm); min-width: 150px; background: white; }
+    .filter-select:focus { outline: none; border-color: var(--primary-500); box-shadow: 0 0 0 3px var(--primary-100); }
+    .search-box { flex: 1; min-width: 200px; position: relative; }
+    .search-box input { width: 100%; padding: var(--space-2) var(--space-3) var(--space-2) var(--space-8); border: 1px solid var(--gray-300); border-radius: var(--radius-lg); font-size: var(--text-sm); }
+    .search-box input:focus { outline: none; border-color: var(--primary-500); box-shadow: 0 0 0 3px var(--primary-100); }
+    .search-box .search-icon { position: absolute; left: var(--space-3); top: 50%; transform: translateY(-50%); color: var(--gray-400); }
+    .clear-filters-btn { padding: var(--space-2) var(--space-3); background: var(--gray-100); border: none; border-radius: var(--radius-lg); font-size: var(--text-sm); color: var(--gray-600); cursor: pointer; transition: all var(--transition-fast); }
+    .clear-filters-btn:hover { background: var(--gray-200); }
+    .payroll-table-container { background: white; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); overflow: hidden; }
+    .payroll-table { width: 100%; border-collapse: collapse; }
+    .payroll-table th { background: var(--gray-50); padding: var(--space-3) var(--space-4); text-align: center; font-weight: 600; color: var(--gray-700); font-size: var(--text-sm); border-bottom: 2px solid var(--gray-200); }
+    .payroll-table th:first-child { text-align: left; min-width: 180px; }
+    .payroll-table th.day-header { min-width: 70px; }
+    .payroll-table th.total-header { background: var(--primary-50); color: var(--primary-700); min-width: 80px; }
+    .payroll-table th.pay-header { background: var(--success-50); color: var(--success-700); min-width: 100px; }
+    .payroll-table td { padding: var(--space-3) var(--space-4); text-align: center; border-bottom: 1px solid var(--gray-100); }
+    .payroll-table td:first-child { text-align: left; }
+    .payroll-table tr:hover { background: var(--gray-50); }
+    .payroll-table .employee-cell { display: flex; align-items: center; gap: var(--space-3); }
+    .payroll-table .employee-avatar { width: 36px; height: 36px; border-radius: var(--radius-full); background: var(--primary-100); color: var(--primary-700); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: var(--text-sm); }
+    .payroll-table .employee-info { display: flex; flex-direction: column; }
+    .payroll-table .employee-name { font-weight: 600; color: var(--gray-900); }
+    .payroll-table .employee-rate { font-size: var(--text-xs); color: var(--gray-500); }
+    .hours-display { color: var(--gray-600); font-size: var(--text-sm); }
+    .hours-display.has-hours { color: var(--gray-900); font-weight: 500; }
+    .total-cell { font-weight: 700; color: var(--primary-700); background: var(--primary-50); }
+    .pay-cell { font-weight: 700; color: var(--success-700); background: var(--success-50); }
+    .overtime-badge { display: inline-block; background: var(--warning-100); color: var(--warning-700); font-size: var(--text-xs); padding: 2px 6px; border-radius: var(--radius-full); margin-left: var(--space-1); }
+    .payroll-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+    .summary-card { background: white; border-radius: var(--radius-xl); padding: var(--space-4); box-shadow: var(--shadow-md); }
+    .summary-card.primary { background: linear-gradient(135deg, var(--primary-500), var(--primary-600)); color: white; }
+    .summary-card.success { background: linear-gradient(135deg, var(--success-500), var(--success-600)); color: white; }
+    .summary-card.warning { background: linear-gradient(135deg, var(--warning-500), var(--warning-600)); color: white; }
+    .summary-label { font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-1); }
+    .summary-value { font-size: var(--text-2xl); font-weight: 700; }
+    .employee-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: var(--space-4); }
+    .employee-hours-card { background: white; border-radius: var(--radius-xl); box-shadow: var(--shadow-md); overflow: hidden; transition: all var(--transition-fast); }
+    .employee-hours-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+    .employee-card-header { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4); border-bottom: 1px solid var(--gray-100); }
+    .employee-card-avatar { width: 50px; height: 50px; border-radius: var(--radius-full); background: linear-gradient(135deg, var(--primary-400), var(--primary-600)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: var(--text-lg); }
+    .employee-card-info { flex: 1; }
+    .employee-card-name { font-weight: 700; font-size: var(--text-lg); color: var(--gray-900); }
+    .employee-card-team { font-size: var(--text-sm); color: var(--gray-500); }
+    .employee-card-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); padding: var(--space-4); background: var(--gray-50); }
+    .stat-item { text-align: center; }
+    .stat-value { font-size: var(--text-xl); font-weight: 700; color: var(--gray-900); }
+    .stat-value.primary { color: var(--primary-600); }
+    .stat-value.success { color: var(--success-600); }
+    .stat-value.warning { color: var(--warning-600); }
+    .stat-label { font-size: var(--text-xs); color: var(--gray-500); text-transform: uppercase; }
+    .employee-card-actions { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--gray-100); }
+    .card-action-btn { flex: 1; padding: var(--space-2) var(--space-3); border-radius: var(--radius-lg); border: none; font-weight: 600; font-size: var(--text-sm); cursor: pointer; transition: all var(--transition-fast); display: flex; align-items: center; justify-content: center; gap: var(--space-2); }
+    .card-action-btn.primary { background: var(--primary-500); color: white; }
+    .card-action-btn.primary:hover { background: var(--primary-600); }
+    .card-action-btn.secondary { background: var(--gray-100); color: var(--gray-700); }
+    .card-action-btn.secondary:hover { background: var(--gray-200); }
+    .time-entries-list { padding: 0 var(--space-4) var(--space-4); }
+    .time-entry-item { display: flex; align-items: center; padding: var(--space-3); background: var(--gray-50); border-radius: var(--radius-lg); margin-bottom: var(--space-2); }
+    .time-entry-item:last-child { margin-bottom: 0; }
+    .entry-day { width: 80px; font-weight: 600; color: var(--gray-700); }
+    .entry-times { flex: 1; color: var(--gray-600); font-size: var(--text-sm); }
+    .entry-hours { font-weight: 600; color: var(--primary-600); min-width: 60px; text-align: right; }
+    .entry-edit-btn { background: none; border: none; color: var(--gray-400); cursor: pointer; padding: var(--space-1); margin-left: var(--space-2); border-radius: var(--radius-md); transition: all var(--transition-fast); }
+    .entry-edit-btn:hover { background: var(--gray-200); color: var(--gray-700); }
+    .no-entry { color: var(--gray-400); font-style: italic; }
+    .time-edit-row { display: grid; grid-template-columns: 100px 1fr 1fr auto; gap: var(--space-3); align-items: center; padding: var(--space-3); background: var(--gray-50); border-radius: var(--radius-lg); margin-bottom: var(--space-2); }
+    .time-edit-day { font-weight: 600; color: var(--gray-700); }
+    .time-edit-input { padding: var(--space-2); border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); }
+    .time-edit-input:focus { outline: none; border-color: var(--primary-500); box-shadow: 0 0 0 3px var(--primary-100); }
+    .page-header-actions { display: flex; gap: var(--space-2); }
+    @media print {
+      .sidebar, .header, .tabs, .week-nav-btn, .week-today-btn, .card-action-btn, .entry-edit-btn, .header-actions, .btn, .filters-bar { display: none !important; }
+      .main-content { margin-left: 0 !important; padding: 0 !important; }
+      .page-content { padding: 20px !important; }
+      .payroll-table-container, .employee-hours-card { box-shadow: none !important; break-inside: avoid; }
+      .payroll-table { font-size: 12px; }
+      .print-header { display: block !important; text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #333; }
+      .print-header h1 { font-size: 24px; margin-bottom: 5px; }
+      .print-header p { color: #666; }
+    }
+    .print-header { display: none; }
+    @media (max-width: 768px) {
+      .payroll-table-container { overflow-x: auto; }
+      .employee-cards-grid { grid-template-columns: 1fr; }
+      .week-nav { flex-wrap: wrap; }
+      .filters-bar { flex-direction: column; align-items: stretch; }
+      .filter-group { width: 100%; }
+      .filter-select { flex: 1; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+      .page-header-actions { width: 100%; }
+      .page-header-actions .btn { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">🧹</div>
+        <span class="sidebar-title">CleanPro</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">
+            <span class="nav-item-icon">📊</span>
+            <span class="nav-item-text" data-i18n="dashboard">Dashboard</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="employees.html" class="nav-item">
+            <span class="nav-item-icon">👥</span>
+            <span class="nav-item-text" data-i18n="employees">Employees</span>
+          </a>
+          <a href="clients.html" class="nav-item">
+            <span class="nav-item-icon">🏠</span>
+            <span class="nav-item-text" data-i18n="clients">Clients</span>
+          </a>
+          <a href="scheduling.html" class="nav-item">
+            <span class="nav-item-icon">📅</span>
+            <span class="nav-item-text" data-i18n="scheduling">Scheduling</span>
+          </a>
+          <a href="timeclock.html" class="nav-item">
+            <span class="nav-item-icon">⏱️</span>
+            <span class="nav-item-text" data-i18n="timeClock">Time Clock</span>
+          </a>
+          <a href="employee-hours.html" class="nav-item active">
+            <span class="nav-item-icon">⏰</span>
+            <span class="nav-item-text" id="navEmployeeHours">Employee Hours</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title" data-i18n="finances">Finance</div>
+          <a href="finances.html" class="nav-item">
+            <span class="nav-item-icon">💰</span>
+            <span class="nav-item-text" data-i18n="finances">Finances</span>
+          </a>
+          <a href="reports.html" class="nav-item">
+            <span class="nav-item-icon">📈</span>
+            <span class="nav-item-text" data-i18n="reports">Reports</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="audit-log.html" class="nav-item">
+            <span class="nav-item-icon">📋</span>
+            <span class="nav-item-text" data-i18n="auditLog">Audit Log</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user" id="sidebarUser">
+          <div class="sidebar-user-avatar" id="userAvatar">AD</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="userName">Admin</div>
+            <div class="sidebar-user-role" id="userRole">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="header">
+        <button class="header-menu-btn" id="menuToggle">☰</button>
+        <div class="header-title" style="flex: 1;">
+          <h2 style="font-size: var(--text-lg); font-weight: 600;" id="headerTitle">Employee Hours</h2>
+        </div>
+        <div class="header-actions">
+          <button class="header-btn lang-toggle" id="langToggle">🌐 <span id="langLabel">ES</span></button>
+          <button class="header-btn" id="logoutBtn" title="Logout">🚪</button>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="print-header">
+          <h1>🧹 CleanPro - <span id="printTitle">Payroll Report</span></h1>
+          <p id="printWeekRange">Week of December 9 - December 15, 2024</p>
+        </div>
+
+        <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+          <div>
+            <h1 class="page-title">⏰ <span id="pageTitle">Employee Hours</span></h1>
+            <p class="text-gray-500" id="pageSubtitle">Track and manage employee work hours</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary" id="exportBtn">📥 <span id="exportBtnText">Export CSV</span></button>
+            <button class="btn btn-primary" id="printBtn">🖨️ <span id="printBtnText">Print Payroll</span></button>
+          </div>
+        </div>
+
+        <div class="week-nav">
+          <button class="week-nav-btn" id="prevWeekBtn" title="Previous Week">◀</button>
+          <div class="week-display">
+            <div class="week-dates" id="weekDates">Dec 9 - Dec 15, 2024</div>
+            <div class="week-label" id="weekLabel">Monday - Sunday</div>
+          </div>
+          <button class="week-nav-btn" id="nextWeekBtn" title="Next Week">▶</button>
+          <button class="week-today-btn" id="todayBtn">Today</button>
+        </div>
+
+        <div class="filters-bar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Search by name...">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" id="filterTeamLabel">Team:</label>
+            <select class="filter-select" id="filterTeam"><option value="">All Teams</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" id="filterTypeLabel">Type:</label>
+            <select class="filter-select" id="filterType">
+              <option value="">All</option>
+              <option value="employee">Employees</option>
+              <option value="admin">Admins</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" id="filterHoursLabel">Hours:</label>
+            <select class="filter-select" id="filterHours">
+              <option value="">All</option>
+              <option value="with-hours">With Hours</option>
+              <option value="no-hours">No Hours</option>
+              <option value="overtime">With Overtime</option>
+            </select>
+          </div>
+          <button class="clear-filters-btn" id="clearFiltersBtn">✕ Clear</button>
+        </div>
+
+        <div class="tabs mb-4">
+          <button class="tab active" data-tab="payroll" id="tabPayroll">📋 Quick Payroll</button>
+          <button class="tab" data-tab="details" id="tabDetails">👤 Employee Details</button>
+        </div>
+
+        <div class="tab-content active" id="payrollTab">
+          <div class="payroll-table-container">
+            <table class="payroll-table">
+              <thead>
+                <tr>
+                  <th id="thEmployee">Employee</th>
+                  <th class="day-header" id="dayHeader0">Mon</th>
+                  <th class="day-header" id="dayHeader1">Tue</th>
+                  <th class="day-header" id="dayHeader2">Wed</th>
+                  <th class="day-header" id="dayHeader3">Thu</th>
+                  <th class="day-header" id="dayHeader4">Fri</th>
+                  <th class="day-header" id="dayHeader5">Sat</th>
+                  <th class="day-header" id="dayHeader6">Sun</th>
+                  <th class="total-header" id="thTotal">Total</th>
+                  <th class="pay-header" id="thGrossPay">Gross Pay</th>
+                </tr>
+              </thead>
+              <tbody id="payrollTableBody"></tbody>
+              <tfoot>
+                <tr style="background: var(--gray-100); font-weight: 700;">
+                  <td id="tfTotals">TOTALS</td>
+                  <td id="totalMon">-</td>
+                  <td id="totalTue">-</td>
+                  <td id="totalWed">-</td>
+                  <td id="totalThu">-</td>
+                  <td id="totalFri">-</td>
+                  <td id="totalSat">-</td>
+                  <td id="totalSun">-</td>
+                  <td class="total-cell" id="grandTotalHours">0</td>
+                  <td class="pay-cell" id="grandTotalPay">$0.00</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div class="payroll-summary">
+            <div class="summary-card primary">
+              <div class="summary-label" id="labelTotalHours">Total Hours</div>
+              <div class="summary-value" id="summaryTotalHours">0</div>
+            </div>
+            <div class="summary-card success">
+              <div class="summary-label" id="labelTotalPayroll">Total Payroll</div>
+              <div class="summary-value" id="summaryTotalPay">$0.00</div>
+            </div>
+            <div class="summary-card warning">
+              <div class="summary-label" id="labelOvertimeHours">Overtime Hours</div>
+              <div class="summary-value" id="summaryOvertime">0</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label" id="labelWorkers">Workers</div>
+              <div class="summary-value" id="summaryEmployees">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content hidden" id="detailsTab">
+          <div class="employee-cards-grid" id="employeeCardsGrid"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+
+  <div class="modal" id="editHoursModal">
+    <div class="modal-header">
+      <h3 class="modal-title">✏️ <span id="editModalTitle">Edit Hours</span> - <span id="editEmployeeName">Employee</span></h3>
+      <button class="modal-close" id="closeEditModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-gray-500 mb-4" id="editWeekLabel">Week of Dec 9 - Dec 15, 2024</p>
+      <div id="editEntriesContainer"></div>
+      <div class="card mt-4" style="background: var(--gray-50);">
+        <div class="card-body">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="font-semibold" id="editWeekTotalLabel">Week Total:</span>
+            <span class="font-semibold text-primary" style="font-size: var(--text-xl);" id="editTotalHours">0.0 hours</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelEditBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveEditBtn">💾 <span id="saveChangesBtnText">Save Changes</span></button>
+    </div>
+  </div>
+
+  <div class="modal" id="addEntryModal">
+    <div class="modal-header">
+      <h3 class="modal-title">➕ <span id="addEntryModalTitle">Add Time Entry</span></h3>
+      <button class="modal-close" id="closeAddModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" id="addEntryEmployeeLabel">Employee</label>
+        <select class="form-select" id="addEntryEmployee"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="addEntryDateLabel">Date</label>
+        <input type="date" class="form-input" id="addEntryDate">
+      </div>
+      <div class="grid grid-cols-2" style="gap: var(--space-4);">
+        <div class="form-group">
+          <label class="form-label" id="addEntryClockInLabel">Clock In</label>
+          <input type="time" class="form-input" id="addEntryClockIn" value="08:00">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="addEntryClockOutLabel">Clock Out</label>
+          <input type="time" class="form-input" id="addEntryClockOut" value="17:00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="addEntryNotesLabel">Notes (optional)</label>
+        <input type="text" class="form-input" id="addEntryNotes" placeholder="e.g., Covered for sick employee">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelAddBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveAddBtn">➕ <span id="addEntryBtnText">Add Entry</span></button>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script type="module">
+    import { auth, db, onAuthStateChanged, signOut, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, Timestamp } from './js/firebase-config.js';
+    import { i18n } from './js/i18n.js';
+    import { showToast, openModal, closeModal, formatCurrency, getInitials } from './js/utils.js';
+
+    let currentUser = null, currentAdmin = null, employees = [], admins = [], allWorkers = [], teams = [], timeEntries = [];
+    let currentWeekStart = getMonday(new Date()), editingEmployeeId = null;
+
+    function getMonday(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      d.setDate(diff);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    function getSunday(mondayDate) {
+      const d = new Date(mondayDate);
+      d.setDate(d.getDate() + 6);
+      d.setHours(23, 59, 59, 999);
+      return d;
+    }
+
+    function formatDateShort(date) { return i18n.formatDate(date, { month: 'short', day: 'numeric' }); }
+    function formatDateFull(date) { return i18n.formatDate(date, { month: 'short', day: 'numeric', year: 'numeric' }); }
+    function getDateString(date) { return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0'); }
+    
+    function getDayName(dayIndex) {
+      const lang = i18n.getLanguage();
+      const days = lang === 'es' ? ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return days[dayIndex];
+    }
+    
+    function getDayFullName(dayIndex) {
+      const lang = i18n.getLanguage();
+      const days = lang === 'es' ? ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      return days[dayIndex];
+    }
+
+    function getWeekDates(mondayDate) {
+      const dates = [];
+      for (let i = 0; i < 7; i++) { const d = new Date(mondayDate); d.setDate(d.getDate() + i); dates.push(d); }
+      return dates;
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        try {
+          const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+          if (adminDoc.exists()) {
+            currentAdmin = { id: adminDoc.id, ...adminDoc.data() };
+            localStorage.setItem('adminName', currentAdmin.name);
+            document.getElementById('userName').textContent = currentAdmin.name || 'Admin';
+            document.getElementById('userAvatar').textContent = getInitials(currentAdmin.name || 'Admin', '');
+            document.getElementById('userRole').textContent = currentAdmin.role === 'super_admin' ? 'Super Admin' : currentAdmin.role === 'admin' ? 'Administrator' : 'Manager';
+            await initializePage();
+          } else { window.location.href = 'timeclock.html'; }
+        } catch (error) { showToast('error', 'Error', 'Failed to verify admin access'); }
+      } else { window.location.href = 'index.html'; }
+    });
+
+    async function initializePage() {
+      updateLanguage();
+      i18n.updatePageTranslations();
+      updateUIText();
+      await loadEmployees();
+      await loadAdmins();
+      await loadTeams();
+      await loadTimeEntries();
+      combineWorkers();
+      populateTeamFilter();
+      updateWeekDisplay();
+      renderPayrollTable();
+      renderEmployeeCards();
+      setupEventListeners();
+      populateEmployeeDropdown();
+    }
+
+    function updateLanguage() {
+      const lang = i18n.getLanguage();
+      document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN';
+      i18n.updatePageTranslations();
+      updateUIText();
+    }
+
+    function updateUIText() {
+      const t = (key, fallback) => i18n.t(key) || fallback;
+      document.getElementById('navEmployeeHours').textContent = t('employeeHours', 'Employee Hours');
+      document.getElementById('headerTitle').textContent = t('employeeHours', 'Employee Hours');
+      document.getElementById('pageTitle').textContent = t('employeeHours', 'Employee Hours');
+      document.getElementById('pageSubtitle').textContent = t('trackManageHours', 'Track and manage employee work hours');
+      document.getElementById('printTitle').textContent = t('payrollReport', 'Payroll Report');
+      document.getElementById('exportBtnText').textContent = t('exportCSV', 'Export CSV');
+      document.getElementById('printBtnText').textContent = t('printPayroll', 'Print Payroll');
+      document.getElementById('todayBtn').textContent = t('today', 'Today');
+      document.getElementById('weekLabel').textContent = t('mondayToSunday', 'Monday - Sunday');
+      document.getElementById('searchInput').placeholder = t('searchByName', 'Search by name...');
+      document.getElementById('filterTeamLabel').textContent = t('team', 'Team') + ':';
+      document.getElementById('filterTypeLabel').textContent = t('type', 'Type') + ':';
+      document.getElementById('filterHoursLabel').textContent = t('hours', 'Hours') + ':';
+      document.getElementById('clearFiltersBtn').textContent = '✕ ' + t('clear', 'Clear');
+      const filterTeam = document.getElementById('filterTeam');
+      if (filterTeam.options[0]) filterTeam.options[0].text = t('allTeams', 'All Teams');
+      const filterType = document.getElementById('filterType');
+      filterType.options[0].text = t('all', 'All');
+      filterType.options[1].text = t('employees', 'Employees');
+      filterType.options[2].text = t('admins', 'Admins');
+      const filterHours = document.getElementById('filterHours');
+      filterHours.options[0].text = t('all', 'All');
+      filterHours.options[1].text = t('withHours', 'With Hours');
+      filterHours.options[2].text = t('noHours', 'No Hours');
+      filterHours.options[3].text = t('withOvertime', 'With Overtime');
+      document.getElementById('tabPayroll').innerHTML = '📋 ' + t('quickPayroll', 'Quick Payroll');
+      document.getElementById('tabDetails').innerHTML = '👤 ' + t('employeeDetails', 'Employee Details');
+      document.getElementById('thEmployee').textContent = t('employee', 'Employee');
+      document.getElementById('thTotal').textContent = t('total', 'Total');
+      document.getElementById('thGrossPay').textContent = t('grossPay', 'Gross Pay');
+      document.getElementById('tfTotals').textContent = t('totals', 'TOTALS');
+      document.getElementById('labelTotalHours').textContent = t('totalHours', 'Total Hours');
+      document.getElementById('labelTotalPayroll').textContent = t('totalPayroll', 'Total Payroll');
+      document.getElementById('labelOvertimeHours').textContent = t('overtimeHours', 'Overtime Hours');
+      document.getElementById('labelWorkers').textContent = t('workers', 'Workers');
+      document.getElementById('editModalTitle').textContent = t('editHours', 'Edit Hours');
+      document.getElementById('editWeekTotalLabel').textContent = t('weekTotal', 'Week Total') + ':';
+      document.getElementById('cancelEditBtn').textContent = t('cancel', 'Cancel');
+      document.getElementById('saveChangesBtnText').textContent = t('saveChanges', 'Save Changes');
+      document.getElementById('addEntryModalTitle').textContent = t('addTimeEntry', 'Add Time Entry');
+      document.getElementById('addEntryEmployeeLabel').textContent = t('employee', 'Employee');
+      document.getElementById('addEntryDateLabel').textContent = t('date', 'Date');
+      document.getElementById('addEntryClockInLabel').textContent = t('clockIn', 'Clock In');
+      document.getElementById('addEntryClockOutLabel').textContent = t('clockOut', 'Clock Out');
+      document.getElementById('addEntryNotesLabel').textContent = t('notes', 'Notes') + ' (' + t('optional', 'optional') + ')';
+      document.getElementById('addEntryNotes').placeholder = t('entryNotesPlaceholder', 'e.g., Covered for sick employee');
+      document.getElementById('cancelAddBtn').textContent = t('cancel', 'Cancel');
+      document.getElementById('addEntryBtnText').textContent = t('addEntry', 'Add Entry');
+    }
+
+    function combineWorkers() {
+      allWorkers = [
+        ...employees.map(e => ({ ...e, workerType: 'employee' })),
+        ...admins.map(a => ({ ...a, workerType: 'admin', firstName: a.firstName || (a.name ? a.name.split(' ')[0] : 'Admin'), lastName: a.lastName || (a.name ? a.name.split(' ').slice(1).join(' ') : ''), hourlyRate: a.hourlyRate || 0, teamId: a.teamId || null }))
+      ];
+    }
+
+    async function loadEmployees() {
+      try {
+        let snapshot = await getDocs(query(collection(db, 'employees'), where('status', '==', 'active')));
+        if (snapshot.empty) snapshot = await getDocs(query(collection(db, 'employees'), where('isActive', '==', true)));
+        if (snapshot.empty) snapshot = await getDocs(collection(db, 'employees'));
+        employees = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        employees.sort((a, b) => (a.firstName || '').localeCompare(b.firstName || ''));
+      } catch (error) { showToast('error', i18n.t('error'), i18n.t('failedToLoadEmployees') || 'Failed to load employees'); }
+    }
+
+    async function loadAdmins() {
+      try {
+        const snapshot = await getDocs(collection(db, 'admins'));
+        admins = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (error) {}
+    }
+
+    async function loadTeams() {
+      try {
+        const snapshot = await getDocs(collection(db, 'teams'));
+        teams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (error) {}
+    }
+
+    async function loadTimeEntries() {
+      try {
+        const weekEnd = getSunday(currentWeekStart);
+        const startStr = getDateString(currentWeekStart);
+        const endStr = getDateString(weekEnd);
+        const snapshot = await getDocs(query(collection(db, 'timeEntries'), where('date', '>=', startStr), where('date', '<=', endStr)));
+        timeEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (error) { showToast('error', i18n.t('error'), i18n.t('failedToLoadTimeEntries') || 'Failed to load time entries'); }
+    }
+
+    function populateTeamFilter() {
+      const select = document.getElementById('filterTeam');
+      const currentValue = select.value;
+      select.innerHTML = '<option value="">' + (i18n.t('allTeams') || 'All Teams') + '</option>';
+      teams.forEach(team => { select.innerHTML += '<option value="' + team.id + '">' + team.name + '</option>'; });
+      select.value = currentValue;
+    }
+
+    function getWorkerMatchIds(worker) {
+      const ids = new Set();
+      if (worker.id) ids.add(worker.id);
+      if (worker.userId) ids.add(worker.userId);
+      if (worker.odooEmployeeId) ids.add(worker.odooEmployeeId);
+      if (worker.odooUserId) ids.add(worker.odooUserId);
+      if (worker.odooId) ids.add(worker.odooId);
+      if (worker.odoo_id) ids.add(worker.odoo_id);
+      return Array.from(ids);
+    }
+
+    function doesEntryBelongToWorker(entry, worker) {
+      const entryEmpId = entry.employeeId;
+      if (!entryEmpId) return false;
+      return getWorkerMatchIds(worker).includes(entryEmpId);
+    }
+
+    function getFilteredWorkers() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const teamFilter = document.getElementById('filterTeam').value;
+      const typeFilter = document.getElementById('filterType').value;
+      const hoursFilter = document.getElementById('filterHours').value;
+      return allWorkers.filter(worker => {
+        const fullName = (worker.firstName + ' ' + worker.lastName).toLowerCase();
+        if (searchTerm && !fullName.includes(searchTerm)) return false;
+        if (teamFilter && worker.teamId !== teamFilter) return false;
+        if (typeFilter && worker.workerType !== typeFilter) return false;
+        if (hoursFilter) {
+          const dailyHours = getEmployeeHoursForWeek(worker);
+          const totalHours = dailyHours.reduce((sum, h) => sum + h, 0);
+          const overtimeHours = Math.max(0, totalHours - 40);
+          if (hoursFilter === 'with-hours' && totalHours === 0) return false;
+          if (hoursFilter === 'no-hours' && totalHours > 0) return false;
+          if (hoursFilter === 'overtime' && overtimeHours === 0) return false;
+        }
+        return true;
+      });
+    }
+
+    function updateWeekDisplay() {
+      const weekEnd = getSunday(currentWeekStart);
+      const weekDates = getWeekDates(currentWeekStart);
+      document.getElementById('weekDates').textContent = formatDateShort(currentWeekStart) + ' - ' + formatDateFull(weekEnd);
+      document.getElementById('printWeekRange').textContent = (i18n.t('weekOf') || 'Week of') + ' ' + formatDateShort(currentWeekStart) + ' - ' + formatDateFull(weekEnd);
+      weekDates.forEach((date, index) => {
+        const header = document.getElementById('dayHeader' + index);
+        if (header) header.innerHTML = getDayName(index) + '<br><span style="font-weight: normal; font-size: 11px;">' + date.getDate() + '</span>';
+      });
+    }
+
+    function changeWeek(direction) {
+      currentWeekStart.setDate(currentWeekStart.getDate() + (direction * 7));
+      updateWeekDisplay();
+      loadTimeEntries().then(() => { renderPayrollTable(); renderEmployeeCards(); });
+    }
+
+    function goToCurrentWeek() {
+      currentWeekStart = getMonday(new Date());
+      updateWeekDisplay();
+      loadTimeEntries().then(() => { renderPayrollTable(); renderEmployeeCards(); });
+    }
+
+    function getEmployeeHoursForWeek(worker) {
+      const weekDates = getWeekDates(currentWeekStart);
+      const dailyHours = [0, 0, 0, 0, 0, 0, 0];
+      const workerEntries = timeEntries.filter(entry => doesEntryBelongToWorker(entry, worker));
+      workerEntries.forEach(entry => {
+        if (entry.clockIn && entry.clockOut) {
+          const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
+          const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
+          const hours = (clockOut - clockIn) / (1000 * 60 * 60);
+          if (hours > 0) {
+            const entryDateStr = entry.date || getDateString(clockIn);
+            weekDates.forEach((weekDate, dayIndex) => { if (getDateString(weekDate) === entryDateStr) dailyHours[dayIndex] += hours; });
+          }
+        }
+      });
+      return dailyHours;
+    }
+
+    function getEmployeeEntriesForDay(worker, dateStr) {
+      return timeEntries.filter(entry => doesEntryBelongToWorker(entry, worker) && entry.date === dateStr);
+    }
+
+    function renderPayrollTable() {
+      const tbody = document.getElementById('payrollTableBody');
+      const filteredWorkers = getFilteredWorkers();
+      const dailyTotals = [0, 0, 0, 0, 0, 0, 0];
+      let grandTotalHours = 0, grandTotalPay = 0, totalOvertime = 0;
+      const t = (key, fallback) => i18n.t(key) || fallback;
+      tbody.innerHTML = filteredWorkers.map(worker => {
+        const dailyHours = getEmployeeHoursForWeek(worker);
+        const totalHours = dailyHours.reduce((sum, h) => sum + h, 0);
+        const hourlyRate = worker.hourlyRate || worker.payRate || 0;
+        const regularHours = Math.min(totalHours, 40);
+        const overtimeHours = Math.max(0, totalHours - 40);
+        const grossPay = (regularHours * hourlyRate) + (overtimeHours * hourlyRate * 1.5);
+        dailyHours.forEach((h, i) => dailyTotals[i] += h);
+        grandTotalHours += totalHours;
+        grandTotalPay += grossPay;
+        totalOvertime += overtimeHours;
+        const team = teams.find(t => t.id === worker.teamId);
+        const workerTypeLabel = worker.workerType === 'admin' ? ' 👑' : '';
+        return '<tr data-employee-id="' + worker.id + '"><td><div class="employee-cell"><div class="employee-avatar">' + getInitials(worker.firstName, worker.lastName) + '</div><div class="employee-info"><div class="employee-name">' + worker.firstName + ' ' + worker.lastName + workerTypeLabel + '</div><div class="employee-rate">' + (hourlyRate > 0 ? '$' + hourlyRate.toFixed(2) + '/' + t('hr', 'hr') : '') + (team ? (hourlyRate > 0 ? ' • ' : '') + team.name : '') + '</div></div></div></td>' + dailyHours.map(hours => '<td><span class="hours-display ' + (hours > 0 ? 'has-hours' : '') + '">' + (hours > 0 ? hours.toFixed(1) : '-') + '</span></td>').join('') + '<td class="total-cell">' + totalHours.toFixed(1) + (overtimeHours > 0 ? '<span class="overtime-badge">+' + overtimeHours.toFixed(1) + ' OT</span>' : '') + '</td><td class="pay-cell">' + formatCurrency(grossPay) + '</td></tr>';
+      }).join('');
+      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach((day, i) => { document.getElementById('total' + day).textContent = dailyTotals[i] > 0 ? dailyTotals[i].toFixed(1) : '-'; });
+      document.getElementById('grandTotalHours').textContent = grandTotalHours.toFixed(1);
+      document.getElementById('grandTotalPay').textContent = formatCurrency(grandTotalPay);
+      document.getElementById('summaryTotalHours').textContent = grandTotalHours.toFixed(1);
+      document.getElementById('summaryTotalPay').textContent = formatCurrency(grandTotalPay);
+      document.getElementById('summaryOvertime').textContent = totalOvertime.toFixed(1);
+      document.getElementById('summaryEmployees').textContent = filteredWorkers.length;
+    }
+
+    function renderEmployeeCards() {
+      const grid = document.getElementById('employeeCardsGrid');
+      const weekDates = getWeekDates(currentWeekStart);
+      const filteredWorkers = getFilteredWorkers();
+      const t = (key, fallback) => i18n.t(key) || fallback;
+      const lang = i18n.getLanguage();
+      grid.innerHTML = filteredWorkers.map(worker => {
+        const dailyHours = getEmployeeHoursForWeek(worker);
+        const totalHours = dailyHours.reduce((sum, h) => sum + h, 0);
+        const hourlyRate = worker.hourlyRate || worker.payRate || 0;
+        const regularHours = Math.min(totalHours, 40);
+        const overtimeHours = Math.max(0, totalHours - 40);
+        const grossPay = (regularHours * hourlyRate) + (overtimeHours * hourlyRate * 1.5);
+        const team = teams.find(t => t.id === worker.teamId);
+        const workerTypeLabel = worker.workerType === 'admin' ? ' 👑' : '';
+        const entriesHtml = weekDates.map((date, dayIndex) => {
+          const dateStr = getDateString(date);
+          const dayEntries = getEmployeeEntriesForDay(worker, dateStr);
+          const hours = dailyHours[dayIndex];
+          if (dayEntries.length > 0) {
+            const entry = dayEntries[0];
+            if (entry.clockIn && entry.clockOut) {
+              const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
+              const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
+              const timeStr = clockIn.toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: 'numeric', minute: '2-digit' }) + ' - ' + clockOut.toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: 'numeric', minute: '2-digit' });
+              return '<div class="time-entry-item"><div class="entry-day">' + getDayName(dayIndex) + ' ' + date.getDate() + '</div><div class="entry-times">' + timeStr + '</div><div class="entry-hours">' + hours.toFixed(1) + 'h</div><button class="entry-edit-btn" onclick="editSingleEntry(\'' + worker.id + '\', \'' + dateStr + '\', \'' + entry.id + '\')">✏️</button></div>';
+            } else {
+              const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
+              const timeStr = clockIn.toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: 'numeric', minute: '2-digit' }) + ' - ⏳';
+              return '<div class="time-entry-item" style="background: var(--warning-50);"><div class="entry-day">' + getDayName(dayIndex) + ' ' + date.getDate() + '</div><div class="entry-times">' + timeStr + '</div><div class="entry-hours" style="color: var(--warning-600);">' + t('clockedIn', 'Clocked In') + '</div><button class="entry-edit-btn" onclick="editSingleEntry(\'' + worker.id + '\', \'' + dateStr + '\', \'' + entry.id + '\')">✏️</button></div>';
+            }
+          } else {
+            return '<div class="time-entry-item"><div class="entry-day">' + getDayName(dayIndex) + ' ' + date.getDate() + '</div><div class="entry-times no-entry">' + t('noEntry', 'No entry') + '</div><div class="entry-hours">-</div><button class="entry-edit-btn" onclick="addEntryForDay(\'' + worker.id + '\', \'' + dateStr + '\')" title="' + t('addEntry', 'Add entry') + '">➕</button></div>';
+          }
+        }).join('');
+        return '<div class="employee-hours-card" data-employee-id="' + worker.id + '"><div class="employee-card-header"><div class="employee-card-avatar">' + getInitials(worker.firstName, worker.lastName) + '</div><div class="employee-card-info"><div class="employee-card-name">' + worker.firstName + ' ' + worker.lastName + workerTypeLabel + '</div><div class="employee-card-team">' + (team ? team.name : (worker.workerType === 'admin' ? 'Admin' : t('noTeam', 'No Team'))) + (hourlyRate > 0 ? ' • $' + hourlyRate.toFixed(2) + '/' + t('hr', 'hr') : '') + '</div></div></div><div class="employee-card-stats"><div class="stat-item"><div class="stat-value primary">' + totalHours.toFixed(1) + '</div><div class="stat-label">' + t('hours', 'Hours') + '</div></div><div class="stat-item"><div class="stat-value ' + (overtimeHours > 0 ? 'warning' : '') + '">' + overtimeHours.toFixed(1) + '</div><div class="stat-label">' + t('overtime', 'Overtime') + '</div></div><div class="stat-item"><div class="stat-value success">' + formatCurrency(grossPay) + '</div><div class="stat-label">' + t('grossPay', 'Gross Pay') + '</div></div></div><div class="time-entries-list">' + entriesHtml + '</div><div class="employee-card-actions"><button class="card-action-btn secondary" onclick="openEditModal(\'' + worker.id + '\')">✏️ ' + t('editHours', 'Edit Hours') + '</button><button class="card-action-btn primary" onclick="printEmployeeReport(\'' + worker.id + '\')">🖨️ ' + t('print', 'Print') + '</button></div></div>';
+      }).join('');
+    }
+
+    window.openEditModal = function(workerId) {
+      editingEmployeeId = workerId;
+      const worker = allWorkers.find(w => w.id === workerId);
+      if (!worker) return;
+      const weekDates = getWeekDates(currentWeekStart);
+      const weekEnd = getSunday(currentWeekStart);
+      const t = (key, fallback) => i18n.t(key) || fallback;
+      document.getElementById('editEmployeeName').textContent = worker.firstName + ' ' + worker.lastName;
+      document.getElementById('editWeekLabel').textContent = t('weekOf', 'Week of') + ' ' + formatDateShort(currentWeekStart) + ' - ' + formatDateFull(weekEnd);
+      const container = document.getElementById('editEntriesContainer');
+      container.innerHTML = weekDates.map((date, dayIndex) => {
+        const dateStr = getDateString(date);
+        const dayEntries = getEmployeeEntriesForDay(worker, dateStr);
+        const entry = dayEntries[0];
+        let clockInValue = '08:00', clockOutValue = '17:00', entryId = '';
+        if (entry) {
+          entryId = entry.id;
+          if (entry.clockIn) { const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn); clockInValue = clockIn.toTimeString().slice(0, 5); }
+          if (entry.clockOut) { const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut); clockOutValue = clockOut.toTimeString().slice(0, 5); } else { clockOutValue = ''; }
+        }
+        return '<div class="time-edit-row" data-date="' + dateStr + '" data-entry-id="' + entryId + '"><div class="time-edit-day">' + getDayFullName(dayIndex) + '</div><input type="time" class="time-edit-input clock-in" value="' + (entry ? clockInValue : '') + '" placeholder="' + t('clockIn', 'Clock In') + '"><input type="time" class="time-edit-input clock-out" value="' + (entry && entry.clockOut ? clockOutValue : '') + '" placeholder="' + t('clockOut', 'Clock Out') + '"><button class="entry-edit-btn" onclick="clearDayEntry(this)" title="' + t('clear', 'Clear') + '">🗑️</button></div>';
+      }).join('');
+      updateEditTotalHours();
+      openModal('editHoursModal');
+    };
+
+    window.clearDayEntry = function(btn) {
+      const row = btn.closest('.time-edit-row');
+      row.querySelector('.clock-in').value = '';
+      row.querySelector('.clock-out').value = '';
+      updateEditTotalHours();
+    };
+
+    function updateEditTotalHours() {
+      const rows = document.querySelectorAll('.time-edit-row');
+      let total = 0;
+      rows.forEach(row => {
+        const clockIn = row.querySelector('.clock-in').value;
+        const clockOut = row.querySelector('.clock-out').value;
+        if (clockIn && clockOut) {
+          const [inH, inM] = clockIn.split(':').map(Number);
+          const [outH, outM] = clockOut.split(':').map(Number);
+          const hours = (outH + outM / 60) - (inH + inM / 60);
+          if (hours > 0) total += hours;
+        }
+      });
+      document.getElementById('editTotalHours').textContent = total.toFixed(1) + ' ' + (i18n.t('hours') || 'hours');
+    }
+
+    document.addEventListener('input', (e) => { if (e.target.classList.contains('time-edit-input')) updateEditTotalHours(); });
+
+    async function saveEditedHours() {
+      if (!editingEmployeeId) return;
+      const worker = allWorkers.find(w => w.id === editingEmployeeId);
+      if (!worker) return;
+      const employeeIdForEntry = worker.workerType === 'admin' ? worker.id : (worker.userId || worker.id);
+      const rows = document.querySelectorAll('.time-edit-row');
+      const updates = [];
+      for (const row of rows) {
+        const dateStr = row.dataset.date;
+        const entryId = row.dataset.entryId;
+        const clockInValue = row.querySelector('.clock-in').value;
+        const clockOutValue = row.querySelector('.clock-out').value;
+        if (clockInValue && clockOutValue) {
+          const [year, month, day] = dateStr.split('-').map(Number);
+          const [inH, inM] = clockInValue.split(':').map(Number);
+          const [outH, outM] = clockOutValue.split(':').map(Number);
+          const clockIn = new Date(year, month - 1, day, inH, inM);
+          const clockOut = new Date(year, month - 1, day, outH, outM);
+          const hoursWorked = (clockOut - clockIn) / (1000 * 60 * 60);
+          if (entryId) {
+            updates.push(updateDoc(doc(db, 'timeEntries', entryId), { clockIn: Timestamp.fromDate(clockIn), clockOut: Timestamp.fromDate(clockOut), hoursWorked: hoursWorked, modifiedAt: Timestamp.now(), modifiedBy: currentAdmin?.id }));
+          } else {
+            updates.push(addDoc(collection(db, 'timeEntries'), { employeeId: employeeIdForEntry, date: dateStr, clockIn: Timestamp.fromDate(clockIn), clockOut: Timestamp.fromDate(clockOut), hoursWorked: hoursWorked, clientId: null, scheduleId: null, createdAt: Timestamp.now(), createdBy: currentAdmin?.id, manual: true }));
+          }
+        } else if (entryId && !clockInValue && !clockOutValue) {
+          updates.push(deleteDoc(doc(db, 'timeEntries', entryId)));
+        }
+      }
+      try {
+        await Promise.all(updates);
+        showToast('success', i18n.t('success'), i18n.t('hoursUpdated') || 'Hours updated successfully');
+        closeModal('editHoursModal');
+        await loadTimeEntries();
+        renderPayrollTable();
+        renderEmployeeCards();
+      } catch (error) { showToast('error', i18n.t('error'), i18n.t('failedToSaveHours') || 'Failed to save hours'); }
+    }
+
+    function populateEmployeeDropdown() {
+      const empSelect = document.getElementById('addEntryEmployee');
+      empSelect.innerHTML = allWorkers.map(worker => '<option value="' + worker.id + '">' + worker.firstName + ' ' + worker.lastName + (worker.workerType === 'admin' ? ' 👑' : '') + '</option>').join('');
+    }
+
+    window.addEntryForDay = function(workerId, dateStr) {
+      document.getElementById('addEntryEmployee').value = workerId;
+      document.getElementById('addEntryDate').value = dateStr;
+      document.getElementById('addEntryClockIn').value = '08:00';
+      document.getElementById('addEntryClockOut').value = '17:00';
+      document.getElementById('addEntryNotes').value = '';
+      delete document.getElementById('addEntryModal').dataset.entryId;
+      openModal('addEntryModal');
+    };
+
+    window.editSingleEntry = function(workerId, dateStr, entryId) {
+      const entry = timeEntries.find(e => e.id === entryId);
+      if (!entry) return;
+      const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
+      document.getElementById('addEntryEmployee').value = workerId;
+      document.getElementById('addEntryDate').value = dateStr;
+      document.getElementById('addEntryClockIn').value = clockIn.toTimeString().slice(0, 5);
+      if (entry.clockOut) {
+        const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
+        document.getElementById('addEntryClockOut').value = clockOut.toTimeString().slice(0, 5);
+      } else { document.getElementById('addEntryClockOut').value = ''; }
+      document.getElementById('addEntryNotes').value = entry.notes || '';
+      document.getElementById('addEntryModal').dataset.entryId = entryId;
+      openModal('addEntryModal');
+    };
+
+    async function saveNewEntry() {
+      const modal = document.getElementById('addEntryModal');
+      const entryId = modal.dataset.entryId;
+      const workerId = document.getElementById('addEntryEmployee').value;
+      const dateStr = document.getElementById('addEntryDate').value;
+      const clockInValue = document.getElementById('addEntryClockIn').value;
+      const clockOutValue = document.getElementById('addEntryClockOut').value;
+      const notes = document.getElementById('addEntryNotes').value;
+      if (!workerId || !dateStr || !clockInValue || !clockOutValue) { showToast('error', i18n.t('error'), i18n.t('fillRequiredFields') || 'Please fill in all required fields'); return; }
+      const worker = allWorkers.find(w => w.id === workerId);
+      const employeeIdForEntry = worker?.workerType === 'admin' ? worker.id : (worker?.userId || workerId);
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const [inH, inM] = clockInValue.split(':').map(Number);
+      const [outH, outM] = clockOutValue.split(':').map(Number);
+      const clockIn = new Date(year, month - 1, day, inH, inM);
+      const clockOut = new Date(year, month - 1, day, outH, outM);
+      const hoursWorked = (clockOut - clockIn) / (1000 * 60 * 60);
+      try {
+        if (entryId) {
+          await updateDoc(doc(db, 'timeEntries', entryId), { clockIn: Timestamp.fromDate(clockIn), clockOut: Timestamp.fromDate(clockOut), hoursWorked: hoursWorked, notes: notes, modifiedAt: Timestamp.now(), modifiedBy: currentAdmin?.id });
+          showToast('success', i18n.t('success'), i18n.t('timeEntryUpdated') || 'Time entry updated');
+        } else {
+          await addDoc(collection(db, 'timeEntries'), { employeeId: employeeIdForEntry, date: dateStr, clockIn: Timestamp.fromDate(clockIn), clockOut: Timestamp.fromDate(clockOut), hoursWorked: hoursWorked, notes: notes, clientId: null, scheduleId: null, createdAt: Timestamp.now(), createdBy: currentAdmin?.id, manual: true });
+          showToast('success', i18n.t('success'), i18n.t('timeEntryAdded') || 'Time entry added');
+        }
+        delete modal.dataset.entryId;
+        closeModal('addEntryModal');
+        await loadTimeEntries();
+        renderPayrollTable();
+        renderEmployeeCards();
+      } catch (error) { showToast('error', i18n.t('error'), i18n.t('failedToSaveEntry') || 'Failed to save time entry'); }
+    }
+
+    function printPayroll() { window.print(); }
+    window.printEmployeeReport = function(employeeId) { window.print(); };
+
+    function exportToCSV() {
+      const weekEnd = getSunday(currentWeekStart);
+      const t = (key, fallback) => i18n.t(key) || fallback;
+      let csv = t('employee', 'Employee') + ',' + t('type', 'Type') + ',' + t('hourlyRate', 'Rate') + ',' + getDayName(0) + ',' + getDayName(1) + ',' + getDayName(2) + ',' + getDayName(3) + ',' + getDayName(4) + ',' + getDayName(5) + ',' + getDayName(6) + ',' + t('totalHours', 'Total Hours') + ',' + t('overtime', 'Overtime') + ',' + t('grossPay', 'Gross Pay') + '\n';
+      allWorkers.forEach(worker => {
+        const dailyHours = getEmployeeHoursForWeek(worker);
+        const totalHours = dailyHours.reduce((sum, h) => sum + h, 0);
+        const hourlyRate = worker.hourlyRate || worker.payRate || 0;
+        const regularHours = Math.min(totalHours, 40);
+        const overtimeHours = Math.max(0, totalHours - 40);
+        const grossPay = (regularHours * hourlyRate) + (overtimeHours * hourlyRate * 1.5);
+        csv += '"' + worker.firstName + ' ' + worker.lastName + '",' + worker.workerType + ',' + hourlyRate + ',' + dailyHours.map(h => h.toFixed(1)).join(',') + ',' + totalHours.toFixed(1) + ',' + overtimeHours.toFixed(1) + ',' + grossPay.toFixed(2) + '\n';
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'payroll_' + getDateString(currentWeekStart) + '_to_' + getDateString(weekEnd) + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('success', i18n.t('success'), i18n.t('payrollExported') || 'Payroll exported to CSV');
+    }
+
+    function setupEventListeners() {
+      document.getElementById('prevWeekBtn').addEventListener('click', () => changeWeek(-1));
+      document.getElementById('nextWeekBtn').addEventListener('click', () => changeWeek(1));
+      document.getElementById('todayBtn').addEventListener('click', goToCurrentWeek);
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+          tab.classList.add('active');
+          const tabName = tab.dataset.tab;
+          document.getElementById(tabName + 'Tab').classList.remove('hidden');
+          document.getElementById(tabName + 'Tab').classList.add('active');
+        });
+      });
+      document.getElementById('searchInput').addEventListener('input', () => { renderPayrollTable(); renderEmployeeCards(); });
+      document.getElementById('filterTeam').addEventListener('change', () => { renderPayrollTable(); renderEmployeeCards(); });
+      document.getElementById('filterType').addEventListener('change', () => { renderPayrollTable(); renderEmployeeCards(); });
+      document.getElementById('filterHours').addEventListener('change', () => { renderPayrollTable(); renderEmployeeCards(); });
+      document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('filterTeam').value = '';
+        document.getElementById('filterType').value = '';
+        document.getElementById('filterHours').value = '';
+        renderPayrollTable();
+        renderEmployeeCards();
+      });
+      document.getElementById('printBtn').addEventListener('click', printPayroll);
+      document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+      document.getElementById('closeEditModal').addEventListener('click', () => closeModal('editHoursModal'));
+      document.getElementById('cancelEditBtn').addEventListener('click', () => closeModal('editHoursModal'));
+      document.getElementById('saveEditBtn').addEventListener('click', saveEditedHours);
+      document.getElementById('closeAddModal').addEventListener('click', () => { delete document.getElementById('addEntryModal').dataset.entryId; closeModal('addEntryModal'); });
+      document.getElementById('cancelAddBtn').addEventListener('click', () => { delete document.getElementById('addEntryModal').dataset.entryId; closeModal('addEntryModal'); });
+      document.getElementById('saveAddBtn').addEventListener('click', saveNewEntry);
+      document.getElementById('modalBackdrop').addEventListener('click', () => { closeModal('editHoursModal'); closeModal('addEntryModal'); });
+      document.getElementById('langToggle').addEventListener('click', () => {
+        i18n.toggleLanguage();
+        updateLanguage();
+        updateWeekDisplay();
+        populateTeamFilter();
+        renderPayrollTable();
+        renderEmployeeCards();
+        populateEmployeeDropdown();
+      });
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        try { await signOut(auth); window.location.href = 'index.html'; }
+        catch (error) { showToast('error', 'Error', 'Failed to sign out'); }
+      });
+      document.getElementById('menuToggle').addEventListener('click', () => { document.getElementById('sidebar').classList.toggle('collapsed'); });
+    }
+  </script>
+</body>
+</html>
