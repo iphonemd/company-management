@@ -1333,9 +1333,12 @@
       
       try {
         const todayStr = getLocalDateString();
+        
+        // Create time entry for the current user (team leader or admin)
+        const currentUserId = currentAdmin?.id || currentEmployee?.id;
         const entry = {
           date: todayStr,
-          employeeId: currentAdmin?.id || currentEmployee?.id,
+          employeeId: currentUserId,
           clockIn: Timestamp.fromDate(clockInTime),
           clockOut: null,
           hoursWorked: null,
@@ -1343,7 +1346,26 @@
         };
         const ref = await addDoc(collection(db, 'timeEntries'), entry);
         timeEntries.push({ id: ref.id, ...entry, clockIn: clockInTime });
-        showToast('success', 'Éxito', 'Entrada registrada');
+        
+        // Also create time entries for all team members (they clock in with the team)
+        for (const member of teamMembers) {
+          if (member.id !== currentUserId) {
+            const memberEntry = {
+              date: todayStr,
+              employeeId: member.id,
+              clockIn: Timestamp.fromDate(clockInTime),
+              clockOut: null,
+              hoursWorked: null,
+              teamClockIn: true, // Flag to indicate this was a team clock-in
+              clockedInBy: currentUserId,
+              createdAt: Timestamp.now()
+            };
+            const memberRef = await addDoc(collection(db, 'timeEntries'), memberEntry);
+            timeEntries.push({ id: memberRef.id, ...memberEntry, clockIn: clockInTime });
+          }
+        }
+        
+        showToast('success', 'Éxito', 'Entrada registrada para el equipo');
       } catch (e) {
         console.error('Clock in error:', e);
         showToast('error', 'Error', 'No se pudo registrar entrada');
@@ -1360,10 +1382,12 @@
       }
       
       const clockOutTime = new Date();
-      const entry = timeEntries.find(e => !e.clockOut);
       
-      if (entry) {
-        try {
+      // Find all open entries for today (team leader + team members)
+      const openEntries = timeEntries.filter(e => !e.clockOut);
+      
+      try {
+        for (const entry of openEntries) {
           const cin = entry.clockIn?.toDate ? entry.clockIn.toDate() : clockInTime;
           const hours = (clockOutTime - cin) / 3600000;
           await updateDoc(doc(db, 'timeEntries', entry.id), {
@@ -1372,11 +1396,11 @@
           });
           entry.clockOut = clockOutTime;
           entry.hoursWorked = hours;
-          showToast('success', 'Éxito', 'Salida registrada');
-        } catch (e) {
-          console.error('Clock out error:', e);
-          showToast('error', 'Error', 'No se pudo registrar salida');
         }
+        showToast('success', 'Éxito', 'Salida registrada para el equipo');
+      } catch (e) {
+        console.error('Clock out error:', e);
+        showToast('error', 'Error', 'No se pudo registrar salida');
       }
       
       isClockedIn = false;
@@ -1534,7 +1558,7 @@
       const endTime = new Date();
       const schedule = currentJob.schedule;
       const client = currentJob.client;
-      const hoursWorked = (endTime - jobStartTime) / 3600000;
+      const jobDuration = (endTime - jobStartTime) / 3600000;
       
       try {
         // Update schedule
@@ -1546,23 +1570,21 @@
         });
         schedule.status = 'completed';
         
-        // SAVE TIME ENTRIES FOR EACH SELECTED EMPLOYEE (using existing timeEntries collection)
+        // Save job completion record (for tracking which clients were serviced, not for payroll)
         const todayStr = getLocalDateString();
         for (const emp of selectedJobEmployees) {
-          const timeEntryData = {
+          await addDoc(collection(db, 'jobCompletions'), {
             date: todayStr,
             employeeId: emp.id,
-            clockIn: Timestamp.fromDate(jobStartTime),
-            clockOut: Timestamp.fromDate(endTime),
-            hoursWorked: hoursWorked,
+            employeeName: emp.name,
             scheduleId: currentJob.scheduleId,
             clientId: schedule.clientId,
             clientName: `${client.firstName} ${client.lastName}`,
-            type: 'job',
+            startTime: Timestamp.fromDate(jobStartTime),
+            endTime: Timestamp.fromDate(endTime),
+            duration: jobDuration,
             createdAt: Timestamp.now()
-          };
-          
-          await addDoc(collection(db, 'timeEntries'), timeEntryData);
+          });
         }
         
         // Handle payment
@@ -1588,7 +1610,21 @@
         selectedJobEmployees = [];
         
         closeModal('completeJobModal');
-        showToast('success', '¡Completado!', 'Excelente trabajo');
+        
+        // Check if this was the last job - auto clock out
+        const remainingJobs = todaySchedules.filter(s => s.status === 'scheduled' || s.status === 'in_progress');
+        if (remainingJobs.length === 0 && isClockedIn) {
+          // All jobs done - offer to clock out
+          const autoClockOut = confirm('¡Todos los trabajos completados! ¿Desea registrar salida automáticamente?');
+          if (autoClockOut) {
+            await clockOut();
+            showToast('success', '¡Día completado!', 'Salida registrada. ¡Buen trabajo!');
+          } else {
+            showToast('success', '¡Completado!', 'Excelente trabajo');
+          }
+        } else {
+          showToast('success', '¡Completado!', 'Excelente trabajo');
+        }
       } catch (e) {
         console.error('Complete job error:', e);
         showToast('error', 'Error', 'No se pudo completar');
