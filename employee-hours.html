@@ -717,8 +717,9 @@
               const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
               const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
               const timeStr = clockIn.toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: 'numeric', minute: '2-digit' }) + ' - ' + clockOut.toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: 'numeric', minute: '2-digit' });
-              return '<div class="time-entry-item"><div class="entry-day">' + getDayName(dayIndex) + ' ' + date.getDate() + '</div><div class="entry-times">' + timeStr + '</div><div class="entry-hours">' + hours.toFixed(1) + 'h</div><button class="entry-edit-btn" onclick="editSingleEntry(\'' + worker.id + '\', \'' + dateStr + '\', \'' + entry.id + '\')">✏️</button></div>';
-            } else {
+                const clientInfo = entry.clientName ? '<div class="entry-client" style="font-size:11px;color:var(--gray-500);">🏠 ' + entry.clientName + '</div>' : '';
+                return '<div class="time-entry-item"><div class="entry-day">' + getDayName(dayIndex) + ' ' + date.getDate() + clientInfo + '</div><div class="entry-times">' + timeStr + '</div><div class="entry-hours">' + hours.toFixed(1) + 'h</div><button class="entry-edit-btn" onclick="editSingleEntry(\'' + worker.id + '\', \'' + dateStr + '\', \'' + entry.id + '\')">✏️</button></div>';
+              } else {
               const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
               const timeStr = clockIn.toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: 'numeric', minute: '2-digit' }) + ' - ⏳';
               return '<div class="time-entry-item" style="background: var(--warning-50);"><div class="entry-day">' + getDayName(dayIndex) + ' ' + date.getDate() + '</div><div class="entry-times">' + timeStr + '</div><div class="entry-hours" style="color: var(--warning-600);">' + t('clockedIn', 'Clocked In') + '</div><button class="entry-edit-btn" onclick="editSingleEntry(\'' + worker.id + '\', \'' + dateStr + '\', \'' + entry.id + '\')">✏️</button></div>';
