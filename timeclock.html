@@ -1,11 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>CleanPro - Time Clock</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#0d9488">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CleanPro">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+  <link rel="manifest" href="manifest.json">
+  
   <style>
     .timeclock-layout {
       min-height: 100vh;
@@ -85,7 +94,7 @@
     .status-card {
       background: white;
       border-radius: var(--radius-2xl);
-      padding: var(--space-5);
+      padding: var(--space-4);
       margin-bottom: var(--space-4);
       box-shadow: var(--shadow-xl);
     }
@@ -94,7 +103,6 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: var(--space-4);
     }
     
     .status-indicator {
@@ -130,7 +138,7 @@
     
     .status-text {
       font-weight: 600;
-      font-size: var(--text-lg);
+      font-size: var(--text-base);
     }
     
     .status-text.clocked-out { color: var(--gray-500); }
@@ -147,32 +155,32 @@
     }
     
     .hours-today-value {
-      font-size: var(--text-2xl);
+      font-size: var(--text-xl);
       font-weight: 700;
       color: var(--primary-600);
     }
     
+    /* Less intrusive clock button - small text link style */
     .clock-btn-container {
       display: flex;
       justify-content: center;
-      margin: var(--space-6) 0;
+      margin-top: var(--space-3);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--gray-100);
     }
     
     .clock-btn {
-      width: 160px;
-      height: 160px;
-      border-radius: 50%;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-lg);
       border: none;
-      font-size: var(--text-xl);
-      font-weight: 700;
+      font-size: var(--text-sm);
+      font-weight: 600;
       cursor: pointer;
       transition: all var(--transition-base);
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: var(--space-2);
-      box-shadow: var(--shadow-xl);
     }
     
     .clock-btn:active {
@@ -180,17 +188,25 @@
     }
     
     .clock-btn.clock-in {
-      background: linear-gradient(135deg, var(--success-500) 0%, var(--success-600) 100%);
-      color: white;
+      background: var(--success-100);
+      color: var(--success-700);
+    }
+    
+    .clock-btn.clock-in:hover {
+      background: var(--success-200);
     }
     
     .clock-btn.clock-out {
-      background: linear-gradient(135deg, var(--danger-500) 0%, var(--danger-600) 100%);
-      color: white;
+      background: var(--danger-100);
+      color: var(--danger-700);
+    }
+    
+    .clock-btn.clock-out:hover {
+      background: var(--danger-200);
     }
     
     .clock-btn-icon {
-      font-size: 3rem;
+      font-size: var(--text-base);
     }
     
     .current-job-card {
@@ -199,13 +215,38 @@
       border-radius: var(--radius-xl);
       padding: var(--space-4);
       margin-bottom: var(--space-4);
+      transition: all 0.3s ease;
+    }
+    
+    /* Sticky job card when scrolling */
+    .current-job-card.sticky {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      border-radius: 0;
+      margin-bottom: 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    
+    .current-job-card-placeholder {
+      display: none;
+    }
+    
+    .current-job-card-placeholder.visible {
+      display: block;
+      margin-bottom: var(--space-4);
     }
     
     .current-job-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: var(--space-3);
+      margin-bottom: var(--space-2);
     }
     
     .current-job-label {
@@ -223,7 +264,7 @@
     }
     
     .current-job-client {
-      font-size: var(--text-xl);
+      font-size: var(--text-lg);
       font-weight: 700;
       color: var(--gray-900);
       margin-bottom: var(--space-1);
@@ -242,7 +283,7 @@
     
     .job-action-btn {
       flex: 1;
-      padding: var(--space-3);
+      padding: var(--space-2) var(--space-3);
       border-radius: var(--radius-lg);
       font-weight: 600;
       cursor: pointer;
@@ -334,11 +375,11 @@
     
     .schedule-time {
       text-align: center;
-      min-width: 60px;
+      min-width: 50px;
     }
     
     .schedule-time-slot {
-      font-size: var(--text-2xl);
+      font-size: var(--text-xl);
     }
     
     .schedule-time-label {
@@ -403,8 +444,8 @@
     }
     
     .team-member-avatar {
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -445,7 +486,7 @@
     }
     
     .empty-schedule-icon {
-      font-size: 4rem;
+      font-size: 3rem;
       margin-bottom: var(--space-3);
     }
     
@@ -531,26 +572,12 @@
       font-size: var(--text-lg);
     }
     
-    .history-icon.clock-in {
-      background: var(--success-100);
-    }
+    .history-icon.clock-in { background: var(--success-100); }
+    .history-icon.clock-out { background: var(--danger-100); }
+    .history-icon.job { background: var(--primary-100); }
     
-    .history-icon.clock-out {
-      background: var(--danger-100);
-    }
-    
-    .history-icon.job {
-      background: var(--primary-100);
-    }
-    
-    .history-text {
-      font-weight: 500;
-    }
-    
-    .history-time {
-      font-size: var(--text-sm);
-      color: var(--gray-500);
-    }
+    .history-text { font-weight: 500; }
+    .history-time { font-size: var(--text-sm); color: var(--gray-500); }
     
     .bottom-nav {
       position: fixed;
@@ -579,29 +606,14 @@
       transition: all var(--transition-fast);
     }
     
-    .bottom-nav-item.active {
-      color: var(--primary-600);
-    }
+    .bottom-nav-item.active { color: var(--primary-600); }
+    .bottom-nav-item:hover { background: var(--gray-100); }
+    .bottom-nav-icon { font-size: var(--text-xl); }
     
-    .bottom-nav-item:hover {
-      background: var(--gray-100);
-    }
+    .timeclock-content { padding-bottom: 100px; }
     
-    .bottom-nav-icon {
-      font-size: var(--text-xl);
-    }
-    
-    .timeclock-content {
-      padding-bottom: 100px;
-    }
-    
-    .admin-only {
-      display: none;
-    }
-    
-    .is-admin .admin-only {
-      display: block;
-    }
+    .admin-only { display: none; }
+    .is-admin .admin-only { display: block; }
     
     .admin-controls {
       background: white;
@@ -618,33 +630,39 @@
       color: var(--primary-700);
     }
     
-    .debug-info {
-      background: rgba(255,255,255,0.1);
-      border-radius: var(--radius-lg);
-      padding: var(--space-2);
-      font-size: var(--text-xs);
-      color: rgba(255,255,255,0.7);
-      margin-bottom: var(--space-2);
+    /* Location prompt */
+    .location-prompt {
+      background: white;
+      border-radius: var(--radius-2xl);
+      padding: var(--space-5);
+      margin-bottom: var(--space-4);
+      box-shadow: var(--shadow-xl);
+      text-align: center;
+      border: 2px solid var(--primary-200);
     }
     
+    .location-prompt-icon { font-size: 2.5rem; margin-bottom: var(--space-2); }
+    .location-prompt-title { font-size: var(--text-lg); font-weight: 700; margin-bottom: var(--space-2); }
+    .location-prompt-text { color: var(--gray-600); margin-bottom: var(--space-3); font-size: var(--text-sm); }
+    
+    .location-prompt-client {
+      background: var(--primary-50);
+      border-radius: var(--radius-lg);
+      padding: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+    
+    .location-prompt-client-name { font-weight: 700; }
+    .location-prompt-client-address { color: var(--gray-600); font-size: var(--text-sm); }
+    
+    .location-prompt-actions { display: flex; gap: var(--space-2); }
+    .location-prompt-actions .btn { flex: 1; }
+    
     @media (min-width: 768px) {
-      .timeclock-layout {
-        display: flex;
-      }
-      
-      .timeclock-main {
-        flex: 1;
-        max-width: 600px;
-        margin: 0 auto;
-      }
-      
-      .bottom-nav {
-        display: none;
-      }
-      
-      .timeclock-content {
-        padding-bottom: var(--space-6);
-      }
+      .timeclock-layout { display: flex; }
+      .timeclock-main { flex: 1; max-width: 600px; margin: 0 auto; }
+      .bottom-nav { display: none; }
+      .timeclock-content { padding-bottom: var(--space-6); }
     }
   </style>
 </head>
@@ -668,11 +686,8 @@
           <div id="teamBanner" style="font-size: var(--text-lg); font-weight: 600;"></div>
         </div>
 
-        <!-- Debug info for date -->
-        <div class="debug-info" id="debugInfo"></div>
-
         <div class="current-time-card">
-          <div class="current-date" id="currentDate">Thursday, December 5, 2024</div>
+          <div class="current-date" id="currentDate">Jueves, 5 de diciembre de 2024</div>
           <div class="current-time">
             <span id="currentTime">09:45</span>
             <span class="current-time-seconds" id="currentSeconds">:32</span>
@@ -683,44 +698,61 @@
           <div class="status-header">
             <div class="status-indicator">
               <div class="status-dot clocked-out" id="statusDot"></div>
-              <span class="status-text clocked-out" id="statusText">Clocked Out</span>
+              <span class="status-text clocked-out" id="statusText">Sin Registrar</span>
             </div>
             <div class="hours-today">
-              <div class="hours-today-label" data-i18n="hoursToday">Hours Today</div>
+              <div class="hours-today-label" data-i18n="hoursToday">Horas Hoy</div>
               <div class="hours-today-value" id="hoursToday">0:00</div>
             </div>
           </div>
-
           <div class="clock-btn-container">
             <button class="clock-btn clock-in" id="clockBtn">
               <span class="clock-btn-icon">▶️</span>
-              <span data-i18n="clockIn">Clock In</span>
+              <span data-i18n="clockIn">Registrar Entrada</span>
             </button>
           </div>
         </div>
 
+        <!-- Placeholder for sticky card -->
+        <div class="current-job-card-placeholder" id="currentJobCardPlaceholder"></div>
+        
         <div class="current-job-card hidden" id="currentJobCard">
           <div class="current-job-header">
-            <div class="current-job-label">🏠 Currently Working</div>
+            <div class="current-job-label">🏠 <span data-i18n="currentlyWorking">Trabajando</span></div>
             <div class="current-job-timer" id="jobTimer">0:00:00</div>
           </div>
-          <div class="current-job-client" id="currentJobClient">Johnson Family</div>
-          <div class="current-job-address" id="currentJobAddress">123 Oak Street, Springfield</div>
+          <div class="current-job-client" id="currentJobClient">-</div>
+          <div class="current-job-address" id="currentJobAddress">-</div>
           <div class="current-job-actions">
-            <button class="job-action-btn pause" id="pauseJobBtn">⏸️ Pause</button>
-            <button class="job-action-btn complete" id="completeJobBtn">✔ Complete</button>
+            <button class="job-action-btn pause" id="pauseJobBtn">⏸️ Pausar</button>
+            <button class="job-action-btn complete" id="completeJobBtn">✔ Completar</button>
+          </div>
+        </div>
+
+        <!-- Location Match Prompt -->
+        <div class="location-prompt hidden" id="locationPrompt">
+          <div class="location-prompt-icon">📍</div>
+          <div class="location-prompt-title">Cliente Cercano Detectado</div>
+          <div class="location-prompt-text">¿Desea iniciar el trabajo aquí?</div>
+          <div class="location-prompt-client">
+            <div class="location-prompt-client-name" id="locationClientName">-</div>
+            <div class="location-prompt-client-address" id="locationClientAddress">-</div>
+          </div>
+          <div class="location-prompt-actions">
+            <button class="btn btn-secondary" id="locationDismissBtn">Ahora No</button>
+            <button class="btn btn-success" id="locationStartBtn">▶️ Iniciar</button>
           </div>
         </div>
 
         <div class="schedule-card">
           <div class="schedule-header">
-            <div class="schedule-title" data-i18n="todaySchedule">Today's Schedule</div>
-            <div class="schedule-count" id="scheduleCount">0 jobs</div>
+            <div class="schedule-title" data-i18n="todaySchedule">Horario de Hoy</div>
+            <div class="schedule-count" id="scheduleCount">0 trabajos</div>
           </div>
           <div class="schedule-list" id="scheduleList">
             <div class="empty-schedule" id="emptySchedule">
               <div class="empty-schedule-icon">📅</div>
-              <div>No jobs scheduled for today</div>
+              <div>No hay trabajos programados para hoy</div>
             </div>
           </div>
         </div>
@@ -736,7 +768,7 @@
         </div>
 
         <div class="team-card hidden" id="teamCard">
-          <div class="team-title">👥 Team Members</div>
+          <div class="team-title">👥 Miembros del Equipo</div>
           <div id="teamMembersList"></div>
         </div>
       </div>
@@ -745,15 +777,15 @@
     <nav class="bottom-nav" id="bottomNav">
       <a href="timeclock.html" class="bottom-nav-item active">
         <span class="bottom-nav-icon">⏱️</span>
-        <span>Time Clock</span>
+        <span>Reloj</span>
       </a>
       <a href="scheduling.html" class="bottom-nav-item admin-only">
         <span class="bottom-nav-icon">📅</span>
-        <span>Schedule</span>
+        <span>Horario</span>
       </a>
       <a href="dashboard.html" class="bottom-nav-item admin-only">
         <span class="bottom-nav-icon">📊</span>
-        <span>Dashboard</span>
+        <span>Panel</span>
       </a>
     </nav>
   </div>
@@ -762,142 +794,128 @@
 
   <div class="modal" id="startJobModal">
     <div class="modal-header">
-      <h3 class="modal-title" data-i18n="startJob">Start Job</h3>
+      <h3 class="modal-title">Iniciar Trabajo</h3>
       <button class="modal-close" id="closeStartJobModal">✕</button>
     </div>
     <div class="modal-body">
       <div class="job-details-preview" id="jobPreview">
-        <div class="job-preview-client" id="previewClient">Client Name</div>
-        <div class="job-preview-address" id="previewAddress">Address</div>
-        <div class="job-preview-door-code hidden" id="previewDoorCode">🔑 Door Code: </div>
+        <div class="job-preview-client" id="previewClient">-</div>
+        <div class="job-preview-address" id="previewAddress">-</div>
+        <div class="job-preview-door-code hidden" id="previewDoorCode">🔑 Código: </div>
         <div class="job-preview-details">
-          <div class="job-preview-detail">
-            <span>⏱️</span>
-            <span id="previewDuration">2 hours</span>
-          </div>
-          <div class="job-preview-detail">
-            <span>💰</span>
-            <span id="previewPrice">$150</span>
-          </div>
+          <div class="job-preview-detail"><span>⏱️</span><span id="previewDuration">2 horas</span></div>
+          <div class="job-preview-detail"><span>💰</span><span id="previewPrice">$150</span></div>
         </div>
         <div class="job-preview-addons hidden" id="previewAddons">
-          <strong>Add-ons:</strong>
+          <strong>Extras:</strong>
           <div id="previewAddonsList"></div>
         </div>
       </div>
-
       <div class="form-group">
-        <label class="form-label">Confirm Team Members Working</label>
+        <label class="form-label">Confirmar Empleados</label>
         <div id="jobTeamMembers"></div>
       </div>
-
       <div class="form-group">
-        <label class="form-label" data-i18n="notes">Notes</label>
-        <textarea class="form-input" id="startJobNotes" rows="2" placeholder="Any notes before starting..."></textarea>
+        <label class="form-label">Notas</label>
+        <textarea class="form-input" id="startJobNotes" rows="2" placeholder="Notas antes de iniciar..."></textarea>
       </div>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" id="cancelStartJobBtn" data-i18n="cancel">Cancel</button>
-      <button type="button" class="btn btn-success" id="confirmStartJobBtn">▶️ Start Job</button>
+      <button type="button" class="btn btn-secondary" id="cancelStartJobBtn">Cancelar</button>
+      <button type="button" class="btn btn-success" id="confirmStartJobBtn">▶️ Iniciar</button>
     </div>
   </div>
 
   <div class="modal" id="completeJobModal">
     <div class="modal-header">
-      <h3 class="modal-title" data-i18n="completeJob">Complete Job</h3>
+      <h3 class="modal-title">Completar Trabajo</h3>
       <button class="modal-close" id="closeCompleteJobModal">✕</button>
     </div>
     <div class="modal-body">
       <div class="card mb-4" style="background: var(--success-50); border-color: var(--success-200);">
         <div class="card-body text-center">
           <div class="text-4xl mb-2">✔</div>
-          <div class="font-semibold" id="completeJobClient">Johnson Family</div>
-          <div class="text-gray-500" id="completeJobAddress">123 Oak Street</div>
+          <div class="font-semibold" id="completeJobClient">-</div>
+          <div class="text-gray-500" id="completeJobAddress">-</div>
           <div class="mt-3">
-            <span class="text-3xl font-bold text-success" id="completeJobTime">1:45:30</span>
+            <span class="text-3xl font-bold text-success" id="completeJobTime">0:00:00</span>
           </div>
         </div>
       </div>
-
       <div class="form-group" id="completedAddonsGroup" style="display: none;">
-        <label class="form-label">Add-ons Completed</label>
+        <label class="form-label">Extras Completados</label>
         <div id="completedAddonsList"></div>
       </div>
-
       <div class="form-group">
-        <label class="form-label" data-i18n="paymentCollected">Payment Collected</label>
+        <label class="form-label">Pago Recibido</label>
         <select class="form-select" id="paymentMethod">
-          <option value="">No payment collected</option>
-          <option value="cash">Cash</option>
-          <option value="check">Check</option>
-          <option value="card">Card</option>
+          <option value="">No se recibió pago</option>
+          <option value="cash">Efectivo</option>
+          <option value="check">Cheque</option>
+          <option value="card">Tarjeta</option>
           <option value="venmo">Venmo</option>
           <option value="zelle">Zelle</option>
         </select>
       </div>
-
       <div class="form-group hidden" id="paymentAmountGroup">
-        <label class="form-label" data-i18n="amount">Amount</label>
+        <label class="form-label">Monto</label>
         <div class="input-group">
           <span class="input-group-prepend">$</span>
           <input type="number" class="form-input" id="paymentAmount" step="0.01" min="0">
         </div>
       </div>
-
       <div class="form-group">
-        <label class="form-label" data-i18n="completionNotes">Completion Notes</label>
-        <textarea class="form-input" id="completeJobNotes" rows="2" placeholder="Any issues or notes..."></textarea>
+        <label class="form-label">Notas</label>
+        <textarea class="form-input" id="completeJobNotes" rows="2" placeholder="Problemas o notas..."></textarea>
       </div>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" id="cancelCompleteJobBtn" data-i18n="cancel">Cancel</button>
-      <button type="button" class="btn btn-success" id="confirmCompleteJobBtn">✔ Mark Complete</button>
+      <button type="button" class="btn btn-secondary" id="cancelCompleteJobBtn">Cancelar</button>
+      <button type="button" class="btn btn-success" id="confirmCompleteJobBtn">✔ Completar</button>
     </div>
   </div>
 
   <div class="modal modal-lg" id="historyModal">
     <div class="modal-header">
-      <h3 class="modal-title" data-i18n="todayHistory">Today's Activity</h3>
+      <h3 class="modal-title">Actividad de Hoy</h3>
       <button class="modal-close" id="closeHistoryModal">✕</button>
     </div>
     <div class="modal-body">
       <div id="historyList"></div>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" id="closeHistoryBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-secondary" id="closeHistoryBtn">Cerrar</button>
     </div>
   </div>
 
   <div class="modal" id="adminStatusModal">
     <div class="modal-header">
-      <h3 class="modal-title">Change Job Status</h3>
+      <h3 class="modal-title">Cambiar Estado</h3>
       <button class="modal-close" id="closeAdminStatusModal">✕</button>
     </div>
     <div class="modal-body">
       <div class="job-details-preview">
-        <div class="job-preview-client" id="adminStatusClient">Client Name</div>
-        <div class="job-preview-address" id="adminStatusAddress">Address</div>
+        <div class="job-preview-client" id="adminStatusClient">-</div>
+        <div class="job-preview-address" id="adminStatusAddress">-</div>
       </div>
-      
       <div class="form-group">
-        <label class="form-label">New Status</label>
+        <label class="form-label">Nuevo Estado</label>
         <select class="form-select" id="adminNewStatus">
-          <option value="scheduled">Scheduled</option>
-          <option value="in_progress">In Progress</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="rescheduled">Rescheduled</option>
+          <option value="scheduled">Programado</option>
+          <option value="in_progress">En Progreso</option>
+          <option value="completed">Completado</option>
+          <option value="cancelled">Cancelado</option>
+          <option value="rescheduled">Reprogramado</option>
         </select>
       </div>
-      
       <div class="form-group">
-        <label class="form-label">Notes</label>
-        <textarea class="form-input" id="adminStatusNotes" rows="2" placeholder="Reason for status change..."></textarea>
+        <label class="form-label">Notas</label>
+        <textarea class="form-input" id="adminStatusNotes" rows="2" placeholder="Razón del cambio..."></textarea>
       </div>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" id="cancelAdminStatusBtn">Cancel</button>
-      <button type="button" class="btn btn-primary" id="confirmAdminStatusBtn">Update Status</button>
+      <button type="button" class="btn btn-secondary" id="cancelAdminStatusBtn">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="confirmAdminStatusBtn">Actualizar</button>
     </div>
   </div>
 
@@ -916,6 +934,17 @@
     } from './js/utils.js';
     import { logScheduleAction, AuditActions } from './js/audit.js';
 
+    // ============================================
+    // FORCE SPANISH AS DEFAULT FOR TIMECLOCK
+    // ============================================
+    (function() {
+      if (!sessionStorage.getItem('timeclock_lang_set')) {
+        i18n.setLanguage('es');
+        sessionStorage.setItem('timeclock_lang_set', 'true');
+      }
+    })();
+
+    // State variables
     let currentUser = null;
     let currentAdmin = null;
     let currentEmployee = null;
@@ -924,6 +953,7 @@
     let teamMembers = [];
     let todaySchedules = [];
     let clients = {};
+    let clientsWithCoords = [];
     let isAdmin = false;
     let isTeamLeader = false;
     
@@ -932,58 +962,119 @@
     let currentJob = null;
     let jobStartTime = null;
     let timeEntries = [];
+    let selectedJobEmployees = [];
     
     let clockInterval = null;
     let jobTimerInterval = null;
     let adminSelectedScheduleId = null;
     let selectedScheduleId = null;
+    let nearbySchedule = null;
 
-    // FIXED: Get local date string in YYYY-MM-DD format
-    function getLocalDateString(date = new Date()) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return year + '-' + month + '-' + day;
+    // ============================================
+    // IndexedDB for PERSISTENT state (survives app close/iPhone sleep)
+    // ============================================
+    const DB_NAME = 'CleanProTimeclock';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'state';
+    let idb = null;
+
+    async function initDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => { idb = req.result; resolve(idb); };
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+          }
+        };
+      });
     }
 
+    async function saveStateToDB(state) {
+      if (!idb) return;
+      return new Promise((resolve, reject) => {
+        const tx = idb.transaction([STORE_NAME], 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.put({ id: 'current', ...state, savedAt: Date.now() });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function loadStateFromDB() {
+      if (!idb) return null;
+      return new Promise((resolve, reject) => {
+        const tx = idb.transaction([STORE_NAME], 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get('current');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function clearDBState() {
+      if (!idb) return;
+      return new Promise((resolve) => {
+        const tx = idb.transaction([STORE_NAME], 'readwrite');
+        tx.objectStore(STORE_NAME).delete('current');
+        tx.oncomplete = () => resolve();
+      });
+    }
+
+    // ============================================
+    // HELPERS
+    // ============================================
+    function getLocalDateString(date = new Date()) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function getAvatarColor(name) {
+      const colors = ['#0d9488', '#f97316', '#8b5cf6', '#ec4899', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      return colors[Math.abs(hash) % colors.length];
+    }
+
+    function formatTime(date) {
+      return date.toLocaleTimeString('es-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // ============================================
+    // AUTH & INIT
+    // ============================================
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUser = user;
         try {
+          await initDB();
+          
           const adminDoc = await getDoc(doc(db, 'admins', user.uid));
           if (adminDoc.exists()) {
             currentAdmin = { id: adminDoc.id, ...adminDoc.data() };
             isAdmin = currentAdmin.role === 'admin' || currentAdmin.role === 'manager';
-            
-            if (isAdmin) {
-              document.body.classList.add('is-admin');
-            }
-            
+            if (isAdmin) document.body.classList.add('is-admin');
             await initializePage();
           } else {
-            // Check if user is an employee/team leader by matching their email
-            const employeeQuery = query(collection(db, 'employees'), where('email', '==', user.email));
-            const employeeSnapshot = await getDocs(employeeQuery);
-            
-            if (!employeeSnapshot.empty) {
-              currentEmployee = { id: employeeSnapshot.docs[0].id, ...employeeSnapshot.docs[0].data() };
+            const empQuery = query(collection(db, 'employees'), where('email', '==', user.email));
+            const empSnap = await getDocs(empQuery);
+            if (!empSnap.empty) {
+              currentEmployee = { id: empSnap.docs[0].id, ...empSnap.docs[0].data() };
               isTeamLeader = currentEmployee.role === 'team_leader';
-              
-              if (!isTeamLeader && !isAdmin) {
-                document.getElementById('bottomNav').classList.add('hidden');
-              }
-              
+              if (!isTeamLeader && !isAdmin) document.getElementById('bottomNav').classList.add('hidden');
               await initializePage();
             } else {
-              // User exists in Firebase Auth but not in admins or employees
-              // This could be a team leader logging in for the first time
-              showToast('error', 'Access Denied', 'Your account is not set up. Please contact your administrator.');
+              showToast('error', 'Error', 'Cuenta no configurada. Contacte al administrador.');
               await signOut(auth);
               window.location.href = 'index.html';
             }
           }
         } catch (error) {
-          console.error('Error checking user role:', error);
+          console.error('Auth error:', error);
           window.location.href = 'index.html';
         }
       } else {
@@ -1001,428 +1092,416 @@
       await loadTodaySchedules();
       await loadTimeEntries();
       
-      restoreState();
+      await restoreState();
       updateStatusUI();
       renderSchedule();
       setupEventListeners();
+      setupStickyJobCard();
       
       if (currentTeam) {
-        document.getElementById('teamBanner').textContent = 'Team: ' + currentTeam.name;
+        document.getElementById('teamBanner').textContent = 'Equipo: ' + currentTeam.name;
       } else if (isAdmin) {
-        document.getElementById('teamBanner').textContent = 'Admin View - All Teams';
+        document.getElementById('teamBanner').textContent = 'Admin - Todos los Equipos';
       }
       
-      if (isAdmin) {
-        populateAdminTeamFilter();
-      }
-
-      // Show debug info
-      const todayStr = getLocalDateString();
-      document.getElementById('debugInfo').textContent = 'Searching for date: ' + todayStr;
+      if (isAdmin) populateAdminTeamFilter();
+      
+      // PWA & Geolocation
+      initPWA();
+      initGeolocation();
     }
 
+    // ============================================
+    // PWA
+    // ============================================
+    function initPWA() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      }
+      
+      // Restore state when page becomes visible (iPhone wake)
+      document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible') {
+          await restoreState();
+          updateStatusUI();
+          if (currentJob && jobStartTime) updateJobTimer();
+        }
+      });
+      
+      window.addEventListener('focus', async () => {
+        await restoreState();
+        updateStatusUI();
+        if (currentJob && jobStartTime) updateJobTimer();
+      });
+    }
+
+    // ============================================
+    // GEOLOCATION
+    // ============================================
+    function initGeolocation() {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (!isMobile || !('geolocation' in navigator)) return;
+      
+      navigator.geolocation.getCurrentPosition(
+        (pos) => checkNearbyClients(pos.coords.latitude, pos.coords.longitude),
+        () => {},
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    }
+
+    function checkNearbyClients(lat, lng) {
+      if (isClockedIn || currentJob) return;
+      
+      for (const schedule of todaySchedules) {
+        if (schedule.status !== 'scheduled') continue;
+        const client = clients[schedule.clientId];
+        if (!client?.address?.coordinates) continue;
+        
+        const dist = haversine(lat, lng, client.address.coordinates.lat, client.address.coordinates.lng);
+        if (dist < 0.15) { // 150 meters
+          nearbySchedule = schedule;
+          document.getElementById('locationClientName').textContent = `${client.firstName} ${client.lastName}`;
+          document.getElementById('locationClientAddress').textContent = client.address?.street || '';
+          document.getElementById('locationPrompt').classList.remove('hidden');
+          return;
+        }
+      }
+    }
+
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    // ============================================
+    // STICKY JOB CARD
+    // ============================================
+    function setupStickyJobCard() {
+      const card = document.getElementById('currentJobCard');
+      const placeholder = document.getElementById('currentJobCardPlaceholder');
+      let cardTop = 0;
+
+      function update() {
+        if (card.classList.contains('hidden')) {
+          card.classList.remove('sticky');
+          placeholder.classList.remove('visible');
+          return;
+        }
+        
+        if (!card.classList.contains('sticky')) {
+          cardTop = card.getBoundingClientRect().top + window.scrollY;
+        }
+        
+        if (window.scrollY > cardTop - 5) {
+          if (!card.classList.contains('sticky')) {
+            placeholder.style.height = card.offsetHeight + 'px';
+            card.classList.add('sticky');
+            placeholder.classList.add('visible');
+          }
+        } else {
+          card.classList.remove('sticky');
+          placeholder.classList.remove('visible');
+        }
+      }
+      
+      window.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update);
+    }
+
+    // ============================================
+    // DATA LOADING
+    // ============================================
     async function loadClients() {
       try {
-        const snapshot = await getDocs(collection(db, 'clients'));
-        snapshot.forEach(doc => {
-          clients[doc.id] = { id: doc.id, ...doc.data() };
-        });
-      } catch (error) {
-        console.error('Error loading clients:', error);
-      }
+        const snap = await getDocs(collection(db, 'clients'));
+        snap.forEach(d => { clients[d.id] = { id: d.id, ...d.data() }; });
+      } catch (e) { console.error('Load clients error:', e); }
     }
 
     async function loadAllTeams() {
       try {
-        const snapshot = await getDocs(collection(db, 'teams'));
+        const snap = await getDocs(collection(db, 'teams'));
         allTeams = [];
-        snapshot.forEach(doc => {
-          allTeams.push({ id: doc.id, ...doc.data() });
-        });
-      } catch (error) {
-        console.error('Error loading teams:', error);
-      }
+        snap.forEach(d => allTeams.push({ id: d.id, ...d.data() }));
+      } catch (e) { console.error('Load teams error:', e); }
     }
 
     async function loadTodaySchedules() {
       try {
-        // FIXED: Use local date instead of UTC
         const todayStr = getLocalDateString();
-        
-        console.log('Loading schedules for date:', todayStr);
-        
         let q;
-        const adminTeamFilter = document.getElementById('adminTeamFilter')?.value;
+        const filter = document.getElementById('adminTeamFilter')?.value;
         
-        if (isAdmin && !adminTeamFilter) {
-          q = query(
-            collection(db, 'schedules'),
-            where('date', '==', todayStr),
-            orderBy('timeSlot')
-          );
+        if (isAdmin && !filter) {
+          q = query(collection(db, 'schedules'), where('date', '==', todayStr), orderBy('timeSlot'));
         } else {
-          const teamId = adminTeamFilter || currentTeam?.id;
-          if (teamId) {
-            q = query(
-              collection(db, 'schedules'),
-              where('date', '==', todayStr),
-              where('teamId', '==', teamId),
-              orderBy('timeSlot')
-            );
-          } else {
-            q = query(
-              collection(db, 'schedules'),
-              where('date', '==', todayStr),
-              orderBy('timeSlot')
-            );
-          }
+          const teamId = filter || currentTeam?.id;
+          q = teamId 
+            ? query(collection(db, 'schedules'), where('date', '==', todayStr), where('teamId', '==', teamId), orderBy('timeSlot'))
+            : query(collection(db, 'schedules'), where('date', '==', todayStr), orderBy('timeSlot'));
         }
         
-        const snapshot = await getDocs(q);
-        
+        const snap = await getDocs(q);
         todaySchedules = [];
-        snapshot.forEach(doc => {
-          todaySchedules.push({ id: doc.id, ...doc.data() });
-        });
-        
-        console.log('Found schedules:', todaySchedules.length);
-        
-        document.getElementById('scheduleCount').textContent = todaySchedules.length + ' jobs';
-      } catch (error) {
-        console.error('Error loading schedules:', error);
-      }
+        snap.forEach(d => todaySchedules.push({ id: d.id, ...d.data() }));
+        document.getElementById('scheduleCount').textContent = `${todaySchedules.length} trabajos`;
+      } catch (e) { console.error('Load schedules error:', e); }
     }
 
     async function loadTimeEntries() {
       try {
         const todayStr = getLocalDateString();
-        const q = query(
-          collection(db, 'timeEntries'),
-          where('date', '==', todayStr)
-        );
-        const snapshot = await getDocs(q);
-        
+        const q = query(collection(db, 'timeEntries'), where('date', '==', todayStr));
+        const snap = await getDocs(q);
         timeEntries = [];
-        snapshot.forEach(doc => {
-          timeEntries.push({ id: doc.id, ...doc.data() });
-        });
-      } catch (error) {
-        console.error('Error loading time entries:', error);
-      }
+        snap.forEach(d => timeEntries.push({ id: d.id, ...d.data() }));
+      } catch (e) { console.error('Load time entries error:', e); }
     }
 
     async function loadTeamInfo() {
       try {
-        if (currentEmployee && currentEmployee.teamId) {
+        if (currentEmployee?.teamId) {
           const teamDoc = await getDoc(doc(db, 'teams', currentEmployee.teamId));
-          if (teamDoc.exists()) {
-            currentTeam = { id: teamDoc.id, ...teamDoc.data() };
-          }
+          if (teamDoc.exists()) currentTeam = { id: teamDoc.id, ...teamDoc.data() };
         }
         
         if (currentTeam) {
-          const employeesSnapshot = await getDocs(
-            query(collection(db, 'employees'), where('teamId', '==', currentTeam.id))
-          );
-          
+          const snap = await getDocs(query(collection(db, 'employees'), where('teamId', '==', currentTeam.id)));
           teamMembers = [];
-          employeesSnapshot.forEach(doc => {
-            teamMembers.push({ id: doc.id, ...doc.data() });
-          });
-          
+          snap.forEach(d => teamMembers.push({ id: d.id, ...d.data() }));
           if (teamMembers.length > 0) {
             document.getElementById('teamCard').classList.remove('hidden');
             renderTeamMembers();
           }
         }
-      } catch (error) {
-        console.error('Error loading team info:', error);
-      }
+      } catch (e) { console.error('Load team error:', e); }
     }
 
     function populateAdminTeamFilter() {
-      const select = document.getElementById('adminTeamFilter');
-      if (!select) return;
-      
-      select.innerHTML = '<option value="">All Teams</option>' +
-        allTeams.map(t => '<option value="' + t.id + '">' + t.name + '</option>').join('');
+      const sel = document.getElementById('adminTeamFilter');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Todos</option>' + allTeams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
     }
 
+    // ============================================
+    // CLOCK & TIMER
+    // ============================================
     function updateClock() {
       const now = new Date();
-      
-      document.getElementById('currentDate').textContent = i18n.formatDate(now, {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+      document.getElementById('currentDate').textContent = now.toLocaleDateString('es-MX', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
       });
-      
-      const hours = now.getHours().toString().padStart(2, '0');
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      const seconds = now.getSeconds().toString().padStart(2, '0');
-      
-      document.getElementById('currentTime').textContent = hours + ':' + minutes;
-      document.getElementById('currentSeconds').textContent = ':' + seconds;
-      
-      if (isClockedIn && clockInTime) {
-        updateHoursWorked();
-      }
+      document.getElementById('currentTime').textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      document.getElementById('currentSeconds').textContent = `:${String(now.getSeconds()).padStart(2,'0')}`;
+      if (isClockedIn && clockInTime) updateHoursWorked();
     }
 
     function updateHoursWorked() {
       const now = new Date();
       let totalMs = 0;
-      
-      timeEntries.forEach(entry => {
-        if (entry.clockOut) {
-          const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
-          const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
-          totalMs += clockOut - clockIn;
+      timeEntries.forEach(e => {
+        if (e.clockOut) {
+          const cin = e.clockIn?.toDate ? e.clockIn.toDate() : new Date(e.clockIn);
+          const cout = e.clockOut?.toDate ? e.clockOut.toDate() : new Date(e.clockOut);
+          totalMs += cout - cin;
         }
       });
-      
-      if (isClockedIn && clockInTime) {
-        totalMs += now - clockInTime;
-      }
-      
-      const hours = Math.floor(totalMs / (1000 * 60 * 60));
-      const minutes = Math.floor((totalMs % (1000 * 60 * 60)) / (1000 * 60));
-      
-      document.getElementById('hoursToday').textContent = hours + ':' + minutes.toString().padStart(2, '0');
+      if (isClockedIn && clockInTime) totalMs += now - clockInTime;
+      const h = Math.floor(totalMs / 3600000);
+      const m = Math.floor((totalMs % 3600000) / 60000);
+      document.getElementById('hoursToday').textContent = `${h}:${String(m).padStart(2,'0')}`;
     }
 
     function updateJobTimer() {
       if (!jobStartTime) return;
-      
-      const now = new Date();
-      const elapsed = now - jobStartTime;
-      
-      const hours = Math.floor(elapsed / (1000 * 60 * 60));
-      const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
-      
-      document.getElementById('jobTimer').textContent = 
-        hours + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+      const elapsed = Date.now() - jobStartTime.getTime();
+      const h = Math.floor(elapsed / 3600000);
+      const m = Math.floor((elapsed % 3600000) / 60000);
+      const s = Math.floor((elapsed % 60000) / 1000);
+      document.getElementById('jobTimer').textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     }
 
+    // ============================================
+    // CLOCK IN/OUT
+    // ============================================
     async function clockIn() {
       clockInTime = new Date();
       isClockedIn = true;
       
       try {
         const todayStr = getLocalDateString();
-        const entryData = {
+        const entry = {
           date: todayStr,
           employeeId: currentAdmin?.id || currentEmployee?.id,
           clockIn: Timestamp.fromDate(clockInTime),
           clockOut: null,
           hoursWorked: null,
-          clientId: null,
-          scheduleId: null,
           createdAt: Timestamp.now()
         };
-        
-        const docRef = await addDoc(collection(db, 'timeEntries'), entryData);
-        timeEntries.push({ id: docRef.id, ...entryData, clockIn: clockInTime });
-        
-        showToast('success', i18n.t('success'), 'Clocked in successfully');
-      } catch (error) {
-        console.error('Error clocking in:', error);
-        showToast('error', i18n.t('error'), 'Failed to clock in');
+        const ref = await addDoc(collection(db, 'timeEntries'), entry);
+        timeEntries.push({ id: ref.id, ...entry, clockIn: clockInTime });
+        showToast('success', 'Éxito', 'Entrada registrada');
+      } catch (e) {
+        console.error('Clock in error:', e);
+        showToast('error', 'Error', 'No se pudo registrar entrada');
       }
       
-      saveState();
+      await saveState();
       updateStatusUI();
     }
 
     async function clockOut() {
       if (currentJob) {
-        showToast('warning', 'Warning', 'Please complete or pause current job before clocking out');
+        showToast('warning', 'Aviso', 'Complete el trabajo actual antes de salir');
         return;
       }
       
       const clockOutTime = new Date();
-      const currentEntry = timeEntries.find(e => !e.clockOut);
+      const entry = timeEntries.find(e => !e.clockOut);
       
-      if (currentEntry) {
+      if (entry) {
         try {
-          const hoursWorked = (clockOutTime - (currentEntry.clockIn?.toDate ? currentEntry.clockIn.toDate() : clockInTime)) / (1000 * 60 * 60);
-          
-          await updateDoc(doc(db, 'timeEntries', currentEntry.id), {
+          const cin = entry.clockIn?.toDate ? entry.clockIn.toDate() : clockInTime;
+          const hours = (clockOutTime - cin) / 3600000;
+          await updateDoc(doc(db, 'timeEntries', entry.id), {
             clockOut: Timestamp.fromDate(clockOutTime),
-            hoursWorked: hoursWorked
+            hoursWorked: hours
           });
-          
-          currentEntry.clockOut = clockOutTime;
-          currentEntry.hoursWorked = hoursWorked;
-          
-          showToast('success', i18n.t('success'), 'Clocked out successfully');
-        } catch (error) {
-          console.error('Error clocking out:', error);
-          showToast('error', i18n.t('error'), 'Failed to clock out');
+          entry.clockOut = clockOutTime;
+          entry.hoursWorked = hours;
+          showToast('success', 'Éxito', 'Salida registrada');
+        } catch (e) {
+          console.error('Clock out error:', e);
+          showToast('error', 'Error', 'No se pudo registrar salida');
         }
       }
       
       isClockedIn = false;
       clockInTime = null;
-      
-      saveState();
+      await saveState();
       updateStatusUI();
     }
 
+    // ============================================
+    // JOB MANAGEMENT
+    // ============================================
     function showStartJobModal(scheduleId) {
-      if (!isClockedIn) {
-        showToast('warning', 'Warning', 'Please clock in first before starting a job');
-        return;
-      }
+      // Auto clock-in if not clocked in (removes need for separate clock-in button)
+      if (!isClockedIn) clockIn();
       
       const schedule = todaySchedules.find(s => s.id === scheduleId);
       if (!schedule) return;
       
-      if (schedule.status === 'completed') {
-        showToast('info', 'Info', 'This job has already been completed');
-        return;
-      }
-      
+      if (schedule.status === 'completed') { showToast('info', 'Info', 'Trabajo ya completado'); return; }
+      if (schedule.status === 'cancelled') { showToast('info', 'Info', 'Trabajo cancelado'); return; }
       if (schedule.status === 'in_progress' && currentJob?.scheduleId !== scheduleId) {
-        showToast('info', 'Info', 'This job is already in progress');
-        return;
-      }
-      
-      if (schedule.status === 'cancelled') {
-        showToast('info', 'Info', 'This job has been cancelled');
+        showToast('info', 'Info', 'Trabajo ya en progreso');
         return;
       }
       
       if (currentJob && currentJob.scheduleId !== scheduleId) {
-        const confirmSwitch = confirm('You are currently working on another job. Would you like to stop that job and start this one?');
-        if (confirmSwitch) {
+        if (confirm('¿Detener trabajo actual e iniciar este?')) {
           stopCurrentJobWithoutComplete();
-        } else {
-          return;
-        }
+        } else return;
       }
       
       selectedScheduleId = scheduleId;
       const client = clients[schedule.clientId];
       if (!client) return;
       
-      document.getElementById('previewClient').textContent = client.firstName + ' ' + client.lastName;
-      document.getElementById('previewAddress').textContent = 
-        (client.address?.street || '') + ', ' + (client.address?.city || '');
+      document.getElementById('previewClient').textContent = `${client.firstName} ${client.lastName}`;
+      document.getElementById('previewAddress').textContent = `${client.address?.street || ''}, ${client.address?.city || ''}`;
       
-      const doorCodeEl = document.getElementById('previewDoorCode');
+      const doorCode = document.getElementById('previewDoorCode');
       if (client.houseCode) {
-        doorCodeEl.textContent = '🔑 Door Code: ' + client.houseCode;
-        doorCodeEl.classList.remove('hidden');
-      } else {
-        doorCodeEl.classList.add('hidden');
-      }
+        doorCode.textContent = `🔑 Código: ${client.houseCode}`;
+        doorCode.classList.remove('hidden');
+      } else doorCode.classList.add('hidden');
       
-      document.getElementById('previewDuration').textContent = 
-        (schedule.estimatedDuration || 2) + ' hours';
-      document.getElementById('previewPrice').textContent = 
-        formatCurrency(schedule.serviceDetails?.totalPrice || 0);
+      document.getElementById('previewDuration').textContent = `${schedule.estimatedDuration || 2} horas`;
+      document.getElementById('previewPrice').textContent = formatCurrency(schedule.serviceDetails?.totalPrice || 0);
       
       const addOns = schedule.serviceDetails?.addOns || [];
-      const addonsContainer = document.getElementById('previewAddons');
-      const addonsList = document.getElementById('previewAddonsList');
-      
+      const addonsDiv = document.getElementById('previewAddons');
       if (addOns.length > 0) {
-        addonsContainer.classList.remove('hidden');
-        const floorLabels = { basement: '🏚️ Basement', mainLevel: '🏠 Main Level', upstairs: '⬆️ Upstairs' };
-        addonsList.innerHTML = addOns.map(a => {
-          const areaKey = typeof a === 'object' ? a.area : a;
+        addonsDiv.classList.remove('hidden');
+        const labels = { basement: '🚪 Sótano', mainLevel: '🏠 Nivel Principal', upstairs: '⬆️ Arriba' };
+        document.getElementById('previewAddonsList').innerHTML = addOns.map(a => {
+          const key = typeof a === 'object' ? a.area : a;
           const price = typeof a === 'object' ? a.price : 0;
-          return '<span class="job-preview-addon">' + (floorLabels[areaKey] || areaKey) + (price ? ' (+' + formatCurrency(price) + ')' : '') + '</span>';
+          return `<span class="job-preview-addon">${labels[key] || key}${price ? ` (+${formatCurrency(price)})` : ''}</span>`;
         }).join('');
-      } else {
-        addonsContainer.classList.add('hidden');
-      }
+      } else addonsDiv.classList.add('hidden');
       
+      // Team member checkboxes
       const container = document.getElementById('jobTeamMembers');
-      container.innerHTML = teamMembers.map(m => 
-        '<label class="form-check" style="margin-bottom: 8px;">' +
-          '<input type="checkbox" class="form-check-input" value="' + m.id + '" checked>' +
-          '<span class="form-check-label">' + m.firstName + ' ' + m.lastName + '</span>' +
-        '</label>'
-      ).join('') || '<p class="text-gray-500">No team members assigned</p>';
+      container.innerHTML = teamMembers.map(m => `
+        <label class="form-check" style="margin-bottom:8px;">
+          <input type="checkbox" class="form-check-input job-emp-cb" value="${m.id}" data-name="${m.firstName} ${m.lastName}" checked>
+          <span class="form-check-label">${m.firstName} ${m.lastName}</span>
+        </label>
+      `).join('') || '<p class="text-gray-500">Sin miembros de equipo</p>';
       
       openModal('startJobModal');
     }
 
     async function stopCurrentJobWithoutComplete() {
       if (!currentJob) return;
-      
       try {
-        await updateDoc(doc(db, 'schedules', currentJob.scheduleId), {
-          status: 'scheduled',
-          actualStartTime: null
-        });
-        
-        const schedule = todaySchedules.find(s => s.id === currentJob.scheduleId);
-        if (schedule) {
-          schedule.status = 'scheduled';
-        }
-        
-        if (jobTimerInterval) {
-          clearInterval(jobTimerInterval);
-          jobTimerInterval = null;
-        }
-        
+        await updateDoc(doc(db, 'schedules', currentJob.scheduleId), { status: 'scheduled', actualStartTime: null });
+        const sch = todaySchedules.find(s => s.id === currentJob.scheduleId);
+        if (sch) sch.status = 'scheduled';
+        if (jobTimerInterval) { clearInterval(jobTimerInterval); jobTimerInterval = null; }
         currentJob = null;
         jobStartTime = null;
-        
-        saveState();
+        selectedJobEmployees = [];
+        await saveState();
         updateStatusUI();
         renderSchedule();
-      } catch (error) {
-        console.error('Error stopping job:', error);
-      }
+      } catch (e) { console.error('Stop job error:', e); }
     }
 
     async function startJob() {
       const schedule = todaySchedules.find(s => s.id === selectedScheduleId);
-      if (!schedule) return;
-      
-      if (schedule.status === 'completed' || schedule.status === 'in_progress') {
+      if (!schedule || schedule.status === 'completed' || schedule.status === 'in_progress') {
         closeModal('startJobModal');
-        showToast('warning', 'Warning', 'This job cannot be started');
         return;
       }
       
       const client = clients[schedule.clientId];
       
-      currentJob = {
-        scheduleId: selectedScheduleId,
-        schedule,
-        client
-      };
+      // Get selected employees
+      const cbs = document.querySelectorAll('.job-emp-cb:checked');
+      selectedJobEmployees = Array.from(cbs).map(cb => ({ id: cb.value, name: cb.dataset.name }));
       
+      currentJob = { scheduleId: selectedScheduleId, schedule, client, teamMembers: selectedJobEmployees };
       jobStartTime = new Date();
       
       try {
         await updateDoc(doc(db, 'schedules', selectedScheduleId), {
           status: 'in_progress',
-          actualStartTime: Timestamp.fromDate(jobStartTime)
+          actualStartTime: Timestamp.fromDate(jobStartTime),
+          workingEmployees: selectedJobEmployees.map(e => e.id)
         });
-        
         schedule.status = 'in_progress';
         
         jobTimerInterval = setInterval(updateJobTimer, 1000);
         updateJobTimer();
         
         closeModal('startJobModal');
-        showToast('success', 'Job Started', 'Working on ' + client.firstName + ' ' + client.lastName);
-      } catch (error) {
-        console.error('Error starting job:', error);
-        showToast('error', i18n.t('error'), 'Failed to start job');
+        showToast('success', 'Iniciado', `Trabajando en ${client.firstName} ${client.lastName}`);
+      } catch (e) {
+        console.error('Start job error:', e);
+        showToast('error', 'Error', 'No se pudo iniciar');
         currentJob = null;
         jobStartTime = null;
+        selectedJobEmployees = [];
       }
       
-      saveState();
+      await saveState();
       updateStatusUI();
       renderSchedule();
     }
@@ -1433,33 +1512,14 @@
       const client = currentJob.client;
       const schedule = currentJob.schedule;
       
-      document.getElementById('completeJobClient').textContent = client.firstName + ' ' + client.lastName;
+      document.getElementById('completeJobClient').textContent = `${client.firstName} ${client.lastName}`;
       document.getElementById('completeJobAddress').textContent = client.address?.street || '';
       
-      const elapsed = new Date() - jobStartTime;
-      const hours = Math.floor(elapsed / (1000 * 60 * 60));
-      const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
-      document.getElementById('completeJobTime').textContent = 
-        hours + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
-      
-      const addOns = schedule.serviceDetails?.addOns || [];
-      const addonsContainer = document.getElementById('completedAddonsList');
-      const addonsGroup = document.getElementById('completedAddonsGroup');
-      
-      if (addOns.length > 0) {
-        addonsGroup.style.display = 'block';
-        const floorLabels = { basement: '🏚️ Basement', mainLevel: '🏠 Main Level', upstairs: '⬆️ Upstairs' };
-        addonsContainer.innerHTML = addOns.map(a => {
-          const areaKey = typeof a === 'object' ? a.area : a;
-          return '<label class="form-check" style="margin-bottom: 8px;">' +
-            '<input type="checkbox" class="form-check-input addon-complete-checkbox" data-area="' + areaKey + '" checked>' +
-            '<span class="form-check-label">' + (floorLabels[areaKey] || areaKey) + '</span>' +
-          '</label>';
-        }).join('');
-      } else {
-        addonsGroup.style.display = 'none';
-      }
+      const elapsed = Date.now() - jobStartTime.getTime();
+      const h = Math.floor(elapsed / 3600000);
+      const m = Math.floor((elapsed % 3600000) / 60000);
+      const s = Math.floor((elapsed % 60000) / 1000);
+      document.getElementById('completeJobTime').textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
       
       document.getElementById('paymentAmount').value = schedule.serviceDetails?.totalPrice || '';
       document.getElementById('paymentMethod').value = '';
@@ -1474,19 +1534,41 @@
       const endTime = new Date();
       const schedule = currentJob.schedule;
       const client = currentJob.client;
+      const hoursWorked = (endTime - jobStartTime) / 3600000;
       
       try {
+        // Update schedule
         await updateDoc(doc(db, 'schedules', currentJob.scheduleId), {
           status: 'completed',
           actualEndTime: Timestamp.fromDate(endTime),
-          notes: document.getElementById('completeJobNotes').value
+          notes: document.getElementById('completeJobNotes').value,
+          completedEmployees: selectedJobEmployees.map(e => e.id)
         });
-        
         schedule.status = 'completed';
         
+        // SAVE TIME ENTRIES FOR EACH SELECTED EMPLOYEE (using existing timeEntries collection)
+        const todayStr = getLocalDateString();
+        for (const emp of selectedJobEmployees) {
+          const timeEntryData = {
+            date: todayStr,
+            employeeId: emp.id,
+            clockIn: Timestamp.fromDate(jobStartTime),
+            clockOut: Timestamp.fromDate(endTime),
+            hoursWorked: hoursWorked,
+            scheduleId: currentJob.scheduleId,
+            clientId: schedule.clientId,
+            clientName: `${client.firstName} ${client.lastName}`,
+            type: 'job',
+            createdAt: Timestamp.now()
+          };
+          
+          await addDoc(collection(db, 'timeEntries'), timeEntryData);
+        }
+        
+        // Handle payment
         const paymentMethod = document.getElementById('paymentMethod').value;
         if (paymentMethod) {
-          const paymentData = {
+          await addDoc(collection(db, 'payments'), {
             scheduleId: currentJob.scheduleId,
             clientId: schedule.clientId,
             date: Timestamp.now(),
@@ -1494,50 +1576,44 @@
             paymentMethod,
             status: 'paid',
             createdAt: Timestamp.now()
-          };
-          
-          await addDoc(collection(db, 'payments'), paymentData);
+          });
         }
         
-        if (jobTimerInterval) {
-          clearInterval(jobTimerInterval);
-          jobTimerInterval = null;
-        }
+        if (jobTimerInterval) { clearInterval(jobTimerInterval); jobTimerInterval = null; }
         
-        await logScheduleAction(AuditActions.UPDATE, currentJob.scheduleId, 
-          'Completed: ' + client.firstName + ' ' + client.lastName);
+        await logScheduleAction(AuditActions.UPDATE, currentJob.scheduleId, `Completado: ${client.firstName} ${client.lastName}`);
         
         currentJob = null;
         jobStartTime = null;
+        selectedJobEmployees = [];
         
         closeModal('completeJobModal');
-        showToast('success', 'Job Completed', 'Great work! Job marked as complete.');
-        
-      } catch (error) {
-        console.error('Error completing job:', error);
-        showToast('error', i18n.t('error'), 'Failed to complete job');
+        showToast('success', '¡Completado!', 'Excelente trabajo');
+      } catch (e) {
+        console.error('Complete job error:', e);
+        showToast('error', 'Error', 'No se pudo completar');
       }
       
-      saveState();
+      await saveState();
       updateStatusUI();
       renderSchedule();
     }
 
     function pauseJob() {
-      showToast('info', 'Job Paused', 'Timer paused. Resume when ready.');
+      showToast('info', 'Pausado', 'Continúe cuando esté listo');
     }
 
+    // ============================================
+    // ADMIN STATUS
+    // ============================================
     function showAdminStatusModal(scheduleId) {
       adminSelectedScheduleId = scheduleId;
       const schedule = todaySchedules.find(s => s.id === scheduleId);
       if (!schedule) return;
       
       const client = clients[schedule.clientId];
-      
-      document.getElementById('adminStatusClient').textContent = 
-        client ? client.firstName + ' ' + client.lastName : 'Unknown Client';
-      document.getElementById('adminStatusAddress').textContent = 
-        client?.address?.street || '';
+      document.getElementById('adminStatusClient').textContent = client ? `${client.firstName} ${client.lastName}` : 'Desconocido';
+      document.getElementById('adminStatusAddress').textContent = client?.address?.street || '';
       document.getElementById('adminNewStatus').value = schedule.status || 'scheduled';
       document.getElementById('adminStatusNotes').value = '';
       
@@ -1551,286 +1627,234 @@
       const notes = document.getElementById('adminStatusNotes').value;
       
       try {
-        const updateData = {
-          status: newStatus,
-          updatedAt: Timestamp.now()
-        };
-        
-        if (notes) {
-          updateData.adminNotes = notes;
-        }
-        
-        if (newStatus === 'completed' && !todaySchedules.find(s => s.id === adminSelectedScheduleId)?.actualEndTime) {
-          updateData.actualEndTime = Timestamp.now();
-        }
+        const updateData = { status: newStatus, updatedAt: Timestamp.now() };
+        if (notes) updateData.adminNotes = notes;
+        if (newStatus === 'completed') updateData.actualEndTime = Timestamp.now();
         
         await updateDoc(doc(db, 'schedules', adminSelectedScheduleId), updateData);
         
-        const schedule = todaySchedules.find(s => s.id === adminSelectedScheduleId);
-        if (schedule) {
-          schedule.status = newStatus;
-        }
+        const sch = todaySchedules.find(s => s.id === adminSelectedScheduleId);
+        if (sch) sch.status = newStatus;
         
         closeModal('adminStatusModal');
-        showToast('success', 'Success', 'Status updated successfully');
+        showToast('success', 'Actualizado', 'Estado cambiado');
         renderSchedule();
-        
-      } catch (error) {
-        console.error('Error updating status:', error);
-        showToast('error', 'Error', 'Failed to update status');
+      } catch (e) {
+        console.error('Update status error:', e);
+        showToast('error', 'Error', 'No se pudo actualizar');
       }
     }
 
+    // ============================================
+    // UI UPDATES
+    // ============================================
     function updateStatusUI() {
-      const statusDot = document.getElementById('statusDot');
-      const statusText = document.getElementById('statusText');
-      const clockBtn = document.getElementById('clockBtn');
-      const currentJobCard = document.getElementById('currentJobCard');
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      const btn = document.getElementById('clockBtn');
+      const card = document.getElementById('currentJobCard');
       
-      statusDot.className = 'status-dot';
-      statusText.className = 'status-text';
+      dot.className = 'status-dot';
+      text.className = 'status-text';
       
       if (!isClockedIn) {
-        statusDot.classList.add('clocked-out');
-        statusText.classList.add('clocked-out');
-        statusText.textContent = i18n.t('clockedOut') || 'Clocked Out';
-        
-        clockBtn.className = 'clock-btn clock-in';
-        clockBtn.innerHTML = '<span class="clock-btn-icon">▶️</span><span>' + (i18n.t('clockIn') || 'Clock In') + '</span>';
-        
-        currentJobCard.classList.add('hidden');
+        dot.classList.add('clocked-out');
+        text.classList.add('clocked-out');
+        text.textContent = 'Sin Registrar';
+        btn.className = 'clock-btn clock-in';
+        btn.innerHTML = '<span class="clock-btn-icon">▶️</span><span>Registrar Entrada</span>';
+        card.classList.add('hidden');
         document.getElementById('hoursToday').textContent = '0:00';
-        
       } else if (currentJob) {
-        statusDot.classList.add('on-job');
-        statusText.classList.add('on-job');
-        statusText.textContent = i18n.t('onJob') || 'On Job';
-        
-        clockBtn.className = 'clock-btn clock-out';
-        clockBtn.innerHTML = '<span class="clock-btn-icon">⏹️</span><span>' + (i18n.t('clockOut') || 'Clock Out') + '</span>';
-        
-        currentJobCard.classList.remove('hidden');
-        document.getElementById('currentJobClient').textContent = 
-          currentJob.client.firstName + ' ' + currentJob.client.lastName;
-        document.getElementById('currentJobAddress').textContent = 
-          (currentJob.client.address?.street || '') + ', ' + (currentJob.client.address?.city || '');
-        
+        dot.classList.add('on-job');
+        text.classList.add('on-job');
+        text.textContent = 'En Trabajo';
+        btn.className = 'clock-btn clock-out';
+        btn.innerHTML = '<span class="clock-btn-icon">⏹️</span><span>Registrar Salida</span>';
+        card.classList.remove('hidden');
+        document.getElementById('currentJobClient').textContent = `${currentJob.client.firstName} ${currentJob.client.lastName}`;
+        document.getElementById('currentJobAddress').textContent = `${currentJob.client.address?.street || ''}, ${currentJob.client.address?.city || ''}`;
       } else {
-        statusDot.classList.add('clocked-in');
-        statusText.classList.add('clocked-in');
-        statusText.textContent = i18n.t('clockedIn') || 'Clocked In';
-        
-        clockBtn.className = 'clock-btn clock-out';
-        clockBtn.innerHTML = '<span class="clock-btn-icon">⏹️</span><span>' + (i18n.t('clockOut') || 'Clock Out') + '</span>';
-        
-        currentJobCard.classList.add('hidden');
+        dot.classList.add('clocked-in');
+        text.classList.add('clocked-in');
+        text.textContent = 'Registrado';
+        btn.className = 'clock-btn clock-out';
+        btn.innerHTML = '<span class="clock-btn-icon">⏹️</span><span>Registrar Salida</span>';
+        card.classList.add('hidden');
       }
     }
 
     function renderSchedule() {
       const container = document.getElementById('scheduleList');
-      
-      if (!container) {
-        console.error('Schedule list container not found');
-        return;
-      }
+      if (!container) return;
       
       if (todaySchedules.length === 0) {
-        container.innerHTML = '<div class="empty-schedule"><div class="empty-schedule-icon">📅</div><div>No jobs scheduled for today</div></div>';
+        container.innerHTML = '<div class="empty-schedule"><div class="empty-schedule-icon">📅</div><div>No hay trabajos para hoy</div></div>';
         return;
       }
       
-      container.innerHTML = todaySchedules.map(schedule => {
-        const client = clients[schedule.clientId];
+      container.innerHTML = todaySchedules.map(sch => {
+        const client = clients[sch.clientId];
         if (!client) return '';
         
-        const isActive = currentJob?.scheduleId === schedule.id;
-        const isCompleted = schedule.status === 'completed';
-        const isCancelled = schedule.status === 'cancelled';
+        const isActive = currentJob?.scheduleId === sch.id;
+        const isCompleted = sch.status === 'completed';
+        const isCancelled = sch.status === 'cancelled';
         
-        let clickHandler = '';
-        if (isAdmin) {
-          clickHandler = 'onclick="window.showAdminStatusModal(\'' + schedule.id + '\')"';
-        } else if (!isCompleted && !isCancelled && !isActive) {
-          clickHandler = 'onclick="window.showStartJob(\'' + schedule.id + '\')"';
-        }
+        let handler = '';
+        if (isAdmin) handler = `onclick="window.showAdminStatusModal('${sch.id}')"`;
+        else if (!isCompleted && !isCancelled && !isActive) handler = `onclick="window.showStartJob('${sch.id}')"`;
         
-        const statusBadges = {
-          scheduled: '<span class="badge badge-primary">Scheduled</span>',
-          in_progress: '<span class="badge badge-warning">In Progress</span>',
-          completed: '<span class="badge badge-success">Completed</span>',
-          cancelled: '<span class="badge badge-secondary">Cancelled</span>',
-          rescheduled: '<span class="badge badge-info">Rescheduled</span>'
+        const badges = {
+          scheduled: '<span class="badge badge-primary">Programado</span>',
+          in_progress: '<span class="badge badge-warning">En Progreso</span>',
+          completed: '<span class="badge badge-success">Completado</span>',
+          cancelled: '<span class="badge badge-secondary">Cancelado</span>',
+          rescheduled: '<span class="badge badge-info">Reprogramado</span>'
         };
-        const statusBadge = statusBadges[schedule.status] || '';
         
-        const doorCodeHtml = client.houseCode ? 
-          '<div class="schedule-door-code">🔑 ' + client.houseCode + '</div>' : '';
+        const doorCode = client.houseCode ? `<div class="schedule-door-code">🔑 ${client.houseCode}</div>` : '';
         
-        return '<div class="schedule-item ' + (isCompleted ? 'completed' : '') + ' ' + (isActive ? 'active' : '') + ' ' + (isCancelled ? 'cancelled' : '') + '" ' + clickHandler + '>' +
-          '<div class="schedule-time">' +
-            '<div class="schedule-time-slot">' + (schedule.timeSlot === 'morning' ? '🌅' : '🌆') + '</div>' +
-            '<div class="schedule-time-label">' + (schedule.timeSlot === 'morning' ? 'AM' : 'PM') + '</div>' +
-          '</div>' +
-          '<div class="schedule-info">' +
-            '<div class="schedule-client">' + client.firstName + ' ' + client.lastName + '</div>' +
-            '<div class="schedule-address">' + (client.address?.street || '') + '</div>' +
-            doorCodeHtml +
-          '</div>' +
-          '<div class="schedule-status">' +
-            '<div class="schedule-price">' + formatCurrency(schedule.serviceDetails?.totalPrice || 0) + '</div>' +
-            statusBadge +
-          '</div>' +
-        '</div>';
+        return `
+          <div class="schedule-item ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''} ${isCancelled ? 'cancelled' : ''}" ${handler}>
+            <div class="schedule-time">
+              <div class="schedule-time-slot">${sch.timeSlot === 'morning' ? '🌅' : '🌆'}</div>
+              <div class="schedule-time-label">${sch.timeSlot === 'morning' ? 'AM' : 'PM'}</div>
+            </div>
+            <div class="schedule-info">
+              <div class="schedule-client">${client.firstName} ${client.lastName}</div>
+              <div class="schedule-address">${client.address?.street || ''}</div>
+              ${doorCode}
+            </div>
+            <div class="schedule-status">
+              <div class="schedule-price">${formatCurrency(sch.serviceDetails?.totalPrice || 0)}</div>
+              ${badges[sch.status] || ''}
+            </div>
+          </div>
+        `;
       }).join('');
     }
 
     function renderTeamMembers() {
       const container = document.getElementById('teamMembersList');
-      
-      container.innerHTML = teamMembers.map(member => {
-        const isLeader = currentTeam?.leaderId === member.id;
-        return '<div class="team-member">' +
-          '<div class="team-member-avatar" style="background-color: ' + getAvatarColor(member.firstName + member.lastName) + '">' +
-            getInitials(member.firstName, member.lastName) +
-          '</div>' +
-          '<div class="team-member-info">' +
-            '<div class="team-member-name">' + member.firstName + ' ' + member.lastName + '</div>' +
-            '<div class="team-member-role">' + (isLeader ? '⭐ Team Leader' : 'Team Member') + '</div>' +
-          '</div>' +
-          '<div class="team-member-status ' + (member.isActive ? 'active' : '') + '"></div>' +
-        '</div>';
+      container.innerHTML = teamMembers.map(m => {
+        const isLeader = currentTeam?.leaderId === m.id;
+        return `
+          <div class="team-member">
+            <div class="team-member-avatar" style="background-color:${getAvatarColor(m.firstName + m.lastName)}">${getInitials(m.firstName, m.lastName)}</div>
+            <div class="team-member-info">
+              <div class="team-member-name">${m.firstName} ${m.lastName}</div>
+              <div class="team-member-role">${isLeader ? '⭐ Líder' : 'Miembro'}</div>
+            </div>
+            <div class="team-member-status ${m.isActive ? 'active' : ''}"></div>
+          </div>
+        `;
       }).join('');
     }
 
     function showHistory() {
       const container = document.getElementById('historyList');
-      
       let history = [];
       
-      timeEntries.forEach(entry => {
-        if (entry.clockIn) {
-          const time = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
-          history.push({ type: 'clock-in', time, text: 'Clocked In' });
+      timeEntries.forEach(e => {
+        if (e.clockIn) {
+          const t = e.clockIn?.toDate ? e.clockIn.toDate() : new Date(e.clockIn);
+          history.push({ type: 'clock-in', time: t, text: 'Entrada' });
         }
-        if (entry.clockOut) {
-          const time = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
-          history.push({ type: 'clock-out', time, text: 'Clocked Out' });
+        if (e.clockOut) {
+          const t = e.clockOut?.toDate ? e.clockOut.toDate() : new Date(e.clockOut);
+          history.push({ type: 'clock-out', time: t, text: 'Salida' });
         }
       });
       
-      todaySchedules.filter(s => s.status === 'completed').forEach(schedule => {
-        const client = clients[schedule.clientId];
-        if (schedule.actualEndTime) {
-          const time = schedule.actualEndTime?.toDate ? schedule.actualEndTime.toDate() : new Date();
-          history.push({
-            type: 'job',
-            time,
-            text: 'Completed: ' + (client?.firstName || '') + ' ' + (client?.lastName || '')
-          });
+      todaySchedules.filter(s => s.status === 'completed').forEach(s => {
+        const client = clients[s.clientId];
+        if (s.actualEndTime) {
+          const t = s.actualEndTime?.toDate ? s.actualEndTime.toDate() : new Date();
+          history.push({ type: 'job', time: t, text: `Completado: ${client?.firstName || ''} ${client?.lastName || ''}` });
         }
       });
       
       history.sort((a, b) => a.time - b.time);
       
-      if (history.length === 0) {
-        container.innerHTML = '<div class="text-center text-gray-500 p-4">No activity recorded today</div>';
-      } else {
-        container.innerHTML = history.map(item => 
-          '<div class="history-item">' +
-            '<div class="history-info">' +
-              '<div class="history-icon ' + item.type + '">' +
-                (item.type === 'clock-in' ? '▶️' : item.type === 'clock-out' ? '⏹️' : '✔') +
-              '</div>' +
-              '<div>' +
-                '<div class="history-text">' + item.text + '</div>' +
-                '<div class="history-time">' + formatTime(item.time) + '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>'
-        ).join('');
-      }
+      container.innerHTML = history.length === 0
+        ? '<div class="text-center text-gray-500 p-4">Sin actividad hoy</div>'
+        : history.map(h => `
+          <div class="history-item">
+            <div class="history-info">
+              <div class="history-icon ${h.type}">${h.type === 'clock-in' ? '▶️' : h.type === 'clock-out' ? '⏹️' : '✔'}</div>
+              <div>
+                <div class="history-text">${h.text}</div>
+                <div class="history-time">${formatTime(h.time)}</div>
+              </div>
+            </div>
+          </div>
+        `).join('');
       
       openModal('historyModal');
     }
 
-    function saveState() {
+    // ============================================
+    // STATE PERSISTENCE
+    // ============================================
+    async function saveState() {
       const state = {
         isClockedIn,
         clockInTime: clockInTime?.toISOString(),
-        currentJob: currentJob ? { scheduleId: currentJob.scheduleId } : null,
-        jobStartTime: jobStartTime?.toISOString()
+        currentJob: currentJob ? { scheduleId: currentJob.scheduleId, clientId: currentJob.schedule?.clientId } : null,
+        jobStartTime: jobStartTime?.toISOString(),
+        selectedJobEmployees
       };
       localStorage.setItem('timeclockState', JSON.stringify(state));
+      try { await saveStateToDB(state); } catch (e) { console.error('Save DB error:', e); }
     }
 
-    function restoreState() {
+    async function restoreState() {
       try {
-        const saved = localStorage.getItem('timeclockState');
-        if (!saved) return;
+        let state = await loadStateFromDB();
+        if (!state) {
+          const saved = localStorage.getItem('timeclockState');
+          if (saved) state = JSON.parse(saved);
+        }
+        if (!state) return;
         
-        const state = JSON.parse(saved);
         const todayStr = getLocalDateString();
-        
         if (state.clockInTime) {
-          const clockInDate = state.clockInTime.split('T')[0];
-          // Compare with local date
-          const savedDate = new Date(state.clockInTime);
-          const savedLocalDate = getLocalDateString(savedDate);
-          if (savedLocalDate !== todayStr) {
+          const savedDate = getLocalDateString(new Date(state.clockInTime));
+          if (savedDate !== todayStr) {
             localStorage.removeItem('timeclockState');
+            await clearDBState();
             return;
           }
         }
         
         isClockedIn = state.isClockedIn || false;
         clockInTime = state.clockInTime ? new Date(state.clockInTime) : null;
+        selectedJobEmployees = state.selectedJobEmployees || [];
         
         if (state.currentJob && state.jobStartTime) {
           const schedule = todaySchedules.find(s => s.id === state.currentJob.scheduleId);
           if (schedule && schedule.status === 'in_progress') {
             const client = clients[schedule.clientId];
-            currentJob = { scheduleId: state.currentJob.scheduleId, schedule, client };
+            currentJob = { scheduleId: state.currentJob.scheduleId, schedule, client, teamMembers: selectedJobEmployees };
             jobStartTime = new Date(state.jobStartTime);
-            
-            jobTimerInterval = setInterval(updateJobTimer, 1000);
-            updateJobTimer();
+            if (!jobTimerInterval) {
+              jobTimerInterval = setInterval(updateJobTimer, 1000);
+              updateJobTimer();
+            }
           }
         }
-        
-      } catch (error) {
-        console.error('Error restoring state:', error);
-      }
+      } catch (e) { console.error('Restore state error:', e); }
     }
 
-    function getAvatarColor(name) {
-      const colors = ['#0d9488', '#f97316', '#8b5cf6', '#ec4899', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
-      let hash = 0;
-      for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      return colors[Math.abs(hash) % colors.length];
-    }
-
-    function formatTime(date) {
-      return date.toLocaleTimeString(i18n.getLanguage() === 'es' ? 'es-US' : 'en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
     window.showStartJob = showStartJobModal;
     window.showAdminStatusModal = showAdminStatusModal;
 
     function setupEventListeners() {
-      document.getElementById('clockBtn').addEventListener('click', () => {
-        if (isClockedIn) {
-          clockOut();
-        } else {
-          clockIn();
-        }
-      });
-      
+      document.getElementById('clockBtn').addEventListener('click', () => isClockedIn ? clockOut() : clockIn());
       document.getElementById('langToggle').addEventListener('click', () => {
         i18n.toggleLanguage();
         i18n.updatePageTranslations();
@@ -1838,14 +1862,11 @@
         updateStatusUI();
         renderSchedule();
       });
-      
       document.getElementById('logoutBtn').addEventListener('click', async () => {
         await signOut(auth);
         window.location.href = 'index.html';
       });
-      
       document.getElementById('historyBtn').addEventListener('click', showHistory);
-      
       document.getElementById('pauseJobBtn').addEventListener('click', pauseJob);
       document.getElementById('completeJobBtn').addEventListener('click', showCompleteJobModal);
       
@@ -1858,12 +1879,7 @@
       document.getElementById('confirmCompleteJobBtn').addEventListener('click', completeJob);
       
       document.getElementById('paymentMethod').addEventListener('change', (e) => {
-        const amountGroup = document.getElementById('paymentAmountGroup');
-        if (e.target.value) {
-          amountGroup.classList.remove('hidden');
-        } else {
-          amountGroup.classList.add('hidden');
-        }
+        document.getElementById('paymentAmountGroup').classList.toggle('hidden', !e.target.value);
       });
       
       document.getElementById('closeHistoryModal').addEventListener('click', () => closeModal('historyModal'));
@@ -1879,6 +1895,16 @@
       });
       
       document.getElementById('modalBackdrop').addEventListener('click', closeAllModals);
+      
+      // Location prompt
+      document.getElementById('locationDismissBtn')?.addEventListener('click', () => {
+        document.getElementById('locationPrompt').classList.add('hidden');
+        nearbySchedule = null;
+      });
+      document.getElementById('locationStartBtn')?.addEventListener('click', () => {
+        document.getElementById('locationPrompt').classList.add('hidden');
+        if (nearbySchedule) showStartJobModal(nearbySchedule.id);
+      });
     }
   </script>
 </body>
