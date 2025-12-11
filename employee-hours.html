@@ -98,6 +98,20 @@
       .print-header h1 { font-size: 24px; margin-bottom: 5px; }
       .print-header p { color: #666; }
     }
+
+    @media (max-width: 1024px) {
+  .sidebar,
+  #sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.open,
+  #sidebar.open {
+    transform: translateX(0);
+  }
+}
+
     .print-header { display: none; }
     @media (max-width: 768px) {
       .payroll-table-container { overflow-x: auto; }
@@ -314,8 +328,6 @@
     </main>
   </div>
 
-  <div class="modal-backdrop" id="modalBackdrop"></div>
-
   <div class="modal" id="editHoursModal">
     <div class="modal-header">
       <h3 class="modal-title">✏️ <span id="editModalTitle">Edit Hours</span> - <span id="editEmployeeName">Employee</span></h3>
@@ -373,6 +385,8 @@
       <button type="button" class="btn btn-primary" id="saveAddBtn">➕ <span id="addEntryBtnText">Add Entry</span></button>
     </div>
   </div>
+  
+  <div class="modal-backdrop" id="sidebarOverlay"></div>
 
   <div class="toast-container" id="toastContainer"></div>
 
@@ -930,7 +944,7 @@
       document.getElementById('closeAddModal').addEventListener('click', () => { delete document.getElementById('addEntryModal').dataset.entryId; closeModal('addEntryModal'); });
       document.getElementById('cancelAddBtn').addEventListener('click', () => { delete document.getElementById('addEntryModal').dataset.entryId; closeModal('addEntryModal'); });
       document.getElementById('saveAddBtn').addEventListener('click', saveNewEntry);
-      document.getElementById('modalBackdrop').addEventListener('click', () => { closeModal('editHoursModal'); closeModal('addEntryModal'); });
+      document.getElementById('sidebarOverlay').addEventListener('click', () => { closeModal('editHoursModal'); closeModal('addEntryModal'); });
       document.getElementById('langToggle').addEventListener('click', () => {
         i18n.toggleLanguage();
         updateLanguage();
@@ -944,7 +958,16 @@
         try { await signOut(auth); window.location.href = 'index.html'; }
         catch (error) { showToast('error', 'Error', 'Failed to sign out'); }
       });
-      document.getElementById('menuToggle').addEventListener('click', () => { document.getElementById('sidebar').classList.toggle('collapsed'); });
+            // Mobile menu toggle
+      document.getElementById('menuToggle').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+      });
+
+      document.getElementById('sidebarOverlay').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+      });
     }
   </script>
 </body>
