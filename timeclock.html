@@ -10,6 +10,8 @@
   <!-- PWA Meta Tags -->
   <meta name="theme-color" content="#0d9488">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <!-- Deprecated: Keep apple-specific meta for iOS support; include standard 'mobile-web-app-capable' to satisfy modern linters -->
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CleanPro">
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
@@ -57,6 +59,20 @@
     .timeclock-header-btn:hover {
       background: rgba(255,255,255,0.3);
     }
+
+    .schedule-nav-btn {
+      background: rgba(13,148,136,0.08);
+      border: 1px solid rgba(13,148,136,0.12);
+      color: var(--primary-600);
+      border-radius: var(--radius-lg);
+      padding: 6px 8px;
+      cursor: pointer;
+      font-size: var(--text-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    .schedule-nav-btn:hover { background: rgba(13,148,136,0.12); }
     
     .timeclock-content {
       padding: 0 var(--space-4) var(--space-6);
@@ -658,6 +674,198 @@
     .location-prompt-actions { display: flex; gap: var(--space-2); }
     .location-prompt-actions .btn { flex: 1; }
     
+    /* Improved employee selection UI */
+    .employee-selection-container {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    
+    .employee-selection-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--gray-50);
+      border-radius: var(--radius-lg);
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .employee-selection-item:hover:not(.disabled) {
+      background: var(--gray-100);
+    }
+    
+    .employee-selection-item.selected {
+      background: var(--primary-50);
+      border-color: var(--primary-300);
+    }
+    
+    .employee-selection-item.disabled {
+      opacity: 0.8;
+      cursor: not-allowed;
+      background: linear-gradient(135deg, var(--primary-50), var(--primary-100));
+      border-color: var(--primary-400);
+    }
+    
+    .employee-selection-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      font-size: var(--text-sm);
+      flex-shrink: 0;
+    }
+    
+    .employee-selection-info {
+      flex: 1;
+    }
+    
+    .employee-selection-name {
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+    
+    .employee-selection-role {
+      font-size: var(--text-xs);
+      color: var(--gray-500);
+    }
+    
+    .employee-selection-checkbox {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--gray-300);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-fast);
+      flex-shrink: 0;
+    }
+    
+    .employee-selection-item.selected .employee-selection-checkbox,
+    .employee-selection-item.disabled .employee-selection-checkbox {
+      background: var(--primary-500);
+      border-color: var(--primary-500);
+      color: white;
+    }
+    
+    /* Schedule order number */
+    .schedule-order {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary-100);
+      color: var(--primary-700);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: var(--text-sm);
+      flex-shrink: 0;
+    }
+    
+    .schedule-item.completed .schedule-order {
+      background: var(--success-100);
+      color: var(--success-700);
+    }
+    
+    .schedule-item.active .schedule-order {
+      background: var(--warning-500);
+      color: white;
+    }
+    
+    .schedule-item.cancelled .schedule-order {
+      background: var(--gray-200);
+      color: var(--gray-500);
+    }
+    
+    /* Day summary modal */
+    .day-summary-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .day-summary-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-3);
+      background: var(--gray-50);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-2);
+    }
+    
+    .day-summary-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .day-summary-employee {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .day-summary-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      font-size: var(--text-xs);
+    }
+    
+    .day-summary-name {
+      font-weight: 600;
+    }
+    
+    .day-summary-hours {
+      font-weight: 700;
+      color: var(--primary-600);
+      font-size: var(--text-lg);
+    }
+    
+    .day-summary-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-3) var(--space-4);
+      background: var(--primary-50);
+      border-radius: var(--radius-lg);
+      margin-top: var(--space-3);
+      font-weight: 700;
+    }
+    
+    /* Warning timer animation */
+    .current-job-timer.warning {
+      color: var(--danger-600);
+      animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    /* Cancel button */
+    .job-action-btn.cancel {
+      background: var(--danger-100);
+      color: var(--danger-700);
+      border: 1px solid var(--danger-300);
+    }
+    
+    .job-action-btn.cancel:hover {
+      background: var(--danger-200);
+    }
+
     @media (min-width: 768px) {
       .timeclock-layout { display: flex; }
       .timeclock-main { flex: 1; max-width: 600px; margin: 0 auto; }
@@ -676,6 +884,7 @@
         </div>
         <div class="timeclock-header-actions">
           <button class="timeclock-header-btn" id="langToggle" title="Language">🌐</button>
+          <button class="timeclock-header-btn" id="navNextBtn" title="Navigate Next">🧭</button>
           <button class="timeclock-header-btn" id="historyBtn" title="History">📋</button>
           <button class="timeclock-header-btn" id="logoutBtn" title="Logout">🚪</button>
         </div>
@@ -724,7 +933,8 @@
           <div class="current-job-client" id="currentJobClient">-</div>
           <div class="current-job-address" id="currentJobAddress">-</div>
           <div class="current-job-actions">
-            <button class="job-action-btn pause" id="pauseJobBtn">⏸️ Pausar</button>
+            <button class="job-action-btn" id="navigateJobBtn">🧭 Navegar</button>
+            <button class="job-action-btn cancel" id="cancelJobBtn">❌ Cancelar</button>
             <button class="job-action-btn complete" id="completeJobBtn">✔ Completar</button>
           </div>
         </div>
@@ -813,7 +1023,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Confirmar Empleados</label>
-        <div id="jobTeamMembers"></div>
+        <div class="employee-selection-container" id="jobTeamMembers"></div>
       </div>
       <div class="form-group">
         <label class="form-label">Notas</label>
@@ -919,6 +1129,74 @@
     </div>
   </div>
 
+  <!-- Cancel Job Modal -->
+  <div class="modal" id="cancelJobModal">
+    <div class="modal-header">
+      <h3 class="modal-title">Cancelar Trabajo</h3>
+      <button class="modal-close" id="closeCancelJobModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="card mb-4" style="background: var(--danger-50); border-color: var(--danger-200);">
+        <div class="card-body text-center">
+          <div class="text-4xl mb-2">❌</div>
+          <div class="font-semibold" id="cancelJobClient">-</div>
+          <div class="text-gray-500" id="cancelJobAddress">-</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Razón de Cancelación</label>
+        <select class="form-select" id="cancelReason">
+          <option value="client_cancelled">Cliente canceló en llegada</option>
+          <option value="no_answer">No contestaron</option>
+          <option value="wrong_address">Dirección incorrecta</option>
+          <option value="reschedule">Reprogramar</option>
+          <option value="other">Otra razón</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notas</label>
+        <textarea class="form-input" id="cancelJobNotes" rows="2" placeholder="Detalles adicionales..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelCancelJobBtn">Volver</button>
+      <button type="button" class="btn btn-danger" id="confirmCancelJobBtn">❌ Confirmar Cancelación</button>
+    </div>
+  </div>
+
+  <!-- Day Summary Modal -->
+  <div class="modal" id="daySummaryModal">
+    <div class="modal-header">
+      <h3 class="modal-title">📊 Resumen del Día</h3>
+      <button class="modal-close" id="closeDaySummaryModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="day-summary-list" id="daySummaryList"></div>
+      <div class="day-summary-total">
+        <span>Total del Equipo</span>
+        <span id="daySummaryTotal">0:00</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary" id="closeDaySummaryBtn">¡Buen Trabajo! 🎉</button>
+    </div>
+  </div>
+
+  <!-- Route Directions Prompt -->
+  <div class="location-prompt hidden" id="routePrompt" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1100; max-width: 350px; width: 90%;">
+    <div class="location-prompt-icon">🗺️</div>
+    <div class="location-prompt-title" id="routePromptTitle">Siguiente Destino</div>
+    <div class="location-prompt-text" id="routePromptText">¿Desea direcciones?</div>
+    <div class="location-prompt-client">
+      <div class="location-prompt-client-name" id="routeClientName">-</div>
+      <div class="location-prompt-client-address" id="routeClientAddress">-</div>
+    </div>
+    <div class="location-prompt-actions">
+      <button class="btn btn-secondary" id="routeDismissBtn">Ahora No</button>
+      <button class="btn btn-primary" id="routeDirectionsBtn">🧭 Ver Direcciones</button>
+    </div>
+  </div>
+
   <div class="toast-container" id="toastContainer"></div>
 
   <script type="module">
@@ -956,6 +1234,7 @@
     let clientsWithCoords = [];
     let isAdmin = false;
     let isTeamLeader = false;
+    let officeSettings = null;
     
     let isClockedIn = false;
     let clockInTime = null;
@@ -966,9 +1245,14 @@
     
     let clockInterval = null;
     let jobTimerInterval = null;
+    let timeCheckInterval = null;
     let adminSelectedScheduleId = null;
     let selectedScheduleId = null;
     let nearbySchedule = null;
+    
+    // Track prompts to avoid repetition
+    let lastLongTimePrompt = 0;
+    let lastOfficePrompt = 0;
 
     // ============================================
     // IndexedDB for PERSISTENT state (survives app close/iPhone sleep)
@@ -1043,6 +1327,21 @@
     function formatTime(date) {
       return date.toLocaleTimeString('es-US', { hour: '2-digit', minute: '2-digit' });
     }
+    
+    // Convert milliseconds to HH:MM format
+    function msToHoursMinutes(ms) {
+      const totalMinutes = Math.floor(ms / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return `${hours}:${String(minutes).padStart(2, '0')}`;
+    }
+    
+    // Convert decimal hours to HH:MM format
+    function formatHoursMinutes(decimalHours) {
+      const hours = Math.floor(decimalHours);
+      const minutes = Math.round((decimalHours - hours) * 60);
+      return `${hours}:${String(minutes).padStart(2, '0')}`;
+    }
 
     // ============================================
     // AUTH & INIT
@@ -1086,6 +1385,7 @@
       updateClock();
       clockInterval = setInterval(updateClock, 1000);
       
+      await loadOfficeSettings();
       await loadClients();
       await loadAllTeams();
       await loadTeamInfo();
@@ -1095,8 +1395,15 @@
       await restoreState();
       updateStatusUI();
       renderSchedule();
-      setupEventListeners();
+      try {
+        setupEventListeners();
+      } catch (e) {
+        console.error('Event listener setup error:', e);
+      }
       setupStickyJobCard();
+      
+      // Start time monitoring for long work warnings
+      startTimeMonitoring();
       
       if (currentTeam) {
         document.getElementById('teamBanner').textContent = 'Equipo: ' + currentTeam.name;
@@ -1109,6 +1416,218 @@
       // PWA & Geolocation
       initPWA();
       initGeolocation();
+      
+      // Check if at office on app open (for route prompt)
+      checkOfficeArrival();
+    }
+    
+    // Load office settings for route optimization
+    async function loadOfficeSettings() {
+      try {
+        const configDoc = await getDoc(doc(db, 'config', 'officeSettings'));
+        if (configDoc.exists()) {
+          officeSettings = configDoc.data();
+        }
+      } catch (e) {
+        console.warn('Could not load office settings:', e);
+      }
+    }
+    
+    // Start monitoring for time warnings
+    function startTimeMonitoring() {
+      // Check every minute for time-based prompts
+      timeCheckInterval = setInterval(checkTimeConditions, 60000);
+    }
+    
+    function checkTimeConditions() {
+      const now = Date.now();
+      
+      // Check if clocked in for too long (>10 hours)
+      if (isClockedIn && clockInTime) {
+        const clockedInMs = now - clockInTime.getTime();
+        const clockedInHours = clockedInMs / 3600000;
+        
+        if (clockedInHours > 10 && (now - lastLongTimePrompt > 3600000)) { // Prompt once per hour
+          lastLongTimePrompt = now;
+          if (confirm(`Llevas ${Math.floor(clockedInHours)} horas registrado. ¿Deseas registrar salida?`)) {
+            clockOut();
+          }
+        }
+      }
+      
+      // Check if current job is taking too long (>5 hours)
+      if (currentJob && jobStartTime) {
+        const jobMs = now - jobStartTime.getTime();
+        const jobHours = jobMs / 3600000;
+        
+        if (jobHours > 5) {
+          const timerEl = document.getElementById('jobTimer');
+          if (timerEl) timerEl.classList.add('warning');
+          
+          if (now - lastLongTimePrompt > 3600000) { // Prompt once per hour
+            lastLongTimePrompt = now;
+            showToast('warning', 'Aviso', `El trabajo actual lleva más de ${Math.floor(jobHours)} horas. ¿Todo bien?`);
+          }
+        }
+      }
+      
+      // Check if all jobs are done but still clocked in
+      checkIfAllJobsDone();
+    }
+    
+    function checkIfAllJobsDone() {
+      if (!isClockedIn || currentJob) return;
+      
+      const pendingJobs = todaySchedules.filter(s => s.status === 'scheduled' || s.status === 'in_progress');
+      if (pendingJobs.length > 0) return;
+      
+      // All jobs done, check if at office
+      if (!officeSettings?.start?.coordinates) return;
+      
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const dist = haversine(pos.coords.latitude, pos.coords.longitude,
+            officeSettings.start.coordinates.lat, officeSettings.start.coordinates.lng);
+          
+          if (dist < 0.15) { // At office
+            const now = Date.now();
+            if (now - lastOfficePrompt > 300000) { // Once every 5 minutes
+              lastOfficePrompt = now;
+              if (confirm('¡Todos los trabajos completados! Estás en la oficina. ¿Deseas registrar salida?')) {
+                clockOut();
+              }
+            }
+          }
+        },
+        (err) => {},
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+    
+    // Check if at office on app open (morning)
+    function checkOfficeArrival() {
+      if (!officeSettings?.start?.coordinates) return;
+      if (isClockedIn || currentJob) return;
+      
+      // Check if we're at the office in the morning and haven't clocked in
+      const now = new Date();
+      const hour = now.getHours();
+      if (hour < 6 || hour > 12) return; // Only show in morning hours
+      
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const dist = haversine(pos.coords.latitude, pos.coords.longitude, 
+            officeSettings.start.coordinates.lat, officeSettings.start.coordinates.lng);
+          
+          if (dist < 0.15) { // Within 150m of office
+            // Get first scheduled client
+            const sortedSchedules = sortSchedulesByRoute(todaySchedules);
+            const firstScheduled = sortedSchedules.find(s => s.status === 'scheduled');
+            if (firstScheduled) {
+              const client = clients[firstScheduled.clientId];
+              if (client) {
+                showRoutePrompt(client, 'first');
+              }
+            }
+          }
+        },
+        (err) => console.log('Office check error:', err.message),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+    
+    function showRoutePrompt(client, type) {
+      const now = Date.now();
+      // Don't show more than once every 5 minutes
+      if (now - lastOfficePrompt < 300000) return;
+      lastOfficePrompt = now;
+      
+      if (type === 'first') {
+        document.getElementById('routePromptTitle').textContent = '🗺️ Iniciar Ruta';
+        document.getElementById('routePromptText').textContent = '¿Desea direcciones al primer cliente?';
+      } else if (type === 'office') {
+        document.getElementById('routePromptTitle').textContent = '🏢 Regresar a Oficina';
+        document.getElementById('routePromptText').textContent = '¿Desea direcciones a la oficina?';
+      }
+      
+      document.getElementById('routeClientName').textContent = type === 'office' ? 'Oficina' : `${client.firstName} ${client.lastName}`;
+      document.getElementById('routeClientAddress').textContent = type === 'office' 
+        ? (officeSettings?.start?.street || '') 
+        : (client.address?.street || '');
+      
+      document.getElementById('routePrompt').dataset.type = type;
+      document.getElementById('routePrompt').dataset.clientId = client?.id || '';
+      document.getElementById('routePrompt').classList.remove('hidden');
+    }
+    
+    function openDirections(address) {
+      if (!address) return;
+      const encodedAddress = encodeURIComponent(address);
+      // Try to use native maps on mobile
+      const ua = navigator.userAgent || '';
+      const isIOS = /iPhone|iPad|iPod/i.test(ua);
+      const isAndroid = /Android/i.test(ua);
+      try {
+        if (isIOS) {
+          // Use Apple Maps on iOS
+          window.open(`maps://?daddr=${encodedAddress}`, '_blank');
+          return;
+        }
+        if (isAndroid) {
+          // Android typically opens Google Maps
+          window.open(`https://maps.google.com/maps?daddr=${encodedAddress}`, '_blank');
+          return;
+        }
+        // Desktop fallback: Google Maps directions
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, '_blank');
+      } catch (e) {
+        console.warn('Failed to open native map link, using fallback', e);
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, '_blank');
+      }
+    }
+
+    function getAddressFromClient(client) {
+      if (!client || !client.address) return '';
+      const a = client.address;
+      if (a.coordinates && a.coordinates.lat && a.coordinates.lng) {
+        return `${a.coordinates.lat},${a.coordinates.lng}`;
+      }
+      const parts = [a.street, a.city, a.state, a.zip].filter(Boolean);
+      return parts.join(', ');
+    }
+
+    function navigateToNextClient() {
+      // Sort schedules by route to compute logical "next"
+      const sorted = sortSchedulesByRoute(todaySchedules);
+      if (!sorted || sorted.length === 0) {
+        showToast('info', 'Sin trabajos', 'No hay más trabajos programados');
+        return;
+      }
+
+      let candidate = null;
+      if (currentJob) {
+        const idx = sorted.findIndex(s => s.id === currentJob.scheduleId);
+        if (idx >= 0) {
+          // find first after current which is scheduled or in_progress
+          candidate = sorted.slice(idx + 1).find(s => s.status === 'scheduled' || s.status === 'in_progress');
+        }
+      }
+
+      // Fallback to first scheduled job
+      if (!candidate) candidate = sorted.find(s => s.status === 'scheduled' || s.status === 'in_progress');
+
+      if (!candidate) {
+        showToast('info', 'Sin destino', 'No se encontró el siguiente trabajo');
+        return;
+      }
+
+      const client = clients[candidate.clientId];
+      const address = getAddressFromClient(client);
+      if (!address) {
+        showToast('error', 'Sin dirección', 'El cliente no tiene dirección');
+        return;
+      }
+      openDirections(address);
     }
 
     // ============================================
@@ -1461,22 +1980,37 @@
         return;
       }
       
+      // Calculate hours for each employee for the summary
+      const employeeHours = {};
+      
       try {
         for (const entry of openEntries) {
           const cin = entry.clockIn?.toDate ? entry.clockIn.toDate() : clockInTime;
-          const hours = (clockOutTime - cin) / 3600000;
+          const hoursMs = clockOutTime - cin;
+          const hours = hoursMs / 3600000;
+          
           await updateDoc(doc(db, 'timeEntries', entry.id), {
             clockOut: Timestamp.fromDate(clockOutTime),
             hoursWorked: hours
           });
           entry.clockOut = clockOutTime;
           entry.hoursWorked = hours;
+          
+          // Track hours per employee (in milliseconds for accurate display)
+          if (!employeeHours[entry.employeeId]) {
+            employeeHours[entry.employeeId] = 0;
+          }
+          employeeHours[entry.employeeId] += hoursMs;
         }
         
         // Clear session ID
         localStorage.removeItem('currentSessionId');
         
         showToast('success', 'Éxito', 'Salida registrada para el equipo');
+        
+        // Show day summary modal
+        showDaySummary(employeeHours);
+        
       } catch (e) {
         console.error('Clock out error:', e);
         showToast('error', 'Error', 'No se pudo registrar salida');
@@ -1486,6 +2020,47 @@
       clockInTime = null;
       await saveState();
       updateStatusUI();
+    }
+    
+    // Show day summary modal after clock out
+    function showDaySummary(employeeHours) {
+      const listEl = document.getElementById('daySummaryList');
+      const totalEl = document.getElementById('daySummaryTotal');
+      
+      let totalMs = 0;
+      const items = [];
+      
+      // Get all employees from entries
+      const allEmployeeIds = Object.keys(employeeHours);
+      
+      for (const empId of allEmployeeIds) {
+        const ms = employeeHours[empId] || 0;
+        totalMs += ms;
+        
+        // Find employee info
+        const emp = teamMembers.find(m => m.id === empId) || 
+                    (currentEmployee?.id === empId ? currentEmployee : null) ||
+                    (currentAdmin?.id === empId ? currentAdmin : null);
+        
+        const name = emp ? `${emp.firstName} ${emp.lastName}` : 'Empleado';
+        const initials = emp ? getInitials(emp.firstName, emp.lastName) : '?';
+        const color = emp ? getAvatarColor(emp.firstName + emp.lastName) : '#888';
+        
+        items.push(`
+          <div class="day-summary-item">
+            <div class="day-summary-employee">
+              <div class="day-summary-avatar" style="background-color:${color}">${initials}</div>
+              <span class="day-summary-name">${name}</span>
+            </div>
+            <span class="day-summary-hours">${msToHoursMinutes(ms)}</span>
+          </div>
+        `);
+      }
+      
+      listEl.innerHTML = items.join('');
+      totalEl.textContent = msToHoursMinutes(totalMs);
+      
+      openModal('daySummaryModal');
     }
 
     // ============================================
@@ -1539,16 +2114,45 @@
         }).join('');
       } else addonsDiv.classList.add('hidden');
       
-      // Team member checkboxes
+      // Team member selection with improved UI - gray out team leader
       const container = document.getElementById('jobTeamMembers');
-      container.innerHTML = teamMembers.map(m => `
-        <label class="form-check" style="margin-bottom:8px;">
-          <input type="checkbox" class="form-check-input job-emp-cb" value="${m.id}" data-name="${m.firstName} ${m.lastName}" checked>
-          <span class="form-check-label">${m.firstName} ${m.lastName}</span>
-        </label>
-      `).join('') || '<p class="text-gray-500">Sin miembros de equipo</p>';
+      const currentUserId = currentAdmin?.id || currentEmployee?.id;
+      const leaderId = currentTeam?.leaderId || currentUserId;
+      
+      container.innerHTML = teamMembers.map(m => {
+        const isLeader = m.id === leaderId;
+        const avatarColor = getAvatarColor(m.firstName + m.lastName);
+        const initials = getInitials(m.firstName, m.lastName);
+        
+        return `
+          <div class="employee-selection-item ${isLeader ? 'disabled' : 'selected'}" data-emp-id="${m.id}" data-emp-name="${m.firstName} ${m.lastName}" onclick="${isLeader ? '' : 'toggleEmployeeSelection(this)'}">
+            <div class="employee-selection-avatar" style="background-color:${avatarColor}">${initials}</div>
+            <div class="employee-selection-info">
+              <div class="employee-selection-name">${m.firstName} ${m.lastName}</div>
+              <div class="employee-selection-role">${isLeader ? '⭐ Líder del Equipo (requerido)' : 'Miembro'}</div>
+            </div>
+            <div class="employee-selection-checkbox">✓</div>
+          </div>
+        `;
+      }).join('') || '<p class="text-gray-500">Sin miembros de equipo</p>';
       
       openModal('startJobModal');
+    }
+    
+    // Toggle employee selection
+    window.toggleEmployeeSelection = function(element) {
+      element.classList.toggle('selected');
+      const checkbox = element.querySelector('.employee-selection-checkbox');
+      checkbox.innerHTML = element.classList.contains('selected') ? '✓' : '';
+    };
+    
+    // Get selected employees from new UI
+    function getSelectedEmployees() {
+      const selectedItems = document.querySelectorAll('.employee-selection-item.selected, .employee-selection-item.disabled');
+      return Array.from(selectedItems).map(item => ({
+        id: item.dataset.empId,
+        name: item.dataset.empName
+      }));
     }
 
     async function stopCurrentJobWithoutComplete() {
@@ -1576,9 +2180,8 @@
       
       const client = clients[schedule.clientId];
       
-      // Get selected employees
-      const cbs = document.querySelectorAll('.job-emp-cb:checked');
-      selectedJobEmployees = Array.from(cbs).map(cb => ({ id: cb.value, name: cb.dataset.name }));
+      // Get selected employees from new UI
+      selectedJobEmployees = getSelectedEmployees();
       
       currentJob = { scheduleId: selectedScheduleId, schedule, client, teamMembers: selectedJobEmployees };
       jobStartTime = new Date();
@@ -1690,16 +2293,24 @@
         
         closeModal('completeJobModal');
         
-        // Check if this was the last job - auto clock out
+        // Check if this was the last job
         const remainingJobs = todaySchedules.filter(s => s.status === 'scheduled' || s.status === 'in_progress');
         if (remainingJobs.length === 0 && isClockedIn) {
-          // All jobs done - offer to clock out
-          const autoClockOut = confirm('¡Todos los trabajos completados! ¿Desea registrar salida automáticamente?');
-          if (autoClockOut) {
-            await clockOut();
-            showToast('success', '¡Día completado!', 'Salida registrada. ¡Buen trabajo!');
+          // All jobs done - offer directions to office first
+          showToast('success', '¡Completado!', 'Último trabajo del día');
+          
+          // Show route to office prompt if office is set
+          if (officeSettings?.start?.street) {
+            setTimeout(() => {
+              showRoutePrompt(null, 'office');
+            }, 500);
           } else {
-            showToast('success', '¡Completado!', 'Excelente trabajo');
+            // No office set, just ask about clocking out
+            setTimeout(() => {
+              if (confirm('¡Todos los trabajos completados! ¿Desea registrar salida?')) {
+                clockOut();
+              }
+            }, 1000);
           }
         } else {
           showToast('success', '¡Completado!', 'Excelente trabajo');
@@ -1714,9 +2325,58 @@
       renderSchedule();
     }
 
-    function pauseJob() {
-      showToast('info', 'Pausado', 'Continúe cuando esté listo');
+    // Cancel job function
+    function showCancelJobModal() {
+      if (!currentJob) return;
+      
+      const client = currentJob.client;
+      document.getElementById('cancelJobClient').textContent = `${client.firstName} ${client.lastName}`;
+      document.getElementById('cancelJobAddress').textContent = client.address?.street || '';
+      document.getElementById('cancelReason').value = 'client_cancelled';
+      document.getElementById('cancelJobNotes').value = '';
+      
+      openModal('cancelJobModal');
     }
+    
+    async function cancelJob() {
+      if (!currentJob) return;
+      
+      const cancelReason = document.getElementById('cancelReason').value;
+      const cancelNotes = document.getElementById('cancelJobNotes').value;
+      
+      try {
+        await updateDoc(doc(db, 'schedules', currentJob.scheduleId), {
+          status: 'cancelled',
+          cancelledAt: Timestamp.now(),
+          cancelReason: cancelReason,
+          cancelNotes: cancelNotes,
+          actualEndTime: Timestamp.now()
+        });
+        
+        currentJob.schedule.status = 'cancelled';
+        
+        if (jobTimerInterval) { clearInterval(jobTimerInterval); jobTimerInterval = null; }
+        
+        await logScheduleAction(AuditActions.UPDATE, currentJob.scheduleId, `Cancelado: ${currentJob.client.firstName} ${currentJob.client.lastName} - ${cancelReason}`);
+        
+        currentJob = null;
+        jobStartTime = null;
+        selectedJobEmployees = [];
+        
+        closeModal('cancelJobModal');
+        showToast('info', 'Cancelado', 'El trabajo ha sido cancelado');
+        
+      } catch (e) {
+        console.error('Cancel job error:', e);
+        showToast('error', 'Error', 'No se pudo cancelar');
+      }
+      
+      await saveState();
+      updateStatusUI();
+      renderSchedule();
+    }
+
+      // Pause feature placeholder removed or temporarily disabled
 
     // ============================================
     // ADMIN STATUS
@@ -1808,7 +2468,10 @@
         return;
       }
       
-      container.innerHTML = todaySchedules.map(sch => {
+      // Sort schedules by route order (proximity-based)
+      const sortedSchedules = sortSchedulesByRoute(todaySchedules);
+      
+      container.innerHTML = sortedSchedules.map((sch, index) => {
         const client = clients[sch.clientId];
         if (!client) return '';
         
@@ -1829,9 +2492,12 @@
         };
         
         const doorCode = client.houseCode ? `<div class="schedule-door-code">🔑 ${client.houseCode}</div>` : '';
+        const addressStr = getAddressFromClient(client);
+        const orderNum = index + 1;
         
         return `
           <div class="schedule-item ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''} ${isCancelled ? 'cancelled' : ''}" ${handler}>
+            <div class="schedule-order">${isCompleted ? '✓' : orderNum}</div>
             <div class="schedule-time">
               <div class="schedule-time-slot">${sch.timeSlot === 'morning' ? '🌅' : '🌆'}</div>
               <div class="schedule-time-label">${sch.timeSlot === 'morning' ? 'AM' : 'PM'}</div>
@@ -1844,11 +2510,68 @@
             <div class="schedule-status">
               <div class="schedule-price">${formatCurrency(sch.serviceDetails?.totalPrice || 0)}</div>
               ${badges[sch.status] || ''}
+              <div style="margin-top:6px;"><button class="schedule-nav-btn" data-address="${(addressStr || '').replace(/\"/g, '&quot;')}">🧭 Ir</button></div>
             </div>
           </div>
         `;
       }).join('');
     }
+    
+    // Sort schedules by proximity to office (route optimization)
+    function sortSchedulesByRoute(schedules) {
+      // If no office settings, sort by time slot
+      if (!officeSettings?.start?.coordinates) {
+        return [...schedules].sort((a, b) => {
+          if (a.timeSlot !== b.timeSlot) return a.timeSlot === 'morning' ? -1 : 1;
+          return 0;
+        });
+      }
+      
+      const scheduled = schedules.filter(s => s.status !== 'cancelled');
+      const cancelled = schedules.filter(s => s.status === 'cancelled');
+      
+      const withCoords = scheduled.filter(s => {
+        const client = clients[s.clientId];
+        return client?.address?.coordinates;
+      });
+      const withoutCoords = scheduled.filter(s => {
+        const client = clients[s.clientId];
+        return !client?.address?.coordinates;
+      });
+      
+      if (withCoords.length <= 1) {
+        return [...withCoords, ...withoutCoords, ...cancelled];
+      }
+      
+      // Nearest neighbor algorithm
+      const sorted = [];
+      let currentPoint = officeSettings.start.coordinates;
+      const remaining = [...withCoords];
+      
+      while (remaining.length > 0) {
+        let nearestIdx = 0;
+        let nearestDist = Infinity;
+        
+        for (let i = 0; i < remaining.length; i++) {
+          const schedule = remaining[i];
+          const client = clients[schedule.clientId];
+          const clientCoords = client.address.coordinates;
+          const dist = haversine(currentPoint.lat, currentPoint.lng, clientCoords.lat, clientCoords.lng);
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearestIdx = i;
+          }
+        }
+        
+        const nearest = remaining.splice(nearestIdx, 1)[0];
+        sorted.push(nearest);
+        const nearestClient = clients[nearest.clientId];
+        currentPoint = nearestClient.address.coordinates;
+      }
+      
+      return [...sorted, ...withoutCoords, ...cancelled];
+    }
+
 
     function renderTeamMembers() {
       const container = document.getElementById('teamMembersList');
@@ -1973,51 +2696,112 @@
     // ============================================
     // EVENT LISTENERS
     // ============================================
+    function addListenerSafe(id, type, handler) {
+      const el = document.getElementById(id);
+      if (!el) {
+        console.warn('Missing element for event listener:', id);
+        return;
+      }
+      el.addEventListener(type, handler);
+    }
     window.showStartJob = showStartJobModal;
     window.showAdminStatusModal = showAdminStatusModal;
 
     function setupEventListeners() {
-      document.getElementById('clockBtn').addEventListener('click', () => isClockedIn ? clockOut() : clockIn());
-      document.getElementById('langToggle').addEventListener('click', () => {
+      addListenerSafe('clockBtn', 'click', () => isClockedIn ? clockOut() : clockIn());
+      addListenerSafe('langToggle', 'click', () => {
         i18n.toggleLanguage();
         i18n.updatePageTranslations();
         updateClock();
         updateStatusUI();
         renderSchedule();
       });
-      document.getElementById('logoutBtn').addEventListener('click', async () => {
+      addListenerSafe('logoutBtn', 'click', async () => {
         await signOut(auth);
         window.location.href = 'index.html';
       });
-      document.getElementById('historyBtn').addEventListener('click', showHistory);
-      document.getElementById('pauseJobBtn').addEventListener('click', pauseJob);
-      document.getElementById('completeJobBtn').addEventListener('click', showCompleteJobModal);
+      addListenerSafe('historyBtn', 'click', showHistory);
+      addListenerSafe('cancelJobBtn', 'click', showCancelJobModal);
+      addListenerSafe('completeJobBtn', 'click', showCompleteJobModal);
       
-      document.getElementById('closeStartJobModal').addEventListener('click', () => closeModal('startJobModal'));
-      document.getElementById('cancelStartJobBtn').addEventListener('click', () => closeModal('startJobModal'));
-      document.getElementById('confirmStartJobBtn').addEventListener('click', startJob);
+      addListenerSafe('closeStartJobModal', 'click', () => closeModal('startJobModal'));
+      addListenerSafe('cancelStartJobBtn', 'click', () => closeModal('startJobModal'));
+      addListenerSafe('confirmStartJobBtn', 'click', startJob);
       
-      document.getElementById('closeCompleteJobModal').addEventListener('click', () => closeModal('completeJobModal'));
-      document.getElementById('cancelCompleteJobBtn').addEventListener('click', () => closeModal('completeJobModal'));
-      document.getElementById('confirmCompleteJobBtn').addEventListener('click', completeJob);
+      addListenerSafe('closeCompleteJobModal', 'click', () => closeModal('completeJobModal'));
+      addListenerSafe('cancelCompleteJobBtn', 'click', () => closeModal('completeJobModal'));
+      addListenerSafe('confirmCompleteJobBtn', 'click', completeJob);
       
-      document.getElementById('paymentMethod').addEventListener('change', (e) => {
+      // Cancel job modal
+      addListenerSafe('closeCancelJobModal', 'click', () => closeModal('cancelJobModal'));
+      addListenerSafe('cancelCancelJobBtn', 'click', () => closeModal('cancelJobModal'));
+      addListenerSafe('confirmCancelJobBtn', 'click', cancelJob);
+      
+      // Day summary modal
+      addListenerSafe('closeDaySummaryModal', 'click', () => closeModal('daySummaryModal'));
+      addListenerSafe('closeDaySummaryBtn', 'click', () => closeModal('daySummaryModal'));
+      
+      // Route prompt
+      addListenerSafe('routeDismissBtn', 'click', () => {
+        document.getElementById('routePrompt').classList.add('hidden');
+      });
+      addListenerSafe('routeDirectionsBtn', 'click', () => {
+        const promptEl = document.getElementById('routePrompt');
+        const type = promptEl.dataset.type;
+        let address = '';
+        
+        if (type === 'office') {
+          address = officeSettings?.start?.street;
+          if (officeSettings?.start?.city) address += ', ' + officeSettings.start.city;
+        } else {
+          const clientId = promptEl.dataset.clientId;
+          const client = clients[clientId];
+          if (client?.address) {
+            address = client.address.street;
+            if (client.address.city) address += ', ' + client.address.city;
+          }
+        }
+        
+        if (address) openDirections(address);
+        promptEl.classList.add('hidden');
+      });
+      
+      addListenerSafe('paymentMethod', 'change', (e) => {
         document.getElementById('paymentAmountGroup').classList.toggle('hidden', !e.target.value);
       });
       
-      document.getElementById('closeHistoryModal').addEventListener('click', () => closeModal('historyModal'));
-      document.getElementById('closeHistoryBtn').addEventListener('click', () => closeModal('historyModal'));
+      addListenerSafe('closeHistoryModal', 'click', () => closeModal('historyModal'));
+      addListenerSafe('closeHistoryBtn', 'click', () => closeModal('historyModal'));
       
-      document.getElementById('closeAdminStatusModal')?.addEventListener('click', () => closeModal('adminStatusModal'));
-      document.getElementById('cancelAdminStatusBtn')?.addEventListener('click', () => closeModal('adminStatusModal'));
-      document.getElementById('confirmAdminStatusBtn')?.addEventListener('click', updateAdminStatus);
+      addListenerSafe('closeAdminStatusModal', 'click', () => closeModal('adminStatusModal'));
+      addListenerSafe('cancelAdminStatusBtn', 'click', () => closeModal('adminStatusModal'));
+      addListenerSafe('confirmAdminStatusBtn', 'click', updateAdminStatus);
       
-      document.getElementById('adminTeamFilter')?.addEventListener('change', async () => {
+      addListenerSafe('adminTeamFilter', 'change', async () => {
         await loadTodaySchedules();
         renderSchedule();
       });
+
+      // Header: Navigate to next job
+      addListenerSafe('navNextBtn', 'click', navigateToNextClient);
+      addListenerSafe('navigateJobBtn', 'click', () => {
+        if (!currentJob) return showToast('info', 'Sin Trabajo', 'No hay trabajo en curso');
+        const addr = getAddressFromClient(currentJob.client);
+        if (addr) openDirections(addr);
+      });
+
+      // Event delegation for per-schedule navigate buttons
+      document.addEventListener('click', (ev) => {
+        const target = ev.target.closest && ev.target.closest('.schedule-nav-btn');
+        if (target) {
+          const addr = target.dataset.address;
+          if (addr) {
+            openDirections(addr);
+          }
+        }
+      });
       
-      document.getElementById('modalBackdrop').addEventListener('click', closeAllModals);
+      document.getElementById('modalBackdrop')?.addEventListener('click', closeAllModals);
       
       // Location prompt
       document.getElementById('locationDismissBtn')?.addEventListener('click', () => {
