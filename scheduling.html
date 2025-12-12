@@ -426,6 +426,11 @@
       color: var(--warning-700);
       margin-bottom: var(--space-2);
     }
+    /* Search-select combobox styles */
+    .search-select-input { cursor: text; }
+    .search-select-list .search-option { padding: 8px 10px; border-bottom: 1px solid var(--gray-100); }
+    .search-select-list .search-option:last-child { border-bottom: none; }
+    .search-select-list .search-option:hover, .search-select-list .search-option.focused { background: var(--gray-50); }
   </style>
 </head>
 <body>
@@ -640,13 +645,22 @@
         <div class="grid grid-cols-2">
           <div class="form-group">
             <label class="form-label form-label-required" data-i18n="selectClient">Select Client</label>
-            <select class="form-select" id="scheduleClient" required>
-              <option value="">-- Select Client --</option>
-            </select>
+            <div class="search-select" id="scheduleClientCombo" style="position:relative;">
+              <div class="search-select-input" id="scheduleClientCombobox" style="display:flex; gap:6px; align-items:center;">
+                <input type="text" class="form-input" id="scheduleClientSearch" placeholder="Search clients..." autocomplete="off" aria-haspopup="listbox" aria-expanded="false" />
+                <span id="scheduleClientCaret" style="font-size:0.9rem; cursor:pointer;">▾</span>
+              </div>
+              <div class="search-select-list hidden" id="scheduleClientList" role="listbox" tabindex="-1" style="position:absolute; z-index:40; width:100%; background:white; border:1px solid var(--gray-200); box-shadow:var(--shadow-md); max-height:220px; overflow:auto; border-radius:6px;">
+                <!-- options rendered here -->
+              </div>
+              <select class="form-select" id="scheduleClient" style="display:none;" required>
+                <option value="">-- Select Client --</option>
+              </select>
+            </div>
           </div>
           <div class="form-group">
-            <label class="form-label form-label-required" data-i18n="selectTeam">Select Team</label>
-            <select class="form-select" id="scheduleTeam" required>
+            <label class="form-label" data-i18n="selectTeam">Select Team <span class="text-gray-500" style="font-weight: normal; font-size: 0.9rem;">(optional)</span></label>
+            <select class="form-select" id="scheduleTeam">
               <option value="">-- Select Team --</option>
             </select>
           </div>
@@ -1420,11 +1434,12 @@
         // Create a section for each active team, even if it has no jobs scheduled for today
         teams.forEach(team => {
           const group = (teamsMap[team.id] || []).slice().sort((a, b) => Number(a.routeOrder || Infinity) - Number(b.routeOrder || Infinity));
+          const clientCount = new Set(group.map(s => s.clientId)).size;
           html += `
             <div class="team-jobs-group mb-4">
               <div class="team-jobs-header">
                 <div style="display:flex; align-items:center; gap:8px;">
-                  <h4 class="mb-2" style="margin:0;">${team.name}</h4>
+                  <h4 class="mb-2" style="margin:0;">${team.name} <span class="text-gray-500" style="font-weight:normal; margin-left: 8px; font-size: 0.9rem;">(${clientCount} client${clientCount !== 1 ? 's' : ''})</span></h4>
                   <button class="btn btn-sm btn-outline" onclick="previewRouteForTeam('${team.id}', '${dateStr}')">🗺️ Preview Route</button>
                 </div>
               </div>
@@ -1438,11 +1453,12 @@
         // Also include a section for unassigned jobs
         const unassignedGroup = (teamsMap['unassigned'] || []).slice().sort((a, b) => Number(a.routeOrder || Infinity) - Number(b.routeOrder || Infinity));
         if (unassignedGroup.length > 0) {
+          const unassignedCount = new Set(unassignedGroup.map(s => s.clientId)).size;
           html += `
             <div class="team-jobs-group mb-4">
               <div class="team-jobs-header">
                 <div style="display:flex; align-items:center; gap:8px;">
-                  <h4 class="mb-2" style="margin:0;">Unassigned</h4>
+                  <h4 class="mb-2" style="margin:0;">Unassigned <span class="text-gray-500" style="font-weight:normal; margin-left: 8px; font-size: 0.9rem;">(${unassignedCount} client${unassignedCount !== 1 ? 's' : ''})</span></h4>
                   <button class="btn btn-sm btn-outline" onclick="previewRouteForTeam('unassigned', '${dateStr}')">🗺️ Preview Route</button>
                 </div>
               </div>
@@ -1473,6 +1489,10 @@
       }
       
       document.getElementById('scheduleStatus').value = 'scheduled';
+      // Clear client search and default the team to the first team (if available)
+      const clientSearchInput = document.getElementById('scheduleClientSearch');
+      if (clientSearchInput) clientSearchInput.value = '';
+      if (!editingScheduleId && teams && teams.length > 0) document.getElementById('scheduleTeam').value = teams[0].id;
       updateTotalPrice();
       openModal('scheduleModal');
     }
@@ -1589,6 +1609,10 @@
       document.getElementById('scheduleModalTitle').textContent = i18n.t('editSchedule');
       
       document.getElementById('scheduleClient').value = schedule.clientId;
+      // Populate and set the search input to the selected client label
+      const clientSearchInput = document.getElementById('scheduleClientSearch');
+      const client = clients.find(c => c.id === schedule.clientId);
+      if (clientSearchInput) clientSearchInput.value = client ? `${client.lastName}, ${client.firstName} - ${client.address?.street || ''}` : '';
       document.getElementById('scheduleTeam').value = schedule.teamId;
       document.getElementById('scheduleDate').value = schedule.date;
       // Time slot no longer used. Keep hidden input empty for compatibility.
@@ -1618,13 +1642,15 @@
 
     async function saveSchedule() {
       const clientId = document.getElementById('scheduleClient').value;
-      const teamId = document.getElementById('scheduleTeam').value;
+      let teamId = document.getElementById('scheduleTeam').value;
       const date = document.getElementById('scheduleDate').value;
       
-      if (!clientId || !teamId || !date) {
+      if (!clientId || !date) {
         showToast('error', i18n.t('error'), i18n.t('required'));
         return;
       }
+      // Default the team to the first available team if none selected
+      if (!teamId && teams && teams.length > 0) teamId = teams[0].id;
       
       const client = clients.find(c => c.id === clientId);
       
@@ -2234,10 +2260,33 @@ function formatDateStr(date) {
     //   return i18n.formatDate(date, options);
     // }
 
-    function populateClientSelect() {
+    function populateClientSelect(filter = '') {
       const select = document.getElementById('scheduleClient');
+      const currentVal = select.value;
+      const inputEl = document.getElementById('scheduleClientSearch');
+      if (currentVal && inputEl) {
+        const selectedClient = clients.find(c => c.id === currentVal);
+        if (selectedClient) inputEl.value = `${selectedClient.lastName}, ${selectedClient.firstName} - ${selectedClient.address?.street || ''}`;
+      }
+      const q = (filter || '').trim().toLowerCase();
+      const filtered = q ? clients.filter(c => {
+        const full = `${c.firstName} ${c.lastName} ${c.address?.street || ''} ${c.houseCode || ''}`.toLowerCase();
+        return full.indexOf(q) !== -1;
+      }) : clients;
       select.innerHTML = '<option value="">-- Select Client --</option>' +
-        clients.map(c => `<option value="${c.id}">${c.lastName}, ${c.firstName} - ${c.address?.street || ''}</option>`).join('');
+        filtered.map(c => `<option value="${c.id}">${c.lastName}, ${c.firstName} - ${c.address?.street || ''}</option>`).join('');
+      // Also render the dropdown list for the combobox so users can search and scroll
+      const list = document.getElementById('scheduleClientList');
+      if (list) {
+        list.innerHTML = filtered.map(c => `<div class="search-option" role="option" data-id="${c.id}" style="padding:8px 10px; cursor:pointer;">${c.lastName}, ${c.firstName} - ${c.address?.street || ''}</div>`).join('');
+        // If there are options and the combobox is focused, show the list
+        if (currentVal) {
+          const item = list.querySelector(`.search-option[data-id="${currentVal}"]`);
+          if (item) item.classList.add('focused');
+        }
+      }
+      // Preserve selection if it still exists in the filtered list
+      if (currentVal && filtered.some(c => c.id === currentVal)) select.value = currentVal;
     }
 
     function populateTeamSelect() {
@@ -2248,6 +2297,8 @@ function formatDateStr(date) {
       const filterSelect = document.getElementById('teamFilter');
       filterSelect.innerHTML = '<option value="">All Teams</option>' +
         teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+      // Default the schedule team to the first team if available
+      if (teams && teams.length > 0 && select.value === '') select.value = teams[0].id;
     }
 
     function onClientChange() {
@@ -2435,6 +2486,89 @@ function formatDateStr(date) {
       document.getElementById('saveScheduleBtn').addEventListener('click', saveSchedule);
       
       document.getElementById('scheduleClient').addEventListener('change', onClientChange);
+      // Client combobox: filters the schedule client select dropdown and shows a list for selection
+      (function() {
+        const clientSearchEl = document.getElementById('scheduleClientSearch');
+        const clientListEl = document.getElementById('scheduleClientList');
+        const clientCombobox = document.getElementById('scheduleClientCombobox');
+        const clientCaret = document.getElementById('scheduleClientCaret');
+        let listOpen = false;
+        let activeIdx = -1;
+        function focusListItem(items, idx) {
+          items.forEach((it, i) => it.classList.toggle('focused', i === idx));
+          if (items[idx]) items[idx].scrollIntoView({ block: 'nearest' });
+        }
+        function showClientList(show) {
+          listOpen = !!show;
+          if (!clientListEl) return;
+          clientListEl.classList.toggle('hidden', !listOpen);
+          if (clientSearchEl) clientSearchEl.setAttribute('aria-expanded', listOpen ? 'true' : 'false');
+          if (!listOpen) activeIdx = -1;
+        }
+        clientSearchEl?.addEventListener('input', (e) => {
+          const q = e.target.value;
+          populateClientSelect(q);
+          showClientList(true);
+        });
+        // Click caret/toggle
+        clientCaret?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (listOpen) showClientList(false);
+          else {
+            populateClientSelect('');
+            clientSearchEl.focus();
+            showClientList(true);
+          }
+        });
+        // Click to open list
+        clientCombobox?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!listOpen) {
+            populateClientSelect('');
+            clientSearchEl.focus();
+            showClientList(true);
+          }
+        });
+        // Click outside closes the list
+        document.addEventListener('click', (e) => {
+          const target = e.target;
+          const combo = document.getElementById('scheduleClientCombo');
+          if (!combo) return;
+          if (!combo.contains(target)) showClientList(false);
+        });
+        // Keyboard navigation
+        clientSearchEl?.addEventListener('keydown', (e) => {
+          const items = clientListEl ? clientListEl.querySelectorAll('.search-option') : [];
+          if (!items || items.length === 0) return;
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIdx = Math.min(activeIdx + 1, items.length - 1);
+            focusListItem(items, activeIdx);
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIdx = Math.max(activeIdx - 1, 0);
+            focusListItem(items, activeIdx);
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (activeIdx >= 0 && items[activeIdx]) items[activeIdx].click();
+          } else if (e.key === 'Escape') {
+            showClientList(false);
+            clientSearchEl.blur();
+          }
+        });
+        // Delegate click on list
+        clientListEl?.addEventListener('click', (e) => {
+          const li = e.target.closest('.search-option');
+          if (!li) return;
+          const id = li.dataset.id;
+          const hidden = document.getElementById('scheduleClient');
+          if (hidden) hidden.value = id;
+          clientSearchEl.value = li.textContent;
+          // Trigger change for rest of UI
+          if (typeof onClientChange === 'function') onClientChange();
+          showClientList(false);
+        });
+      })();
 
       // View Schedule Modal
       document.getElementById('closeViewScheduleModal').addEventListener('click', () => closeModal('viewScheduleModal'));
