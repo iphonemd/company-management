@@ -1119,20 +1119,39 @@
         navigator.serviceWorker.register('sw.js').catch(() => {});
       }
       
-      // Restore state when page becomes visible (iPhone wake)
+      // Refresh data and restore state when page becomes visible (iPhone wake/switch back)
       document.addEventListener('visibilitychange', async () => {
         if (document.visibilityState === 'visible') {
+          console.log('App became visible - refreshing data...');
+          // Reload schedules in case new ones were added
+          await loadTodaySchedules();
+          await loadTimeEntries();
           await restoreState();
+          renderSchedule();
           updateStatusUI();
           if (currentJob && jobStartTime) updateJobTimer();
+          // Re-check location
+          initGeolocation();
         }
       });
       
       window.addEventListener('focus', async () => {
+        console.log('App focused - refreshing data...');
+        await loadTodaySchedules();
+        await loadTimeEntries();
         await restoreState();
+        renderSchedule();
         updateStatusUI();
         if (currentJob && jobStartTime) updateJobTimer();
       });
+      
+      // Also refresh periodically while app is open (every 2 minutes)
+      setInterval(async () => {
+        if (document.visibilityState === 'visible') {
+          await loadTodaySchedules();
+          renderSchedule();
+        }
+      }, 120000);
     }
 
     // ============================================
@@ -1140,32 +1159,67 @@
     // ============================================
     function initGeolocation() {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (!isMobile || !('geolocation' in navigator)) return;
       
+      // Check if we should skip (already clocked in and working)
+      if (isClockedIn && currentJob) return;
+      
+      if (!('geolocation' in navigator)) {
+        console.log('Geolocation not supported');
+        return;
+      }
+      
+      // Request location - this will prompt for permission on iOS PWA
       navigator.geolocation.getCurrentPosition(
-        (pos) => checkNearbyClients(pos.coords.latitude, pos.coords.longitude),
-        () => {},
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        (pos) => {
+          console.log('Got location:', pos.coords.latitude, pos.coords.longitude);
+          checkNearbyClients(pos.coords.latitude, pos.coords.longitude);
+        },
+        (err) => {
+          console.log('Geolocation error:', err.message);
+          // On iOS PWA, show a helpful message if permission denied
+          if (err.code === 1 && isMobile) {
+            // Permission denied - user may need to enable in Settings
+            console.log('Location permission denied. User may need to enable in Settings > Privacy > Location Services');
+          }
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
       );
     }
 
-    function checkNearbyClients(lat, lng) {
+    function checkNearbyClients(userLat, userLng) {
+      // Don't show prompt if already clocked in or working
       if (isClockedIn || currentJob) return;
+      
+      console.log('Checking nearby clients from', todaySchedules.length, 'schedules');
       
       for (const schedule of todaySchedules) {
         if (schedule.status !== 'scheduled') continue;
-        const client = clients[schedule.clientId];
-        if (!client?.address?.coordinates) continue;
         
-        const dist = haversine(lat, lng, client.address.coordinates.lat, client.address.coordinates.lng);
-        if (dist < 0.15) { // 150 meters
-          nearbySchedule = schedule;
-          document.getElementById('locationClientName').textContent = `${client.firstName} ${client.lastName}`;
-          document.getElementById('locationClientAddress').textContent = client.address?.street || '';
-          document.getElementById('locationPrompt').classList.remove('hidden');
-          return;
+        const client = clients[schedule.clientId];
+        if (!client?.address) continue;
+        
+        // Try to match by coordinates if available
+        if (client.address.coordinates) {
+          const dist = haversine(userLat, userLng, client.address.coordinates.lat, client.address.coordinates.lng);
+          console.log(`Distance to ${client.firstName}: ${dist.toFixed(2)} km`);
+          if (dist < 0.15) { // 150 meters
+            showLocationPrompt(schedule, client);
+            return;
+          }
         }
+        
+        // Fallback: Use Google Geocoding API or simple city matching
+        // For now, let's add a manual "I'm here" button as alternative
       }
+      
+      console.log('No nearby clients found');
+    }
+    
+    function showLocationPrompt(schedule, client) {
+      nearbySchedule = schedule;
+      document.getElementById('locationClientName').textContent = `${client.firstName} ${client.lastName}`;
+      document.getElementById('locationClientAddress').textContent = client.address?.street || '';
+      document.getElementById('locationPrompt').classList.remove('hidden');
     }
 
     function haversine(lat1, lon1, lat2, lon2) {
@@ -1331,6 +1385,9 @@
       clockInTime = new Date();
       isClockedIn = true;
       
+      // Generate a unique session ID for this clock-in session
+      const sessionId = `session_${Date.now()}`;
+      
       try {
         const todayStr = getLocalDateString();
         
@@ -1342,10 +1399,14 @@
           clockIn: Timestamp.fromDate(clockInTime),
           clockOut: null,
           hoursWorked: null,
+          sessionId: sessionId, // Track which session this belongs to
           createdAt: Timestamp.now()
         };
         const ref = await addDoc(collection(db, 'timeEntries'), entry);
         timeEntries.push({ id: ref.id, ...entry, clockIn: clockInTime });
+        
+        // Store session ID for clock out
+        localStorage.setItem('currentSessionId', sessionId);
         
         // Also create time entries for all team members (they clock in with the team)
         for (const member of teamMembers) {
@@ -1356,7 +1417,8 @@
               clockIn: Timestamp.fromDate(clockInTime),
               clockOut: null,
               hoursWorked: null,
-              teamClockIn: true, // Flag to indicate this was a team clock-in
+              sessionId: sessionId, // Same session ID
+              teamClockIn: true,
               clockedInBy: currentUserId,
               createdAt: Timestamp.now()
             };
@@ -1382,9 +1444,22 @@
       }
       
       const clockOutTime = new Date();
+      const currentSessionId = localStorage.getItem('currentSessionId');
       
-      // Find all open entries for today (team leader + team members)
-      const openEntries = timeEntries.filter(e => !e.clockOut);
+      // Find all open entries for THIS session only
+      const openEntries = timeEntries.filter(e => 
+        !e.clockOut && 
+        (currentSessionId ? e.sessionId === currentSessionId : true)
+      );
+      
+      if (openEntries.length === 0) {
+        showToast('warning', 'Aviso', 'No hay entradas abiertas para cerrar');
+        isClockedIn = false;
+        clockInTime = null;
+        await saveState();
+        updateStatusUI();
+        return;
+      }
       
       try {
         for (const entry of openEntries) {
@@ -1397,6 +1472,10 @@
           entry.clockOut = clockOutTime;
           entry.hoursWorked = hours;
         }
+        
+        // Clear session ID
+        localStorage.removeItem('currentSessionId');
+        
         showToast('success', 'Éxito', 'Salida registrada para el equipo');
       } catch (e) {
         console.error('Clock out error:', e);
@@ -1839,7 +1918,8 @@
         clockInTime: clockInTime?.toISOString(),
         currentJob: currentJob ? { scheduleId: currentJob.scheduleId, clientId: currentJob.schedule?.clientId } : null,
         jobStartTime: jobStartTime?.toISOString(),
-        selectedJobEmployees
+        selectedJobEmployees,
+        sessionId: localStorage.getItem('currentSessionId')
       };
       localStorage.setItem('timeclockState', JSON.stringify(state));
       try { await saveStateToDB(state); } catch (e) { console.error('Save DB error:', e); }
@@ -1858,7 +1938,9 @@
         if (state.clockInTime) {
           const savedDate = getLocalDateString(new Date(state.clockInTime));
           if (savedDate !== todayStr) {
+            // Different day - clear state
             localStorage.removeItem('timeclockState');
+            localStorage.removeItem('currentSessionId');
             await clearDBState();
             return;
           }
@@ -1867,6 +1949,11 @@
         isClockedIn = state.isClockedIn || false;
         clockInTime = state.clockInTime ? new Date(state.clockInTime) : null;
         selectedJobEmployees = state.selectedJobEmployees || [];
+        
+        // Restore session ID
+        if (state.sessionId) {
+          localStorage.setItem('currentSessionId', state.sessionId);
+        }
         
         if (state.currentJob && state.jobStartTime) {
           const schedule = todaySchedules.find(s => s.id === state.currentJob.scheduleId);
