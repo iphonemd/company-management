@@ -977,6 +977,15 @@ button {
 .status-badge.pending::before { background: var(--warning-500); }
 .status-badge.completed { background: var(--success-100); color: var(--success-700); }
 .status-badge.completed::before { background: var(--success-500); }
+/* SCHEDULING/PLAN STATUS BADGES */
+.status-badge.scheduled { background: var(--secondary-100); color: var(--secondary-700); }
+.status-badge.scheduled::before { background: var(--secondary-500); }
+.status-badge.in_progress { background: var(--warning-100); color: var(--warning-700); }
+.status-badge.in_progress::before { background: var(--warning-500); }
+.status-badge.cancelled { background: var(--gray-100); color: var(--gray-600); }
+.status-badge.cancelled::before { background: var(--gray-400); }
+.status-badge.rescheduled { background: var(--info-100); color: var(--info-700); }
+.status-badge.rescheduled::before { background: var(--info-500); }
 
 /* ============================================
    MODALS
