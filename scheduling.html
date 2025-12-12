@@ -335,6 +335,67 @@
     .month-view.active {
       display: block;
     }
+
+    /* Route order badge */
+    .route-order {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      background: var(--primary-600);
+      color: white;
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: 700;
+      margin-right: 4px;
+      flex-shrink: 0;
+    }
+
+    .route-order.first {
+      background: var(--success-600);
+    }
+
+    .route-order.last {
+      background: var(--warning-600);
+    }
+
+    /* Team jobs grouping */
+    .team-jobs-group {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-4);
+      overflow: hidden;
+    }
+
+    .team-jobs-header {
+      background: var(--gray-50);
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .team-jobs-list {
+      padding: var(--space-2);
+    }
+
+    /* Time entry warning */
+    .time-entry-warning {
+      background: var(--warning-50);
+      border: 1px solid var(--warning-200);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      margin-top: var(--space-3);
+    }
+
+    .time-entry-warning-title {
+      font-weight: 600;
+      color: var(--warning-700);
+      margin-bottom: var(--space-2);
+    }
   </style>
 </head>
 <body>
@@ -438,6 +499,10 @@
             <p class="text-gray-500"><span id="scheduleCount">0</span> jobs this month</p>
           </div>
           <div class="page-actions">
+            <button class="btn btn-secondary" id="distributeWeeklyBtn" title="Auto-distribute clients for the week by proximity">
+              <span>🗺️</span>
+              <span>Distribute Weekly</span>
+            </button>
             <button class="btn btn-secondary" id="autoScheduleBtn">
               <span>🔄</span>
               <span data-i18n="generateSchedules">Generate Schedules</span>
@@ -446,6 +511,28 @@
               <span>➕</span>
               <span data-i18n="scheduleJob">Schedule Job</span>
             </button>
+          </div>
+        </div>
+
+        <!-- Office Address Settings -->
+        <div class="card mb-4" style="background: var(--gray-50);">
+          <div class="card-body">
+            <div class="flex justify-between items-center mb-2">
+              <div class="font-semibold flex items-center gap-2">
+                <span>🏢</span> Route Start/End Locations
+              </div>
+              <button class="btn btn-sm btn-secondary" id="editOfficeBtn">Edit</button>
+            </div>
+            <div class="grid grid-cols-2">
+              <div>
+                <div class="text-sm text-gray-500">Start Location (Office)</div>
+                <div class="font-semibold" id="startAddressDisplay">Not set</div>
+              </div>
+              <div>
+                <div class="text-sm text-gray-500">End Location</div>
+                <div class="font-semibold" id="endAddressDisplay">Same as start</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -698,9 +785,72 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" id="closeDayJobsBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-secondary" id="distributeAndRouteBtn">
+        <span>🗺️</span> Distribute & Route
+      </button>
       <button type="button" class="btn btn-primary" id="addJobForDayBtn">
         <span>➕</span> Add Job
       </button>
+    </div>
+  </div>
+
+  <!-- Office Address Modal -->
+  <div class="modal" id="officeModal">
+    <div class="modal-header">
+      <h3 class="modal-title">Route Start/End Locations</h3>
+      <button class="modal-close" id="closeOfficeModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label form-label-required">Start Location (Office Address)</label>
+        <input type="text" class="form-input" id="officeStreet" placeholder="123 Main Street">
+      </div>
+      <div class="grid grid-cols-3">
+        <div class="form-group">
+          <label class="form-label">City</label>
+          <input type="text" class="form-input" id="officeCity" placeholder="City">
+        </div>
+        <div class="form-group">
+          <label class="form-label">State</label>
+          <input type="text" class="form-input" id="officeState" placeholder="State">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ZIP</label>
+          <input type="text" class="form-input" id="officeZip" placeholder="12345">
+        </div>
+      </div>
+
+      <div class="form-group mt-4">
+        <label class="form-check">
+          <input type="checkbox" class="form-check-input" id="differentEndLocation">
+          <span class="form-check-label">Use different end location</span>
+        </label>
+      </div>
+
+      <div id="endLocationFields" class="hidden">
+        <div class="form-group">
+          <label class="form-label">End Location Address</label>
+          <input type="text" class="form-input" id="endStreet" placeholder="456 End Street">
+        </div>
+        <div class="grid grid-cols-3">
+          <div class="form-group">
+            <label class="form-label">City</label>
+            <input type="text" class="form-input" id="endCity" placeholder="City">
+          </div>
+          <div class="form-group">
+            <label class="form-label">State</label>
+            <input type="text" class="form-input" id="endState" placeholder="State">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ZIP</label>
+            <input type="text" class="form-input" id="endZip" placeholder="12345">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelOfficeBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveOfficeBtn">Save</button>
     </div>
   </div>
 
@@ -729,6 +879,10 @@
     let clients = [];
     let teams = [];
     let schedules = [];
+    let historicalSchedules = []; // For analyzing patterns
+    let timeEntries = []; // For checking active time entries
+    let officeSettings = { start: null, end: null };
+    let googleMapsApiKey = null;
     
     let currentView = 'month';
     let currentDate = new Date();
@@ -736,6 +890,7 @@
     let editingScheduleId = null;
     let selectedClient = null;
     let teamFilter = '';
+    let activeTimeEntry = null; // Track if editing a schedule with active time entry
 
     // ============================================
     // AUTHENTICATION CHECK
@@ -773,11 +928,15 @@
       updateLanguage();
       i18n.updatePageTranslations();
 
+      await loadGoogleMapsApiKey();
+      await loadOfficeSettings();
       await loadClients();
       await loadTeams();
       await loadSchedules();
+      await loadHistoricalSchedules();
 
       renderCalendar();
+      updateOfficeDisplay();
       setupEventListeners();
 
       // Check URL params
@@ -790,6 +949,28 @@
     // ============================================
     // LOAD DATA
     // ============================================
+    async function loadGoogleMapsApiKey() {
+      try {
+        const configDoc = await getDoc(doc(db, 'config', 'googleMaps'));
+        if (configDoc.exists()) {
+          googleMapsApiKey = configDoc.data().apiKey;
+        }
+      } catch (e) {
+        console.warn('Could not load Google Maps API key:', e);
+      }
+    }
+
+    async function loadOfficeSettings() {
+      try {
+        const configDoc = await getDoc(doc(db, 'config', 'officeSettings'));
+        if (configDoc.exists()) {
+          officeSettings = configDoc.data();
+        }
+      } catch (e) {
+        console.warn('Could not load office settings:', e);
+      }
+    }
+
     async function loadClients() {
       try {
         const q = query(collection(db, 'clients'), where('isActive', '==', true), orderBy('lastName'));
@@ -835,6 +1016,42 @@
         
       } catch (error) {
         console.error('Error loading schedules:', error);
+      }
+    }
+
+    async function loadHistoricalSchedules() {
+      try {
+        // Load past 2 months of completed schedules for pattern analysis
+        const twoMonthsAgo = addDays(new Date(), -60);
+        const startStr = formatDateStr(twoMonthsAgo);
+
+        const q = query(
+          collection(db, 'schedules'),
+          where('date', '>=', startStr),
+          where('status', '==', 'completed')
+        );
+        const snapshot = await getDocs(q);
+        
+        historicalSchedules = [];
+        snapshot.forEach(doc => historicalSchedules.push({ id: doc.id, ...doc.data() }));
+      } catch (error) {
+        console.error('Error loading historical schedules:', error);
+      }
+    }
+
+    async function loadTimeEntriesForSchedule(scheduleId) {
+      try {
+        const q = query(
+          collection(db, 'timeEntries'),
+          where('scheduleId', '==', scheduleId)
+        );
+        const snapshot = await getDocs(q);
+        const entries = [];
+        snapshot.forEach(doc => entries.push({ id: doc.id, ...doc.data() }));
+        return entries.filter(e => !e.clockOut); // Return only open entries
+      } catch (error) {
+        console.error('Error loading time entries:', error);
+        return [];
       }
     }
 
@@ -1553,6 +1770,288 @@ const scheduleData = {
       renderCalendar();
     }
 
+    function shouldScheduleClient(client, dateStr) {
+      const clientHistory = historicalSchedules
+        .filter(s => s.clientId === client.id)
+        .sort((a, b) => b.date.localeCompare(a.date));
+      
+      if (clientHistory.length === 0) return true;
+      
+      const lastDate = new Date(clientHistory[0].date);
+      const targetDate = new Date(dateStr);
+      const daysSince = Math.floor((targetDate - lastDate) / (1000 * 60 * 60 * 24));
+      
+      let interval = 7;
+      switch (client.scheduleType) {
+        case 'weekly': interval = 7; break;
+        case 'biweekly': interval = 14; break;
+        case 'every3weeks': interval = 21; break;
+        case 'monthly': interval = 30; break;
+        case 'custom': interval = client.customScheduleDays || 30; break;
+      }
+      
+      return daysSince >= (interval - 3);
+    }
+
+    // ============================================
+    // PROXIMITY-BASED ROUTING
+    // ============================================
+    function sortClientsByProximity(clientList) {
+      if (!officeSettings.start?.coordinates) return clientList;
+      
+      const withCoords = clientList.filter(c => c.address?.coordinates);
+      const withoutCoords = clientList.filter(c => !c.address?.coordinates);
+      
+      if (withCoords.length <= 1) return [...withCoords, ...withoutCoords];
+      
+      const sorted = [];
+      let currentPoint = officeSettings.start.coordinates;
+      const remaining = [...withCoords];
+      
+      while (remaining.length > 0) {
+        let nearestIdx = 0;
+        let nearestDist = Infinity;
+        
+        for (let i = 0; i < remaining.length; i++) {
+          const clientCoords = remaining[i].address.coordinates;
+          const dist = haversineDistance(currentPoint, clientCoords);
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearestIdx = i;
+          }
+        }
+        
+        const nearest = remaining.splice(nearestIdx, 1)[0];
+        sorted.push(nearest);
+        currentPoint = nearest.address.coordinates;
+      }
+      
+      return [...sorted, ...withoutCoords];
+    }
+
+    function haversineDistance(coord1, coord2) {
+      const R = 6371;
+      const dLat = toRad(coord2.lat - coord1.lat);
+      const dLon = toRad(coord2.lng - coord1.lng);
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(toRad(coord1.lat)) * Math.cos(toRad(coord2.lat)) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function toRad(deg) { return deg * (Math.PI / 180); }
+
+    function assignTeamByProximity(client, dateStr) {
+      if (teams.length === 0) return '';
+      if (teams.length === 1) return teams[0].id;
+      
+      const dateSchedules = schedules.filter(s => s.date === dateStr);
+      const teamLoads = {};
+      const teamCentroids = {};
+      
+      teams.forEach(t => {
+        teamLoads[t.id] = 0;
+        teamCentroids[t.id] = { lat: 0, lng: 0, count: 0 };
+      });
+      
+      dateSchedules.forEach(s => {
+        if (s.teamId && teamLoads[s.teamId] !== undefined) {
+          teamLoads[s.teamId]++;
+          const schedClient = clients.find(c => c.id === s.clientId);
+          if (schedClient?.address?.coordinates) {
+            teamCentroids[s.teamId].lat += schedClient.address.coordinates.lat;
+            teamCentroids[s.teamId].lng += schedClient.address.coordinates.lng;
+            teamCentroids[s.teamId].count++;
+          }
+        }
+      });
+      
+      const clientCoords = client.address?.coordinates;
+      let bestTeam = teams[0].id;
+      let bestScore = Infinity;
+      
+      for (const team of teams) {
+        const load = teamLoads[team.id];
+        const centroid = teamCentroids[team.id];
+        let score;
+        if (clientCoords && centroid.count > 0) {
+          const avgLat = centroid.lat / centroid.count;
+          const avgLng = centroid.lng / centroid.count;
+          const dist = haversineDistance(clientCoords, { lat: avgLat, lng: avgLng });
+          score = dist + (load * 5);
+        } else {
+          score = load;
+        }
+        if (score < bestScore) { bestScore = score; bestTeam = team.id; }
+      }
+      return bestTeam;
+    }
+
+    async function distributeAndRouteDay(dateStr) {
+      let daySchedules = schedules.filter(s => s.date === dateStr && s.status !== 'cancelled');
+      if (daySchedules.length === 0) { showToast('warning', 'No Jobs', 'No jobs to distribute'); return; }
+      
+      const activeTeams = teams.filter(t => t.isActive !== false);
+      if (activeTeams.length === 0) { showToast('error', 'No Teams', 'No active teams'); return; }
+      
+      showToast('info', 'Processing', 'Distributing and optimizing routes...');
+      
+      const scheduleClients = daySchedules.map(s => {
+        const client = clients.find(c => c.id === s.clientId);
+        return { schedule: s, client };
+      }).filter(sc => sc.client);
+      
+      const sortedClients = sortClientsByProximity(scheduleClients.map(sc => sc.client));
+      const jobsPerTeam = Math.ceil(sortedClients.length / activeTeams.length);
+      const teamAssignments = {};
+      activeTeams.forEach(t => teamAssignments[t.id] = []);
+      
+      sortedClients.forEach((client, idx) => {
+        const teamIdx = Math.floor(idx / jobsPerTeam);
+        const team = activeTeams[Math.min(teamIdx, activeTeams.length - 1)];
+        teamAssignments[team.id].push(client);
+      });
+      
+      let updateCount = 0;
+      for (const [teamId, teamClients] of Object.entries(teamAssignments)) {
+        const optimized = sortClientsByProximity(teamClients);
+        for (let i = 0; i < optimized.length; i++) {
+          const client = optimized[i];
+          const sc = scheduleClients.find(sc => sc.client.id === client.id);
+          if (sc) {
+            try {
+              await updateDoc(doc(db, 'schedules', sc.schedule.id), {
+                teamId: teamId, routeOrder: i + 1, updatedAt: Timestamp.now()
+              });
+              updateCount++;
+            } catch (e) { console.error('Error updating schedule:', e); }
+          }
+        }
+      }
+      
+      showToast('success', 'Routes Optimized', `Updated ${updateCount} jobs`);
+      await loadSchedules();
+      renderCalendar();
+      if (selectedDate === dateStr) showDayJobs(dateStr);
+    }
+
+    async function distributeWeekly() {
+      const confirmed = await confirmDialog('Distribute Weekly',
+        'Auto-distribute and optimize routes for all jobs this week. Jobs stay on their assigned days.',
+        'Distribute', 'Cancel');
+      if (!confirmed) return;
+      
+      showToast('info', 'Processing', 'Distributing for the week...');
+      const startOfWeek = getStartOfWeek(currentDate);
+      
+      for (let i = 0; i < 7; i++) {
+        const date = addDays(startOfWeek, i);
+        const dateStr = formatDateStr(date);
+        const daySchedules = schedules.filter(s => s.date === dateStr && s.status !== 'cancelled');
+        if (daySchedules.length > 0) await distributeAndRouteDay(dateStr);
+      }
+      showToast('success', 'Complete', 'Weekly distribution complete');
+    }
+
+    function updateOfficeDisplay() {
+      const startDisplay = document.getElementById('startAddressDisplay');
+      const endDisplay = document.getElementById('endAddressDisplay');
+      if (startDisplay) {
+        startDisplay.textContent = officeSettings.start?.street 
+          ? `${officeSettings.start.street}, ${officeSettings.start.city || ''}` : 'Not set';
+      }
+      if (endDisplay) {
+        endDisplay.textContent = officeSettings.end?.street 
+          ? `${officeSettings.end.street}, ${officeSettings.end.city || ''}` : 'Same as start';
+      }
+    }
+
+    function openOfficeModal() {
+      if (officeSettings.start) {
+        document.getElementById('officeStreet').value = officeSettings.start.street || '';
+        document.getElementById('officeCity').value = officeSettings.start.city || '';
+        document.getElementById('officeState').value = officeSettings.start.state || '';
+        document.getElementById('officeZip').value = officeSettings.start.zip || '';
+      }
+      if (officeSettings.end?.street) {
+        document.getElementById('differentEndLocation').checked = true;
+        document.getElementById('endLocationFields').classList.remove('hidden');
+        document.getElementById('endStreet').value = officeSettings.end.street || '';
+        document.getElementById('endCity').value = officeSettings.end.city || '';
+        document.getElementById('endState').value = officeSettings.end.state || '';
+        document.getElementById('endZip').value = officeSettings.end.zip || '';
+      } else {
+        document.getElementById('differentEndLocation').checked = false;
+        document.getElementById('endLocationFields').classList.add('hidden');
+      }
+      openModal('officeModal');
+    }
+
+    async function saveOfficeSettings() {
+      const startStreet = document.getElementById('officeStreet').value.trim();
+      if (!startStreet) { showToast('error', 'Error', 'Please enter office address'); return; }
+      
+      let startCoords = null;
+      if (googleMapsApiKey && startStreet) {
+        startCoords = await geocodeAddress(startStreet, 
+          document.getElementById('officeCity').value.trim(),
+          document.getElementById('officeState').value.trim(),
+          document.getElementById('officeZip').value.trim());
+      }
+      
+      officeSettings.start = {
+        street: startStreet,
+        city: document.getElementById('officeCity').value.trim(),
+        state: document.getElementById('officeState').value.trim(),
+        zip: document.getElementById('officeZip').value.trim(),
+        coordinates: startCoords
+      };
+      
+      if (document.getElementById('differentEndLocation').checked) {
+        let endCoords = null;
+        const endStreet = document.getElementById('endStreet').value.trim();
+        if (googleMapsApiKey && endStreet) {
+          endCoords = await geocodeAddress(endStreet,
+            document.getElementById('endCity').value.trim(),
+            document.getElementById('endState').value.trim(),
+            document.getElementById('endZip').value.trim());
+        }
+        officeSettings.end = {
+          street: endStreet,
+          city: document.getElementById('endCity').value.trim(),
+          state: document.getElementById('endState').value.trim(),
+          zip: document.getElementById('endZip').value.trim(),
+          coordinates: endCoords
+        };
+      } else {
+        officeSettings.end = null;
+      }
+      
+      try {
+        const configRef = doc(db, 'config', 'officeSettings');
+        await updateDoc(configRef, officeSettings).catch(async () => {
+          await addDoc(collection(db, 'config'), { ...officeSettings });
+        });
+        showToast('success', 'Saved', 'Office settings updated');
+        closeModal('officeModal');
+        updateOfficeDisplay();
+      } catch (e) { console.error('Error saving:', e); showToast('error', 'Error', 'Save failed'); }
+    }
+
+    async function geocodeAddress(street, city, state, zip) {
+      if (!googleMapsApiKey) return null;
+      const fullAddress = `${street}, ${city}, ${state} ${zip}`;
+      try {
+        const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${googleMapsApiKey}`);
+        const data = await response.json();
+        if (data.status === 'OK' && data.results.length > 0) {
+          return { lat: data.results[0].geometry.location.lat, lng: data.results[0].geometry.location.lng };
+        }
+        return null;
+      } catch (e) { console.error('Geocoding error:', e); return null; }
+    }
+
     // ============================================
     // HELPER FUNCTIONS
     // ============================================
@@ -1776,6 +2275,9 @@ function formatDateStr(date) {
       // Auto schedule
       document.getElementById('autoScheduleBtn').addEventListener('click', openAutoScheduleModal);
 
+      // Distribute weekly
+      document.getElementById('distributeWeeklyBtn')?.addEventListener('click', distributeWeekly);
+
       // Schedule Modal
       document.getElementById('closeScheduleModal').addEventListener('click', () => closeModal('scheduleModal'));
       document.getElementById('cancelScheduleBtn').addEventListener('click', () => closeModal('scheduleModal'));
@@ -1801,6 +2303,18 @@ function formatDateStr(date) {
       document.getElementById('addJobForDayBtn').addEventListener('click', () => {
         closeModal('dayJobsModal');
         openAddScheduleModal(selectedDate);
+      });
+      document.getElementById('distributeAndRouteBtn')?.addEventListener('click', () => {
+        if (selectedDate) distributeAndRouteDay(selectedDate);
+      });
+
+      // Office Modal
+      document.getElementById('editOfficeBtn')?.addEventListener('click', openOfficeModal);
+      document.getElementById('closeOfficeModal')?.addEventListener('click', () => closeModal('officeModal'));
+      document.getElementById('cancelOfficeBtn')?.addEventListener('click', () => closeModal('officeModal'));
+      document.getElementById('saveOfficeBtn')?.addEventListener('click', saveOfficeSettings);
+      document.getElementById('differentEndLocation')?.addEventListener('change', (e) => {
+        document.getElementById('endLocationFields')?.classList.toggle('hidden', !e.target.checked);
       });
 
       // Modal backdrop
