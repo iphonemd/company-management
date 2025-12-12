@@ -167,6 +167,11 @@
               <input type="text" class="form-input" id="clientLastName" required>
             </div>
           </div>
+          <div class="form-group">
+            <label class="form-label">Nickname</label>
+            <input type="text" class="form-input" id="clientNickname" placeholder="e.g., Beth 177th, Ashley Papillion">
+            <p class="form-helper">Optional - helps identify client quickly</p>
+          </div>
           <div class="grid grid-cols-2">
             <div class="form-group">
               <label class="form-label" data-i18n="phone">Phone</label>
@@ -513,6 +518,7 @@
 
     let currentUser = null, currentAdmin = null, clients = [], currentFilter = 'all', currentScheduleFilter = '', currentSearch = '', editingClientId = null;
     let importData = [], importHeaders = [], columnMappings = {}, currentImportStep = 1;
+    let googleMapsApiKey = null;
 
     window.toggleFloorIncluded = function(floor) {
       const included = document.getElementById(`${floor}Included`).checked;
@@ -520,6 +526,50 @@
       if (included) { extraSection.classList.add('hidden'); } 
       else { extraSection.classList.remove('hidden'); }
     };
+
+    async function loadGoogleMapsApiKey() {
+      try {
+        const configDoc = await getDoc(doc(db, 'config', 'googleMaps'));
+        if (configDoc.exists()) {
+          googleMapsApiKey = configDoc.data().apiKey;
+          console.log('Google Maps API key loaded');
+        } else {
+          console.warn('Google Maps API key not found in Firebase');
+        }
+      } catch (e) {
+        console.error('Error loading Google Maps API key:', e);
+      }
+    }
+
+    async function geocodeAddress(street, city, state, zip) {
+      if (!googleMapsApiKey) {
+        console.warn('No Google Maps API key available');
+        return null;
+      }
+      
+      const fullAddress = `${street}, ${city}, ${state} ${zip}`;
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${googleMapsApiKey}`;
+      
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.status === 'OK' && data.results.length > 0) {
+          const location = data.results[0].geometry.location;
+          console.log(`Geocoded "${fullAddress}" to:`, location);
+          return {
+            lat: location.lat,
+            lng: location.lng
+          };
+        } else {
+          console.warn('Geocoding failed:', data.status);
+          return null;
+        }
+      } catch (e) {
+        console.error('Geocoding error:', e);
+        return null;
+      }
+    }
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -535,6 +585,7 @@
         } catch (error) { console.error('Error loading admin:', error); }
         updateLanguage();
         setupEventListeners();
+        await loadGoogleMapsApiKey();
         await loadClients();
       } else { window.location.href = 'index.html'; }
     });
@@ -552,7 +603,7 @@
       if (currentFilter === 'active') filtered = filtered.filter(c => c.isActive);
       else if (currentFilter === 'inactive') filtered = filtered.filter(c => !c.isActive);
       if (currentScheduleFilter) filtered = filtered.filter(c => c.scheduleType === currentScheduleFilter);
-      if (currentSearch) filtered = filterBySearch(filtered, currentSearch, ['firstName', 'lastName', 'phone', 'address.street']);
+      if (currentSearch) filtered = filterBySearch(filtered, currentSearch, ['firstName', 'lastName', 'nickname', 'phone', 'address.street']);
 
       document.getElementById('clientCount').textContent = filtered.length;
       const tbody = document.getElementById('clientsBody');
@@ -564,8 +615,7 @@
       tbody.innerHTML = filtered.map(client => {
         const scheduleLabel = getScheduleLabel(client.scheduleType);
         return `<tr>
-          <td><div class="flex items-center gap-3"><div class="avatar" style="background-color: ${getAvatarColor(client.firstName + client.lastName)}">${getInitials(client.firstName, client.lastName)}</div><div><div class="font-semibold">${client.firstName} ${client.lastName}</div><div class="text-sm text-gray-500">${client.email || ''}</div></div></div></td>
-          <td><div>${client.address?.street || '-'}</div><div class="text-sm text-gray-500">${client.address?.city || ''}${client.address?.city && client.address?.state ? ', ' : ''}${client.address?.state || ''}</div></td>
+          <td><div class=\"flex items-center gap-3\"><div class=\"avatar\" style=\"background-color: ${getAvatarColor(client.firstName + client.lastName)}\">${getInitials(client.firstName, client.lastName)}</div><div><div class=\"font-semibold\">${client.firstName} ${client.lastName}</div><div class=\"text-sm text-gray-500\">${client.nickname || client.email || ''}</div></div></div></td>          <td><div>${client.address?.street || '-'}</div><div class="text-sm text-gray-500">${client.address?.city || ''}${client.address?.city && client.address?.state ? ', ' : ''}${client.address?.state || ''}</div></td>
           <td>${formatPhone(client.phone) || '-'}</td>
           <td><span class="badge badge-secondary">${scheduleLabel}</span></td>
           <td class="font-semibold">${formatCurrency(client.basePrice || 0)}</td>
@@ -579,6 +629,7 @@
       editingClientId = null;
       document.getElementById('clientModalTitle').textContent = i18n.t('addClient');
       document.getElementById('clientForm').reset();
+      document.getElementById('clientNickname').value = '';
       document.getElementById('clientIsActive').checked = true;
       document.getElementById('customDaysGroup').style.display = 'none';
       document.getElementById('basementIncluded').checked = false;
@@ -605,6 +656,7 @@
       editingClientId = id;
       document.getElementById('clientModalTitle').textContent = i18n.t('editClient');
       document.getElementById('clientId').value = id;
+      document.getElementById('clientNickname').value = client.nickname || '';
       document.getElementById('clientFirstName').value = client.firstName || '';
       document.getElementById('clientLastName').value = client.lastName || '';
       document.getElementById('clientPhone').value = client.phone || '';
@@ -743,11 +795,29 @@
       const street = document.getElementById('clientStreet').value.trim();
       if (!firstName || !lastName || !street) { showToast('error', i18n.t('error'), i18n.t('required')); return; }
 
+      const city = document.getElementById('clientCity').value.trim();
+      const state = document.getElementById('clientState').value.trim();
+      const zip = document.getElementById('clientZip').value.trim();
+
+      // Geocode the address
+      let coordinates = null;
+      if (street && city && state) {
+        showToast('info', 'Geocoding', 'Getting location coordinates...');
+        coordinates = await geocodeAddress(street, city, state, zip);
+      }
+
       const clientData = {
         firstName, lastName,
+        nickname: document.getElementById('clientNickname').value.trim(),
         phone: document.getElementById('clientPhone').value.trim(),
         email: document.getElementById('clientEmail').value.trim(),
-        address: { street, city: document.getElementById('clientCity').value.trim(), state: document.getElementById('clientState').value.trim(), zip: document.getElementById('clientZip').value.trim() },
+        address: { 
+          street, 
+          city, 
+          state, 
+          zip,
+          coordinates: coordinates // Add coordinates to address
+        },
         houseCode: document.getElementById('clientHouseCode').value.trim(),
         scheduleType: document.getElementById('clientScheduleType').value,
         customScheduleDays: parseInt(document.getElementById('clientCustomDays').value) || null,
@@ -801,12 +871,12 @@
           await updateDoc(doc(db, 'clients', editingClientId), clientData);
           const changes = trackChanges(oldData, clientData, ['firstName', 'lastName', 'phone', 'basePrice', 'scheduleType', 'isActive']);
           await logClientAction(AuditActions.UPDATE, editingClientId, `${firstName} ${lastName}`, changes);
-          showToast('success', i18n.t('success'), i18n.t('clientUpdated'));
+          showToast('success', i18n.t('success'), i18n.t('clientUpdated') + (coordinates ? ' 📍' : ''));
         } else {
           clientData.createdAt = Timestamp.now();
           const docRef = await addDoc(collection(db, 'clients'), clientData);
           await logClientAction(AuditActions.CREATE, docRef.id, `${firstName} ${lastName}`);
-          showToast('success', i18n.t('success'), i18n.t('clientAdded'));
+          showToast('success', i18n.t('success'), i18n.t('clientAdded') + (coordinates ? ' 📍' : ''));
         }
         closeModal('clientModal');
         await loadClients();
@@ -860,19 +930,30 @@
       reader.readAsArrayBuffer(file);
     }
 
-    function setupColumnMapping() {
-      const fields = [
-        { key: 'firstName', label: 'First Name', required: true }, { key: 'lastName', label: 'Last Name', required: true },
-        { key: 'street', label: 'Street Address', required: true }, { key: 'city', label: 'City' }, { key: 'state', label: 'State' },
-        { key: 'zip', label: 'ZIP Code' }, { key: 'phone', label: 'Phone' }, { key: 'email', label: 'Email' },
-        { key: 'basePrice', label: 'Price' }, { key: 'scheduleType', label: 'Schedule' }, { key: 'houseCode', label: 'House Code' }, { key: 'notes', label: 'Notes' }
-      ];
-      const container = document.getElementById('columnMappings');
-      container.innerHTML = fields.map(field => {
-        const matchIndex = importHeaders.findIndex(h => h.toLowerCase().includes(field.key.toLowerCase()) || h.toLowerCase().includes(field.label.toLowerCase().split(' ')[0].toLowerCase()));
-        return `<div class="form-group"><label class="form-label ${field.required ? 'form-label-required' : ''}">${field.label}</label><select class="form-select" data-field="${field.key}"><option value="">-- Skip --</option>${importHeaders.map((h, i) => `<option value="${i}" ${i === matchIndex ? 'selected' : ''}>${h}</option>`).join('')}</select></div>`;
-      }).join('');
-    }
+function setupColumnMapping() {
+  const fields = [
+    { key: 'nickname', label: 'Nickname', matchTerms: ['nickname'] },
+    { key: 'firstName', label: 'First Name', required: true, matchTerms: ['first'] },
+    { key: 'lastName', label: 'Last Name', required: false, matchTerms: ['last'] },
+    { key: 'street', label: 'Street Address', required: true, matchTerms: ['street'] },
+    { key: 'cityState', label: 'City/State (combined)', matchTerms: ['city'] },
+    { key: 'zip', label: 'ZIP Code', matchTerms: ['zip'] },
+    { key: 'houseCode', label: 'House Code', matchTerms: ['code'] },
+    { key: 'phone', label: 'Phone', matchTerms: ['phone'] },
+    { key: 'scheduleType', label: 'Schedule/Frequency', matchTerms: ['frequent'] },
+    { key: 'basePrice', label: 'Price', matchTerms: ['payment'] },
+    { key: 'notes', label: 'Notes', matchTerms: ['included', 'extra'] }
+  ];
+  const container = document.getElementById('columnMappings');
+  container.innerHTML = fields.map(field => {
+    const matchIndex = importHeaders.findIndex(h => {
+      if (!h) return false;
+      const headerLower = String(h).toLowerCase();
+      return field.matchTerms.some(term => headerLower.includes(term));
+    });
+    return `<div class="form-group"><label class="form-label ${field.required ? 'form-label-required' : ''}">${field.label}</label><select class="form-select" data-field="${field.key}"><option value="">-- Skip --</option>${importHeaders.map((h, i) => `<option value="${i}" ${i === matchIndex ? 'selected' : ''}>${h || '(Empty Column ' + (i+1) + ')'}</option>`).join('')}</select></div>`;
+  }).join('');
+}
 
     function generatePreview() {
       columnMappings = {};
@@ -890,27 +971,87 @@
 
     async function startImport() {
       showImportStep(4);
-      let imported = 0, errors = 0;
-      const clientsToImport = importData.map(row => ({
-        firstName: String(row[columnMappings.firstName] || '').trim(), lastName: String(row[columnMappings.lastName] || '').trim(),
-        address: { street: String(row[columnMappings.street] || '').trim(), city: columnMappings.city !== undefined ? String(row[columnMappings.city] || '').trim() : '', state: columnMappings.state !== undefined ? String(row[columnMappings.state] || '').trim() : '', zip: columnMappings.zip !== undefined ? String(row[columnMappings.zip] || '').trim() : '' },
-        phone: columnMappings.phone !== undefined ? String(row[columnMappings.phone] || '').trim() : '',
-        email: columnMappings.email !== undefined ? String(row[columnMappings.email] || '').trim() : '',
-        basePrice: columnMappings.basePrice !== undefined ? parseFloat(row[columnMappings.basePrice]) || 0 : 0,
-        scheduleType: columnMappings.scheduleType !== undefined ? normalizeScheduleType(row[columnMappings.scheduleType]) : 'biweekly',
-        houseCode: columnMappings.houseCode !== undefined ? String(row[columnMappings.houseCode] || '').trim() : '',
-        notes: columnMappings.notes !== undefined ? String(row[columnMappings.notes] || '').trim() : '',
-        isActive: true,
-        areas: { basement: { includedInBase: false }, mainLevel: { includedInBase: true, kitchen: true, bathrooms: true, livingRoom: true }, upstairs: { includedInBase: true, bathrooms: true, bedrooms: true } },
-        createdAt: Timestamp.now(), updatedAt: Timestamp.now()
-      })).filter(c => c.firstName && c.lastName && c.address.street);
+      let imported = 0, errors = 0, geocoded = 0;
+      
+      const clientsToImport = importData.map(row => {
+        let city = '', state = '';
+        if (columnMappings.cityState !== undefined) {
+          const cityStateVal = String(row[columnMappings.cityState] || '').trim();
+          const parts = cityStateVal.split(',').map(p => p.trim());
+          if (parts.length >= 2) {
+            city = parts[0];
+            state = parts[1];
+          } else {
+            city = cityStateVal;
+          }
+        }
+        
+        let basePrice = 0;
+        if (columnMappings.basePrice !== undefined) {
+          const priceStr = String(row[columnMappings.basePrice] || '').replace(/[^0-9.]/g, '');
+          basePrice = parseFloat(priceStr) || 0;
+        }
+        
+        return {
+          nickname: columnMappings.nickname !== undefined ? String(row[columnMappings.nickname] || '').trim() : '',
+          firstName: String(row[columnMappings.firstName] || '').trim(),
+          lastName: columnMappings.lastName !== undefined ? String(row[columnMappings.lastName] || '').trim() : '',
+          address: {
+            street: String(row[columnMappings.street] || '').trim(),
+            city: city,
+            state: state,
+            zip: columnMappings.zip !== undefined ? String(row[columnMappings.zip] || '').trim() : '',
+            coordinates: null
+          },
+          phone: columnMappings.phone !== undefined ? String(row[columnMappings.phone] || '').trim() : '',
+          email: columnMappings.email !== undefined ? String(row[columnMappings.email] || '').trim() : '',
+          basePrice: basePrice,
+          scheduleType: columnMappings.scheduleType !== undefined ? normalizeScheduleType(row[columnMappings.scheduleType]) : 'biweekly',
+          houseCode: columnMappings.houseCode !== undefined ? String(row[columnMappings.houseCode] || '').trim() : '',
+          notes: columnMappings.notes !== undefined ? String(row[columnMappings.notes] || '').trim() : '',
+          isActive: true,
+          areas: {
+            basement: { includedInBase: false },
+            mainLevel: { includedInBase: true, kitchen: true, bathrooms: true, livingRoom: true },
+            upstairs: { includedInBase: true, bathrooms: true, bedrooms: true }
+          },
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        };
+      }).filter(c => (c.firstName || c.nickname) && c.address.street);
 
-      for (const clientData of clientsToImport) {
-        try { await addDoc(collection(db, 'clients'), clientData); imported++; document.getElementById('importProgress').textContent = `${imported} of ${clientsToImport.length} imported`; }
-        catch (error) { console.error('Error importing client:', error); errors++; }
+      const total = clientsToImport.length;
+      
+      for (let i = 0; i < clientsToImport.length; i++) {
+        const clientData = clientsToImport[i];
+        
+        try {
+          if (googleMapsApiKey && clientData.address.street && clientData.address.city) {
+            document.getElementById('importProgress').textContent = `Geocoding ${i + 1} of ${total}: ${clientData.nickname || clientData.firstName}...`;
+            const coordinates = await geocodeAddress(
+              clientData.address.street,
+              clientData.address.city,
+              clientData.address.state,
+              clientData.address.zip
+            );
+            if (coordinates) {
+              clientData.address.coordinates = coordinates;
+              geocoded++;
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          
+          document.getElementById('importProgress').textContent = `Importing ${i + 1} of ${total}: ${clientData.nickname || clientData.firstName}...`;
+          await addDoc(collection(db, 'clients'), clientData);
+          imported++;
+        } catch (error) {
+          console.error('Error importing client:', error);
+          errors++;
+        }
       }
-      await logClientAction(AuditActions.CREATE, null, `Imported ${imported} clients`);
-      document.getElementById('importResult').textContent = `${imported} clients imported successfully` + (errors > 0 ? `, ${errors} failed` : '');
+      
+      await logClientAction(AuditActions.CREATE, null, `Imported ${imported} clients (${geocoded} geocoded)`);
+      document.getElementById('importResult').textContent = `${imported} clients imported (${geocoded} with coordinates)` + (errors > 0 ? `, ${errors} failed` : '');
       showImportStep(5);
     }
 
