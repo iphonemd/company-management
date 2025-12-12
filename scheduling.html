@@ -172,6 +172,22 @@
       color: var(--gray-500);
       text-decoration: line-through;
     }
+
+    /* Status-based chip colors (replacing timeslot colors) */
+    .job-chip.scheduled {
+      background: var(--secondary-100);
+      color: var(--secondary-700);
+    }
+
+    .job-chip.in_progress {
+      background: var(--warning-100);
+      color: var(--warning-700);
+    }
+
+    .job-chip.rescheduled {
+      background: var(--info-100);
+      color: var(--info-700);
+    }
     
     .more-jobs {
       font-size: 11px;
@@ -183,6 +199,20 @@
     .more-jobs:hover {
       color: var(--primary-600);
     }
+
+    /* Status badge shown in the detailed modal */
+    .status-badge {
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      text-transform: none;
+    }
+
+    .status-badge.scheduled { background: var(--secondary-100); color: var(--secondary-700); }
+    .status-badge.in_progress { background: var(--warning-100); color: var(--warning-700); }
+    .status-badge.completed { background: var(--success-100); color: var(--success-700); }
+    .status-badge.cancelled { background: var(--gray-100); color: var(--gray-500); text-decoration: line-through; }
+    .status-badge.rescheduled { background: var(--info-100); color: var(--info-700); }
     
     /* Week view */
     .week-view {
@@ -627,13 +657,8 @@
             <label class="form-label form-label-required" data-i18n="selectDate">Date</label>
             <input type="date" class="form-input" id="scheduleDate" required>
           </div>
-          <div class="form-group">
-            <label class="form-label" data-i18n="timeSlot">Time Slot</label>
-            <select class="form-select" id="scheduleTimeSlot">
-              <option value="morning">🌅 Morning (8am - 12pm)</option>
-              <option value="afternoon">🌆 Afternoon (12pm - 5pm)</option>
-            </select>
-          </div>
+          <!-- Time slot removed (no longer needed); keep a hidden field for backward compatibility -->
+          <input type="hidden" id="scheduleTimeSlot" value="" />
         </div>
 
 <!-- Client Info Preview -->
@@ -784,8 +809,9 @@
       <!-- Populated by JS -->
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" id="closeDayJobsBtn" data-i18n="close">Close</button>
-      <button type="button" class="btn btn-secondary" id="distributeAndRouteBtn">
+        <button type="button" class="btn btn-secondary" id="closeDayJobsBtn" data-i18n="close">Close</button>
+        <button type="button" class="btn btn-secondary" id="previewAllRoutesBtn">Preview All Routes</button>
+        <button type="button" class="btn btn-secondary" id="distributeAndRouteBtn">
         <span>🗺️</span> Distribute & Route
       </button>
       <button type="button" class="btn btn-primary" id="addJobForDayBtn">
@@ -860,7 +886,7 @@
   <script type="module">
     import { 
       auth, db, onAuthStateChanged, signOut,
-      collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, 
+      collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, 
       query, where, orderBy, Timestamp
     } from './js/firebase-config.js';
     import { i18n } from './js/i18n.js';
@@ -869,7 +895,7 @@
       formatCurrency, formatDate, getInitials, confirmDialog,
       getNextScheduleDate, addDays
     } from './js/utils.js';
-    import { logScheduleAction, AuditActions } from './js/audit.js';
+    import { logScheduleAction, logAudit, AuditActions, AuditModules, trackChanges } from './js/audit.js';
 
     // ============================================
     // STATE
@@ -1173,11 +1199,7 @@
     function renderJobChips(daySchedules, maxShow = 3) {
       if (daySchedules.length === 0) return '';
       
-      const sorted = daySchedules.sort((a, b) => {
-        if (a.timeSlot === 'morning' && b.timeSlot === 'afternoon') return -1;
-        if (a.timeSlot === 'afternoon' && b.timeSlot === 'morning') return 1;
-        return 0;
-      });
+      const sorted = [...daySchedules].sort((a, b) => (Number(a.routeOrder || Infinity) - Number(b.routeOrder || Infinity)) || (a.clientId || '').localeCompare(b.clientId || ''));
       
       let html = '';
       const toShow = sorted.slice(0, maxShow);
@@ -1185,9 +1207,8 @@
       toShow.forEach(schedule => {
         const client = clients.find(c => c.id === schedule.clientId);
         const clientName = client ? `${client.firstName} ${client.lastName.charAt(0)}.` : 'Unknown';
-        const statusClass = schedule.status === 'completed' ? 'completed' : 
-                           schedule.status === 'cancelled' ? 'cancelled' : 
-                           schedule.timeSlot;
+        // Use the schedule status as a chip class to color chips by status
+        const statusClass = (['scheduled','in_progress','completed','cancelled','rescheduled'].includes(schedule.status) ? schedule.status : 'scheduled');
         
         html += `
           <div class="job-chip ${statusClass}" onclick="event.stopPropagation(); viewSchedule('${schedule.id}')" title="${clientName}">
@@ -1225,40 +1246,33 @@
       }
       header.innerHTML = headerHtml;
       
-      // Time slots
-      const timeSlots = [
-        { label: '🌅 Morning', value: 'morning' },
-        { label: '🌆 Afternoon', value: 'afternoon' }
-      ];
+      // Time slots removed; showing a single column with all jobs per day sorted by route order
       
       let contentHtml = '';
-      timeSlots.forEach(slot => {
-        contentHtml += `<div class="time-slot-row">`;
-        contentHtml += `<div class="time-label">${slot.label}</div>`;
-        
-        for (let i = 0; i < 7; i++) {
-          const date = addDays(startOfWeek, i);
-          const dateStr = formatDateStr(date);
-          
-          let daySchedules = schedules.filter(s => s.date === dateStr && s.timeSlot === slot.value);
-          if (teamFilter) {
-            daySchedules = daySchedules.filter(s => s.teamId === teamFilter);
-          }
-          
-          contentHtml += `
-            <div class="time-cell" data-date="${dateStr}" data-slot="${slot.value}">
-              ${daySchedules.map(s => {
-                const client = clients.find(c => c.id === s.clientId);
-                const clientName = client ? `${client.firstName} ${client.lastName.charAt(0)}.` : 'Unknown';
-                return `<div class="job-chip ${s.status === 'completed' ? 'completed' : s.timeSlot}" 
-                            onclick="viewSchedule('${s.id}')">${clientName}</div>`;
-              }).join('')}
-            </div>
-          `;
-        }
-        contentHtml += `</div>`;
-      });
-      
+      // Create a single row with 7 day columns, listing all jobs per day sorted by route order
+      contentHtml += `<div class="time-slot-row">`;
+      contentHtml += `<div class="time-label"></div>`;
+      for (let i = 0; i < 7; i++) {
+        const date = addDays(startOfWeek, i);
+        const dateStr = formatDateStr(date);
+
+        let daySchedules = schedules.filter(s => s.date === dateStr);
+        if (teamFilter) daySchedules = daySchedules.filter(s => s.teamId === teamFilter);
+        const sortedDaySchedules = [...daySchedules].sort((a, b) => Number(a.routeOrder || Infinity) - Number(b.routeOrder || Infinity));
+
+        contentHtml += `
+          <div class="time-cell" data-date="${dateStr}">
+            ${sortedDaySchedules.map(s => {
+              const client = clients.find(c => c.id === s.clientId);
+              const clientName = client ? `${client.firstName} ${client.lastName.charAt(0)}.` : 'Unknown';
+              const statusClass = (['scheduled','in_progress','completed','cancelled','rescheduled'].includes(s.status) ? s.status : 'scheduled');
+              return `<div class="job-chip ${statusClass}" onclick="viewSchedule('${s.id}')" title="${clientName}">${clientName}</div>`;
+            }).join('')}
+          </div>
+        `;
+      }
+      contentHtml += `</div>`;
+
       content.innerHTML = contentHtml;
     }
 
@@ -1271,20 +1285,12 @@
         daySchedules = daySchedules.filter(s => s.teamId === teamFilter);
       }
       
-      const morningJobs = daySchedules.filter(s => s.timeSlot === 'morning');
-      const afternoonJobs = daySchedules.filter(s => s.timeSlot === 'afternoon');
-      
+      const sortedDaySchedules = [...daySchedules].sort((a, b) => Number(a.routeOrder || Infinity) - Number(b.routeOrder || Infinity));
       container.innerHTML = `
         <div class="day-section">
-          <div class="day-section-title">🌅 ${i18n.t('morning')} (${morningJobs.length} jobs)</div>
-          ${morningJobs.length > 0 ? morningJobs.map(s => renderJobCard(s)).join('') : 
-            `<div class="text-gray-500 text-center p-4">No morning jobs scheduled</div>`}
-        </div>
-        
-        <div class="day-section">
-          <div class="day-section-title">🌆 ${i18n.t('afternoon')} (${afternoonJobs.length} jobs)</div>
-          ${afternoonJobs.length > 0 ? afternoonJobs.map(s => renderJobCard(s)).join('') : 
-            `<div class="text-gray-500 text-center p-4">No afternoon jobs scheduled</div>`}
+          <div class="day-section-title">Jobs (${sortedDaySchedules.length} jobs)</div>
+          ${sortedDaySchedules.length > 0 ? sortedDaySchedules.map(s => renderJobCard(s)).join('') : 
+            `<div class="text-gray-500 text-center p-4">No jobs scheduled</div>`}
         </div>
       `;
     }
@@ -1295,26 +1301,27 @@
       
       if (!client) return '';
       
-      const statusColors = {
-        scheduled: 'primary',
-        in_progress: 'warning',
-        completed: 'success',
-        cancelled: 'danger'
+      const statusClasses = {
+        scheduled: 'scheduled',
+        in_progress: 'in_progress',
+        completed: 'completed',
+        cancelled: 'cancelled',
+        rescheduled: 'rescheduled'
       };
       
       return `
         <div class="job-card" onclick="viewSchedule('${schedule.id}')">
-          <div class="job-card-time">
-            <div class="job-card-time-slot">${schedule.timeSlot}</div>
-          </div>
           <div class="job-card-content">
-            <div class="job-card-client">${client.firstName} ${client.lastName}</div>
+            <div class="flex items-center">
+              <span class="route-order ${schedule.routeOrder === 1 ? 'first' : ''}">${schedule.routeOrder ? schedule.routeOrder : ''}</span>
+              <div class="job-card-client">${client.firstName} ${client.lastName}</div>
+            </div>
             <div class="job-card-address">${client.address?.street || ''}, ${client.address?.city || ''}</div>
             <div class="job-card-details">
               <span class="badge badge-primary">
                 ${getServiceSummary(client)}
               </span>
-              <span class="badge badge-${statusColors[schedule.status] || 'secondary'}">
+              <span class="status-badge ${statusClasses[schedule.status] || 'scheduled'}">
                 ${i18n.t(`jobStatus.${schedule.status}`) || schedule.status}
               </span>
               ${team ? `<span class="job-card-detail">👥 ${team.name}</span>` : ''}
@@ -1324,6 +1331,54 @@
         </div>
       `;
     }
+
+    // Build a Google Maps Directions URL for a team on a date and open in a new tab
+    function getTeamMapsUrl(teamId, dateStr) {
+      const daySchedules = schedules.filter(s => s.date === dateStr && s.status !== 'cancelled');
+      const teamSchedules = daySchedules.filter(s => (s.teamId || 'unassigned') === teamId);
+      if (teamSchedules.length === 0) return null;
+
+      const sorted = [...teamSchedules].sort((a, b) => (Number(a.routeOrder || Infinity) - Number(b.routeOrder || Infinity)) || (a.clientId || '').localeCompare(b.clientId || ''));
+
+      const coords = [];
+      for (const s of sorted) {
+        const client = clients.find(c => c.id === s.clientId);
+        if (!client) continue;
+        const ccoords = client.address?.coordinates;
+        if (!ccoords) return null; // Missing coords, fail fast
+        coords.push(ccoords);
+      }
+      if (coords.length === 0) return null;
+
+      const startCoords = officeSettings.start?.coordinates || null;
+      const endCoords = officeSettings.end?.coordinates || null;
+      const origin = startCoords ? `${startCoords.lat},${startCoords.lng}` : `${coords[0].lat},${coords[0].lng}`;
+      const destination = endCoords ? `${endCoords.lat},${endCoords.lng}` : `${coords[coords.length - 1].lat},${coords[coords.length - 1].lng}`;
+
+      const waypointCoords = coords.map(c => `${c.lat},${c.lng}`);
+      if (!startCoords && waypointCoords.length > 0) waypointCoords.shift();
+      const waypoints = waypointCoords.length > 0 ? waypointCoords.join('|') : '';
+
+      let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+      if (waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+      return url;
+    }
+
+    window.previewRouteForTeam = function(teamId, dateStr) {
+      const url = getTeamMapsUrl(teamId, dateStr);
+      if (!url) { showToast('warning', 'Missing Data', 'Team has no valid stops or missing coordinates'); return; }
+      window.open(url, '_blank');
+    };
+
+    window.previewAllTeamRoutes = function(dateStr) {
+      const daySchedules = schedules.filter(s => s.date === dateStr && s.status !== 'cancelled');
+      const teamIds = Array.from(new Set(daySchedules.map(s => s.teamId || 'unassigned')));
+      if (teamIds.length === 0) { showToast('info', 'No Routes', 'No scheduled teams with stops for this day'); return; }
+      teamIds.forEach((tid, idx) => {
+        const url = getTeamMapsUrl(tid, dateStr);
+        if (url) setTimeout(() => window.open(url, '_blank'), idx * 300);
+      });
+    };
 
     // ============================================
     // SHOW DAY JOBS
@@ -1352,23 +1407,50 @@
           </div>
         `;
       } else {
-        const morningJobs = daySchedules.filter(s => s.timeSlot === 'morning');
-        const afternoonJobs = daySchedules.filter(s => s.timeSlot === 'afternoon');
-        
-        content.innerHTML = `
-          ${morningJobs.length > 0 ? `
-            <div class="mb-4">
-              <h4 class="mb-2">🌅 ${i18n.t('morning')}</h4>
-              ${morningJobs.map(s => renderJobCard(s)).join('')}
+        // Group schedules by team and sort client jobs by ascending route order
+        // Build mapping of teamId to schedules for the day
+        const teamsMap = {};
+        daySchedules.forEach(s => {
+          const key = s.teamId || 'unassigned';
+          if (!teamsMap[key]) teamsMap[key] = [];
+          teamsMap[key].push(s);
+        });
+
+        let html = '';
+        // Create a section for each active team, even if it has no jobs scheduled for today
+        teams.forEach(team => {
+          const group = (teamsMap[team.id] || []).slice().sort((a, b) => Number(a.routeOrder || Infinity) - Number(b.routeOrder || Infinity));
+          html += `
+            <div class="team-jobs-group mb-4">
+              <div class="team-jobs-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <h4 class="mb-2" style="margin:0;">${team.name}</h4>
+                  <button class="btn btn-sm btn-outline" onclick="previewRouteForTeam('${team.id}', '${dateStr}')">🗺️ Preview Route</button>
+                </div>
+              </div>
+              <div class="team-jobs-list">
+                ${group.length > 0 ? group.map(s => renderJobCard(s)).join('') : `<div class="text-gray-500 text-center p-4">No jobs scheduled for this team</div>`}
+              </div>
             </div>
-          ` : ''}
-          ${afternoonJobs.length > 0 ? `
-            <div>
-              <h4 class="mb-2">🌆 ${i18n.t('afternoon')}</h4>
-              ${afternoonJobs.map(s => renderJobCard(s)).join('')}
+          `;
+        });
+
+        // Also include a section for unassigned jobs
+        const unassignedGroup = (teamsMap['unassigned'] || []).slice().sort((a, b) => Number(a.routeOrder || Infinity) - Number(b.routeOrder || Infinity));
+        if (unassignedGroup.length > 0) {
+          html += `
+            <div class="team-jobs-group mb-4">
+              <div class="team-jobs-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <h4 class="mb-2" style="margin:0;">Unassigned</h4>
+                  <button class="btn btn-sm btn-outline" onclick="previewRouteForTeam('unassigned', '${dateStr}')">🗺️ Preview Route</button>
+                </div>
+              </div>
+              <div class="team-jobs-list">${unassignedGroup.map(s => renderJobCard(s)).join('')}</div>
             </div>
-          ` : ''}
-        `;
+          `;
+        }
+        content.innerHTML = html;
       }
       
       openModal('dayJobsModal');
@@ -1406,10 +1488,11 @@
       const team = teams.find(t => t.id === schedule.teamId);
       
       const statusColors = {
-        scheduled: 'pending',
-        in_progress: 'active',
+        scheduled: 'scheduled',
+        in_progress: 'in_progress',
         completed: 'completed',
-        cancelled: 'inactive'
+        cancelled: 'cancelled',
+        rescheduled: 'rescheduled'
       };
       
       const [year, month, day] = schedule.date.split('-').map(Number);
@@ -1437,8 +1520,8 @@
                   <div class="font-semibold">${formatDate(date, { weekday: 'short', month: 'short', day: 'numeric' })}</div>
                 </div>
                 <div>
-                  <div class="text-sm text-gray-500">${i18n.t('timeSlot')}</div>
-                  <div class="font-semibold">${schedule.timeSlot === 'morning' ? '🌅 ' + i18n.t('morning') : '🌆 ' + i18n.t('afternoon')}</div>
+                  <div class="text-sm text-gray-500">Route</div>
+                  <div class="font-semibold">${schedule.routeOrder ? ('#' + schedule.routeOrder) : '—'}</div>
                 </div>
                 <div>
                   <div class="text-sm text-gray-500">${i18n.t('team')}</div>
@@ -1508,7 +1591,8 @@
       document.getElementById('scheduleClient').value = schedule.clientId;
       document.getElementById('scheduleTeam').value = schedule.teamId;
       document.getElementById('scheduleDate').value = schedule.date;
-      document.getElementById('scheduleTimeSlot').value = schedule.timeSlot;
+      // Time slot no longer used. Keep hidden input empty for compatibility.
+      document.getElementById('scheduleTimeSlot').value = '';
       document.getElementById('scheduleDuration').value = schedule.estimatedDuration || 2;
       document.getElementById('scheduleStatus').value = schedule.status;
       document.getElementById('scheduleNotes').value = schedule.notes || '';
@@ -1559,7 +1643,7 @@ const scheduleData = {
         clientId,
         teamId,
         date,
-        timeSlot: document.getElementById('scheduleTimeSlot').value,
+        // timeSlot removed -- schedules no longer track a time slot
         serviceDetails: {
           addOns,
           totalPrice
@@ -1737,7 +1821,6 @@ const scheduleData = {
               clientId: client.id,
               teamId: teamId || '',
               date: dateStr,
-              timeSlot: client.preferredTime || 'morning',
               serviceDetails: {
                 areas: includedAreas,
                 addOns: [],
@@ -1796,37 +1879,80 @@ const scheduleData = {
     // ============================================
     // PROXIMITY-BASED ROUTING
     // ============================================
+    // Compute distance for a route with optional start/end legs
+    function routeDistance(route, startCoords, endCoords) {
+      let d = 0;
+      if (route.length === 0) return 0;
+      if (startCoords) d += haversineDistance(startCoords, route[0].address.coordinates);
+      for (let i = 0; i < route.length - 1; i++) {
+        d += haversineDistance(route[i].address.coordinates, route[i + 1].address.coordinates);
+      }
+      if (endCoords) d += haversineDistance(route[route.length - 1].address.coordinates, endCoords);
+      return d;
+    }
+
+    // 2-opt improvement for a route (considering start & end points)
+    function optimizeRouteTwoOpt(route, startCoords, endCoords) {
+      if (route.length <= 2) return route;
+      let improved = true;
+      const copy = [...route];
+      while (improved) {
+        improved = false;
+        for (let i = 0; i < copy.length - 1; i++) {
+          for (let k = i + 1; k < copy.length; k++) {
+            const newRoute = [...copy.slice(0, i), ...copy.slice(i, k + 1).reverse(), ...copy.slice(k + 1)];
+            if (routeDistance(newRoute, startCoords, endCoords) + 1e-6 < routeDistance(copy, startCoords, endCoords)) {
+              // Accept improved route
+              copy.splice(0, copy.length, ...newRoute);
+              improved = true;
+            }
+          }
+        }
+      }
+      return copy;
+    }
+
     function sortClientsByProximity(clientList) {
-      if (!officeSettings.start?.coordinates) return clientList;
-      
+      // We need start coordinates; don't reorder if not available
+      const startCoords = officeSettings.start?.coordinates;
+      const endCoords = officeSettings.end?.coordinates || null;
+      if (!startCoords) return clientList;
+
       const withCoords = clientList.filter(c => c.address?.coordinates);
       const withoutCoords = clientList.filter(c => !c.address?.coordinates);
-      
       if (withCoords.length <= 1) return [...withCoords, ...withoutCoords];
-      
+
+      // Greedy nearest-neighbor starting at startCoords
       const sorted = [];
-      let currentPoint = officeSettings.start.coordinates;
+      let currentPoint = startCoords;
       const remaining = [...withCoords];
-      
       while (remaining.length > 0) {
         let nearestIdx = 0;
         let nearestDist = Infinity;
-        
         for (let i = 0; i < remaining.length; i++) {
           const clientCoords = remaining[i].address.coordinates;
           const dist = haversineDistance(currentPoint, clientCoords);
-          if (dist < nearestDist) {
-            nearestDist = dist;
-            nearestIdx = i;
-          }
+          if (dist < nearestDist) { nearestDist = dist; nearestIdx = i; }
         }
-        
         const nearest = remaining.splice(nearestIdx, 1)[0];
         sorted.push(nearest);
         currentPoint = nearest.address.coordinates;
       }
-      
-      return [...sorted, ...withoutCoords];
+
+      // If an end is provided, check whether the reversed route yields shorter total distance
+      if (endCoords) {
+        const reversed = [...sorted].reverse();
+        const forwardDist = routeDistance(sorted, startCoords, endCoords);
+        const reversedDist = routeDistance(reversed, startCoords, endCoords);
+        if (reversedDist + 1e-6 < forwardDist) {
+          sorted.splice(0, sorted.length, ...reversed);
+        }
+      }
+
+      // Improve with 2-opt optimization (considering start & end legs)
+      const optimized = optimizeRouteTwoOpt(sorted, startCoords, endCoords);
+
+      return [...optimized, ...withoutCoords];
     }
 
     function haversineDistance(coord1, coord2) {
@@ -1991,13 +2117,25 @@ const scheduleData = {
     async function saveOfficeSettings() {
       const startStreet = document.getElementById('officeStreet').value.trim();
       if (!startStreet) { showToast('error', 'Error', 'Please enter office address'); return; }
-      
+      // Validate ZIPs to reduce geocoding failures
+      const startZip = document.getElementById('officeZip').value.trim();
+      const endZip = document.getElementById('endZip').value.trim();
+      const zipRegex = /^\d{5}$/;
+      if (startZip && !zipRegex.test(startZip)) { showToast('error', 'Invalid ZIP', 'Start ZIP must be a 5-digit number'); return; }
+      if (document.getElementById('differentEndLocation').checked && endZip && !zipRegex.test(endZip)) { showToast('error', 'Invalid ZIP', 'End ZIP must be a 5-digit number'); return; }
+
+      // Preserve previous settings for audit tracking
+      const prevOfficeSettings = JSON.parse(JSON.stringify(officeSettings || {}));
+
       let startCoords = null;
       if (googleMapsApiKey && startStreet) {
         startCoords = await geocodeAddress(startStreet, 
           document.getElementById('officeCity').value.trim(),
           document.getElementById('officeState').value.trim(),
           document.getElementById('officeZip').value.trim());
+        if (!startCoords) {
+          showToast('warning', 'Geocode failed', 'Start address could not be geocoded. Verify address and ZIP to improve map accuracy.');
+        }
       }
       
       officeSettings.start = {
@@ -2016,6 +2154,9 @@ const scheduleData = {
             document.getElementById('endCity').value.trim(),
             document.getElementById('endState').value.trim(),
             document.getElementById('endZip').value.trim());
+          if (!endCoords) {
+            showToast('warning', 'Geocode failed', 'End address could not be geocoded. Verify address and ZIP to improve map accuracy.');
+          }
         }
         officeSettings.end = {
           street: endStreet,
@@ -2030,12 +2171,22 @@ const scheduleData = {
       
       try {
         const configRef = doc(db, 'config', 'officeSettings');
-        await updateDoc(configRef, officeSettings).catch(async () => {
-          await addDoc(collection(db, 'config'), { ...officeSettings });
-        });
+        // Use setDoc with merge to always write to the named document and create it if it doesn't exist
+        await setDoc(configRef, officeSettings, { merge: true });
         showToast('success', 'Saved', 'Office settings updated');
         closeModal('officeModal');
         updateOfficeDisplay();
+        // Audit: log settings change with details
+        try {
+          const changes = trackChanges(prevOfficeSettings, officeSettings);
+          const isNew = !prevOfficeSettings || Object.keys(prevOfficeSettings).length === 0;
+          const auditAction = isNew ? AuditActions.CREATE : AuditActions.UPDATE;
+          if (changes) {
+            await logAudit(auditAction, AuditModules.SETTINGS, 'officeSettings', 'Office Settings', changes);
+          }
+        } catch (auditErr) {
+          console.warn('Audit log failed:', auditErr);
+        }
       } catch (e) { console.error('Error saving:', e); showToast('error', 'Error', 'Save failed'); }
     }
 
@@ -2157,8 +2308,8 @@ function formatDateStr(date) {
           addonsContainer.innerHTML = '';
         }
         
-        // Set preferred time slot
-        document.getElementById('scheduleTimeSlot').value = selectedClient.preferredTime || 'morning';
+        // Time slot no longer used. Keep hidden input empty.
+        document.getElementById('scheduleTimeSlot').value = '';
       } else {
         preview.classList.add('hidden');
         addonsSection.style.display = 'none';
@@ -2306,6 +2457,10 @@ function formatDateStr(date) {
       });
       document.getElementById('distributeAndRouteBtn')?.addEventListener('click', () => {
         if (selectedDate) distributeAndRouteDay(selectedDate);
+      });
+      // Preview all team routes
+      document.getElementById('previewAllRoutesBtn')?.addEventListener('click', () => {
+        if (selectedDate) previewAllTeamRoutes(selectedDate);
       });
 
       // Office Modal
