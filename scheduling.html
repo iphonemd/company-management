@@ -9,6 +9,34 @@
   <style>
     /* Additional calendar-specific styles */
 
+    /* Week Selector */
+    .week-selector {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2) var(--space-3);
+    }
+
+    .week-display {
+      flex: 1;
+      text-align: center;
+      min-width: 200px;
+    }
+
+    .week-range {
+      font-weight: 600;
+      font-size: var(--text-base);
+      color: var(--gray-800);
+    }
+
+    .week-selector .btn-outline {
+      padding: var(--space-2) var(--space-3);
+      min-width: 40px;
+    }
+
     /* Loading spinner for buttons */
     .spinner {
       display: inline-block;
@@ -494,6 +522,22 @@
       gap: 4px;
     }
 
+    @media (max-width: 768px) {
+      .week-view .job-chip,
+      .week-grid .job-chip {
+        font-size: 13px;
+        padding: 6px 10px;
+        margin-bottom: 4px;
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+      }
+      
+      .week-grid .time-slot {
+        min-height: 60px;
+      }
+    }
+
     /* On smaller screens, show only icons */
     @media (max-width: 640px) {
       .day-jobs-footer {
@@ -512,6 +556,16 @@
       .day-jobs-footer .btn span:first-child {
         font-size: 1.1rem;
       }
+
+        .calendar-actions {
+        padding: var(--space-2);
+        gap: var(--space-1);
+      }
+      
+      .calendar-actions .btn {
+        padding: var(--space-2) var(--space-3);
+        font-size: var(--text-sm);
+      }
     }
 
     /* Very small screens - stack buttons */
@@ -525,7 +579,57 @@
         flex: 1 1 calc(50% - var(--space-2));
         justify-content: center;
       }
+
+      .week-view .job-chip,
+      .week-grid .job-chip {
+        font-size: 14px;
+        padding: 8px 12px;
+        min-height: 40px;
+        border-radius: var(--radius-md);
+      }
     }
+
+    /* Touch drag visual feedback */
+    .job-chip.touch-dragging {
+      opacity: 0.7;
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+
+    .calendar-cell.touch-drag-over,
+    .week-grid .time-slot.touch-drag-over {
+      background: var(--primary-100) !important;
+      border: 2px dashed var(--primary-500) !important;
+    }
+
+    /* Sticky action buttons */
+.calendar-actions {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--gray-50);
+  padding: var(--space-3) 0;
+  margin: 0 calc(-1 * var(--space-4));
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Ensure main content area allows sticky to work */
+.main-content {
+  overflow-y: auto;
+}
+
+/* Add shadow when stuck */
+.calendar-actions.stuck {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
   </style>
 </head>
 <body>
@@ -629,39 +733,22 @@
             <p class="text-gray-500"><span id="scheduleCount">0</span> jobs this month</p>
           </div>
           <div class="page-actions">
-            <button class="btn btn-secondary" id="distributeWeeklyBtn" title="Auto-distribute clients for the week by proximity">
-              <span>🗺️</span>
-              <span>Distribute Weekly</span>
-            </button>
-            <button class="btn btn-secondary" id="autoScheduleBtn">
-              <span>🔄</span>
-              <span data-i18n="generateSchedules">Generate Schedules</span>
-            </button>
-            <button class="btn btn-primary" id="addScheduleBtn">
-              <span>➕</span>
-              <span data-i18n="scheduleJob">Schedule Job</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Office Address Settings -->
-        <div class="card mb-4" style="background: var(--gray-50);">
-          <div class="card-body">
-            <div class="flex justify-between items-center mb-2">
-              <div class="font-semibold flex items-center gap-2">
-                <span>🏢</span> Route Start/End Locations
-              </div>
-              <button class="btn btn-sm btn-secondary" id="editOfficeBtn">Edit</button>
-            </div>
-            <div class="grid grid-cols-2">
-              <div>
-                <div class="text-sm text-gray-500">Start Location (Office)</div>
-                <div class="font-semibold" id="startAddressDisplay">Not set</div>
-              </div>
-              <div>
-                <div class="text-sm text-gray-500">End Location</div>
-                <div class="font-semibold" id="endAddressDisplay">Same as start</div>
-              </div>
+            <div class="calendar-actions" id="calendarActions">
+              <button class="btn btn-secondary" id="editOfficeBtn" title="Route Start/End Locations">
+                📍 Route Start/End
+              </button>
+              <button class="btn btn-secondary" id="autoScheduleBtn">
+                <span>🔄</span>
+                <span data-i18n="generateSchedules">Generate Schedules</span>
+              </button>
+              <button class="btn btn-secondary" id="distributeWeeklyBtn" title="Auto-distribute clients for the week by proximity">
+                <span>🗺️</span>
+                <span>Distribute Weekly</span>
+              </button>
+              <button class="btn btn-primary" id="addScheduleBtn">
+                <span>➕</span>
+                <span data-i18n="scheduleJob">Schedule Job</span>
+              </button>
             </div>
           </div>
         </div>
@@ -858,55 +945,57 @@
     </div>
   </div>
 
-  <!-- Auto Schedule Modal -->
-  <div class="modal modal-lg" id="autoScheduleModal">
-    <div class="modal-header">
-      <h3 class="modal-title" data-i18n="generateSchedules">Generate Schedules</h3>
-      <button class="modal-close" id="closeAutoScheduleModal">✕</button>
+<!-- Auto Schedule Modal -->
+<div class="modal modal-lg" id="autoScheduleModal">
+  <div class="modal-header">
+    <h3 class="modal-title" data-i18n="generateSchedules">Generate Schedules</h3>
+    <button class="modal-close" id="closeAutoScheduleModal">✕</button>
+  </div>
+  <div class="modal-body">
+    <p class="mb-4">Automatically generate schedules for clients based on their schedule preferences. Only clients with existing schedule history will be included.</p>
+    
+    <div class="form-group">
+      <label class="form-label">Select Week</label>
+      <div class="week-selector">
+        <button type="button" class="btn btn-outline btn-sm" id="prevWeekBtn">◀</button>
+        <div class="week-display" id="weekDisplay">
+          <span class="week-range" id="weekRangeText">Dec 16 - Dec 22, 2024</span>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" id="nextWeekBtn">▶</button>
+      </div>
+      <input type="hidden" id="autoStartDate">
+      <input type="hidden" id="autoEndDate">
     </div>
-    <div class="modal-body">
-      <p class="mb-4">Automatically generate schedules for clients based on their schedule preferences.</p>
-      
-      <div class="grid grid-cols-2">
-        <div class="form-group">
-          <label class="form-label">Start Date</label>
-          <input type="date" class="form-input" id="autoStartDate">
-        </div>
-        <div class="form-group">
-          <label class="form-label">End Date</label>
-          <input type="date" class="form-input" id="autoEndDate">
-        </div>
-      </div>
 
-      <div class="form-group">
-        <label class="form-label">Include Clients</label>
-        <select class="form-select" id="autoClientFilter">
-          <option value="all">All Active Clients</option>
-          <option value="unscheduled">Only Clients Without Upcoming Schedules</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Default Team Assignment</label>
-        <select class="form-select" id="autoDefaultTeam">
-          <option value="">Auto-assign (round robin)</option>
-        </select>
-      </div>
-
-      <div class="card mt-4">
-        <div class="card-body">
-          <div class="flex justify-between items-center">
-            <span>Estimated jobs to create:</span>
-            <span class="text-2xl font-bold text-primary" id="estimatedJobs">0</span>
-          </div>
-        </div>
-      </div>
+    <div class="form-group">
+      <label class="form-label">Include Clients</label>
+      <select class="form-select" id="autoClientFilter">
+        <option value="all">All Active Clients (with history)</option>
+        <option value="unscheduled">Only Clients Without Upcoming Schedules</option>
+      </select>
     </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" id="cancelAutoScheduleBtn" data-i18n="cancel">Cancel</button>
-      <button type="button" class="btn btn-primary" id="generateSchedulesBtn">Generate Schedules</button>
+
+    <div class="form-group">
+      <label class="form-label">Default Team Assignment</label>
+      <select class="form-select" id="autoDefaultTeam">
+        <option value="">Auto-assign (distribute by proximity)</option>
+      </select>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-body">
+        <div class="flex justify-between items-center">
+          <span>Estimated jobs to create:</span>
+          <span class="text-2xl font-bold text-primary" id="estimatedJobs">0</span>
+        </div>
+      </div>
     </div>
   </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" id="cancelAutoScheduleBtn" data-i18n="cancel">Cancel</button>
+    <button type="button" class="btn btn-primary" id="generateSchedulesBtn">Generate Schedules</button>
+  </div>
+</div>
 
   <!-- Day Jobs Modal (for clicking on a day) -->
   <div class="modal modal-lg" id="dayJobsModal">
@@ -1078,6 +1167,7 @@
       renderCalendar();
       updateOfficeDisplay();
       setupEventListeners();
+      initStickyActions();
 
       // Check URL params
       const urlParams = new URLSearchParams(window.location.search);
@@ -1137,13 +1227,27 @@
 
     async function loadSchedules() {
       try {
-        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        // Calculate visible date range based on current view
+        let startDate, endDate;
         
-        // Load schedules for current month view (with some buffer)
-        const startStr = formatDateStr(addDays(startOfMonth, -7));
-        const endStr = formatDateStr(addDays(endOfMonth, 7));
-
+        if (currentView === 'month') {
+          // Load current month + buffer for prev/next month days shown
+          startDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+          endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
+        } else if (currentView === 'week') {
+          // Load current week + 1 week buffer each side
+          const weekStart = getStartOfWeek(currentDate);
+          startDate = addDays(weekStart, -7);
+          endDate = addDays(weekStart, 13);
+        } else {
+          // Day view - load current day + 1 day buffer
+          startDate = addDays(currentDate, -1);
+          endDate = addDays(currentDate, 1);
+        }
+        
+        const startStr = formatDateStr(startDate);
+        const endStr = formatDateStr(endDate);
+        
         const q = query(
           collection(db, 'schedules'),
           where('date', '>=', startStr),
@@ -1571,61 +1675,218 @@
     };
 
     // ============================================
-    // DRAG AND DROP
+    // DRAG AND DROP (Desktop + Touch)
     // ============================================
     let draggedScheduleId = null;
     let isDragCopy = false;
+    let touchDragElement = null;
+    let touchDragClone = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchMoved = false;
 
     function initDragAndDrop() {
-      // Make job chips draggable
+      // Desktop drag and drop
       document.querySelectorAll('.job-chip[data-schedule-id]').forEach(chip => {
         chip.draggable = true;
         
-        chip.addEventListener('dragstart', (e) => {
-          draggedScheduleId = chip.dataset.scheduleId;
-          isDragCopy = e.ctrlKey || e.metaKey;
-          chip.classList.add('dragging');
-          e.dataTransfer.effectAllowed = isDragCopy ? 'copy' : 'move';
-          e.dataTransfer.setData('text/plain', draggedScheduleId);
-        });
+        chip.addEventListener('dragstart', handleDragStart);
+        chip.addEventListener('dragend', handleDragEnd);
         
-        chip.addEventListener('dragend', () => {
-          chip.classList.remove('dragging');
-          document.querySelectorAll('.calendar-cell').forEach(cell => {
-            cell.classList.remove('drag-over', 'drag-over-copy');
-          });
-          draggedScheduleId = null;
-          isDragCopy = false;
-        });
+        // Touch events for mobile
+        chip.addEventListener('touchstart', handleTouchStart, { passive: false });
+        chip.addEventListener('touchmove', handleTouchMove, { passive: false });
+        chip.addEventListener('touchend', handleTouchEnd);
       });
       
-      // Make calendar cells drop targets
-      document.querySelectorAll('.calendar-cell[data-date]').forEach(cell => {
-        cell.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          const isCopy = e.ctrlKey || e.metaKey;
-          e.dataTransfer.dropEffect = isCopy ? 'copy' : 'move';
-          cell.classList.remove('drag-over', 'drag-over-copy');
-          cell.classList.add(isCopy ? 'drag-over-copy' : 'drag-over');
-        });
-        
-        cell.addEventListener('dragleave', () => {
-          cell.classList.remove('drag-over', 'drag-over-copy');
-        });
-        
-        cell.addEventListener('drop', async (e) => {
-          e.preventDefault();
-          cell.classList.remove('drag-over', 'drag-over-copy');
-          
-          const scheduleId = e.dataTransfer.getData('text/plain');
-          const newDate = cell.dataset.date;
-          const isCopy = e.ctrlKey || e.metaKey;
-          
-          if (scheduleId && newDate) {
-            await handleScheduleDrop(scheduleId, newDate, isCopy);
-          }
-        });
+      // Drop targets
+      const dropTargets = document.querySelectorAll('.calendar-cell[data-date], .week-grid [data-date]');
+      dropTargets.forEach(cell => {
+        cell.addEventListener('dragover', handleDragOver);
+        cell.addEventListener('dragleave', handleDragLeave);
+        cell.addEventListener('drop', handleDrop);
       });
+    }
+
+    // Desktop handlers
+    function handleDragStart(e) {
+      draggedScheduleId = this.dataset.scheduleId;
+      isDragCopy = e.ctrlKey || e.metaKey;
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = isDragCopy ? 'copy' : 'move';
+      e.dataTransfer.setData('text/plain', draggedScheduleId);
+    }
+
+    function handleDragEnd(e) {
+      this.classList.remove('dragging');
+      clearDropHighlights();
+      draggedScheduleId = null;
+      isDragCopy = false;
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      const isCopy = e.ctrlKey || e.metaKey;
+      e.dataTransfer.dropEffect = isCopy ? 'copy' : 'move';
+      this.classList.remove('drag-over', 'drag-over-copy');
+      this.classList.add(isCopy ? 'drag-over-copy' : 'drag-over');
+    }
+
+    function handleDragLeave(e) {
+      this.classList.remove('drag-over', 'drag-over-copy');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over', 'drag-over-copy');
+      
+      const scheduleId = e.dataTransfer.getData('text/plain');
+      const newDate = this.dataset.date;
+      const isCopy = e.ctrlKey || e.metaKey;
+      
+      if (scheduleId && newDate) {
+        handleScheduleDrop(scheduleId, newDate, isCopy);
+      }
+    }
+
+    // Touch handlers for mobile
+    function handleTouchStart(e) {
+      if (e.touches.length !== 1) return;
+      
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchMoved = false;
+      touchDragElement = this;
+      
+      // Long press to initiate drag (300ms)
+      this.touchTimeout = setTimeout(() => {
+        if (touchDragElement) {
+          initiateTouchDrag(e);
+        }
+      }, 300);
+    }
+
+    function initiateTouchDrag(e) {
+      if (!touchDragElement) return;
+      
+      draggedScheduleId = touchDragElement.dataset.scheduleId;
+      touchDragElement.classList.add('touch-dragging');
+      
+      // Create floating clone
+      touchDragClone = touchDragElement.cloneNode(true);
+      touchDragClone.style.cssText = `
+        position: fixed;
+        pointer-events: none;
+        z-index: 10000;
+        opacity: 0.9;
+        transform: scale(1.1);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        left: ${touchStartX - 50}px;
+        top: ${touchStartY - 20}px;
+        width: ${touchDragElement.offsetWidth}px;
+      `;
+      document.body.appendChild(touchDragClone);
+      
+      // Vibrate if supported
+      if (navigator.vibrate) navigator.vibrate(50);
+      
+      // Prevent scrolling
+      document.body.style.overflow = 'hidden';
+    }
+
+    function handleTouchMove(e) {
+      if (!touchDragElement) return;
+      
+      const touch = e.touches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartX);
+      const deltaY = Math.abs(touch.clientY - touchStartY);
+      
+      // If moved before long press, cancel drag initiation
+      if (!touchDragClone && (deltaX > 10 || deltaY > 10)) {
+        clearTimeout(touchDragElement.touchTimeout);
+        touchDragElement = null;
+        return;
+      }
+      
+      // If dragging, move clone and highlight targets
+      if (touchDragClone) {
+        e.preventDefault();
+        touchMoved = true;
+        
+        touchDragClone.style.left = `${touch.clientX - 50}px`;
+        touchDragClone.style.top = `${touch.clientY - 20}px`;
+        
+        // Find drop target under finger
+        const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        highlightTouchDropTarget(elemBelow);
+      }
+    }
+
+    function handleTouchEnd(e) {
+      clearTimeout(this.touchTimeout);
+      
+      if (touchDragClone && touchMoved) {
+        // Find drop target
+        const touch = e.changedTouches[0];
+        const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        const dropTarget = findDropTarget(elemBelow);
+        
+        if (dropTarget && draggedScheduleId) {
+          const newDate = dropTarget.dataset.date;
+          if (newDate) {
+            handleScheduleDrop(draggedScheduleId, newDate, false);
+          }
+        }
+      }
+      
+      // Cleanup
+      cleanupTouchDrag();
+    }
+
+    function findDropTarget(element) {
+      if (!element) return null;
+      
+      // Check if element or parent is a valid drop target
+      let current = element;
+      while (current && current !== document.body) {
+        if (current.dataset && current.dataset.date) {
+          return current;
+        }
+        current = current.parentElement;
+      }
+      return null;
+    }
+
+    function highlightTouchDropTarget(element) {
+      clearDropHighlights();
+      
+      const dropTarget = findDropTarget(element);
+      if (dropTarget) {
+        dropTarget.classList.add('touch-drag-over');
+      }
+    }
+
+    function clearDropHighlights() {
+      document.querySelectorAll('.drag-over, .drag-over-copy, .touch-drag-over').forEach(el => {
+        el.classList.remove('drag-over', 'drag-over-copy', 'touch-drag-over');
+      });
+    }
+
+    function cleanupTouchDrag() {
+      if (touchDragElement) {
+        touchDragElement.classList.remove('touch-dragging');
+      }
+      if (touchDragClone && touchDragClone.parentNode) {
+        touchDragClone.parentNode.removeChild(touchDragClone);
+      }
+      
+      clearDropHighlights();
+      
+      touchDragElement = null;
+      touchDragClone = null;
+      draggedScheduleId = null;
+      touchMoved = false;
+      document.body.style.overflow = '';
     }
 
     async function handleScheduleDrop(scheduleId, newDate, isCopy) {
@@ -2025,20 +2286,18 @@ const scheduleData = {
     // ============================================
     // AUTO-SCHEDULE GENERATION
     // ============================================
+    let selectedWeekStart = null;
+
     function openAutoScheduleModal() {
-      const today = new Date();
-      
       // Find next Monday
+      const today = new Date();
       let nextMonday = new Date(today);
       const dayOfWeek = today.getDay();
       const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
       nextMonday = addDays(today, daysUntilMonday);
       
-      // End on Sunday (6 days after Monday)
-      const nextSunday = addDays(nextMonday, 6);
-      
-      document.getElementById('autoStartDate').value = formatDateStr(nextMonday);
-      document.getElementById('autoEndDate').value = formatDateStr(nextSunday);
+      selectedWeekStart = nextMonday;
+      updateWeekSelector();
       
       // Populate team select
       const teamSelect = document.getElementById('autoDefaultTeam');
@@ -2047,6 +2306,26 @@ const scheduleData = {
       
       estimateJobs();
       openModal('autoScheduleModal');
+    }
+
+    function updateWeekSelector() {
+      const monday = selectedWeekStart;
+      const sunday = addDays(monday, 6);
+      
+      // Update display
+      const rangeText = `${formatDate(monday, { month: 'short', day: 'numeric' })} - ${formatDate(sunday, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      document.getElementById('weekRangeText').textContent = rangeText;
+      
+      // Update hidden inputs
+      document.getElementById('autoStartDate').value = formatDateStr(monday);
+      document.getElementById('autoEndDate').value = formatDateStr(sunday);
+      
+      estimateJobs();
+    }
+
+    function navigateWeek(direction) {
+      selectedWeekStart = addDays(selectedWeekStart, direction * 7);
+      updateWeekSelector();
     }
 
     function estimateJobs() {
@@ -2120,11 +2399,20 @@ const scheduleData = {
         const snapshot = await getDocs(q);
         const allSchedules = [];
         snapshot.forEach(doc => allSchedules.push({ id: doc.id, ...doc.data() }));
+        // Filter clients to only those with recurring schedules and some history
+        const eligibleClients = clients.filter(c => {
+          if (!c.scheduleType || c.scheduleType === 'oneTime') return false;
+          
+          // Check if client has any schedule history in the past 2 months
+          const hasHistory = allSchedules.some(s => s.clientId === c.id);
+          if (!hasHistory) {
+            console.log(`Skipping ${c.firstName} ${c.lastName} - no schedule history`);
+          }
+          return hasHistory;
+        });
 
-        const eligibleClients = clients.filter(c => c.scheduleType && c.scheduleType !== 'oneTime');
-        
         if (eligibleClients.length === 0) {
-          showToast('warning', 'No Clients', 'No recurring clients found');
+          showToast('warning', 'No Clients', 'No recurring clients with schedule history found. Clients need at least one past schedule to auto-generate.');
           return;
         }
 
@@ -2667,10 +2955,20 @@ function formatDateStr(date) {
       
       return floors.length > 0 ? floors.join('+') : 'Standard';
     }
-
-    // function formatDate(date, options) {
-    //   return i18n.formatDate(date, options);
-    // }
+    // Add after DOMContentLoaded or in init
+    function initStickyActions() {
+      const actions = document.getElementById('calendarActions');
+      if (!actions) return;
+      
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          actions.classList.toggle('stuck', entry.intersectionRatio < 1);
+        },
+        { threshold: [1], rootMargin: '-1px 0px 0px 0px' }
+      );
+      
+      observer.observe(actions);
+    }
 
     function populateClientSelect(filter = '') {
       const select = document.getElementById('scheduleClient');
@@ -2844,6 +3142,10 @@ function formatDateStr(date) {
         loadSchedules().then(() => renderCalendar());
       });
 
+      // Week selector navigation
+      document.getElementById('prevWeekBtn')?.addEventListener('click', () => navigateWeek(-1));
+      document.getElementById('nextWeekBtn')?.addEventListener('click', () => navigateWeek(1));
+
       document.getElementById('nextBtn').addEventListener('click', () => {
         if (currentView === 'month') {
           currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
@@ -2995,8 +3297,6 @@ function formatDateStr(date) {
       document.getElementById('closeAutoScheduleModal').addEventListener('click', () => closeModal('autoScheduleModal'));
       document.getElementById('cancelAutoScheduleBtn').addEventListener('click', () => closeModal('autoScheduleModal'));
       document.getElementById('generateSchedulesBtn').addEventListener('click', generateSchedules);
-      document.getElementById('autoStartDate').addEventListener('change', estimateJobs);
-      document.getElementById('autoEndDate').addEventListener('change', estimateJobs);
       document.getElementById('autoClientFilter').addEventListener('change', estimateJobs);
 
       // Day Jobs Modal
