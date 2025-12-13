@@ -8,6 +8,54 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
   <style>
     /* Additional calendar-specific styles */
+
+    /* Loading spinner for buttons */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .spinner-danger {
+      border-color: rgba(220,53,69,0.3);
+      border-top-color: #dc3545;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    /* Drag and drop styles */
+    .job-chip.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+
+    .job-chip[draggable="true"] {
+      cursor: grab;
+    }
+
+    .calendar-cell.drag-over {
+      background: var(--primary-100);
+      border: 2px dashed var(--primary-500);
+    }
+
+    .calendar-cell.drag-over-copy {
+      background: var(--success-100);
+      border: 2px dashed var(--success-500);
+    }
+
     .calendar-container {
       background: white;
       border-radius: var(--radius-xl);
@@ -431,6 +479,53 @@
     .search-select-list .search-option { padding: 8px 10px; border-bottom: 1px solid var(--gray-100); }
     .search-select-list .search-option:last-child { border-bottom: none; }
     .search-select-list .search-option:hover, .search-select-list .search-option.focused { background: var(--gray-50); }
+
+    /* Day Jobs Modal Footer - Responsive */
+    .day-jobs-footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      justify-content: flex-end;
+    }
+
+    .day-jobs-footer .btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* On smaller screens, show only icons */
+    @media (max-width: 640px) {
+      .day-jobs-footer {
+        justify-content: center;
+      }
+      
+      .day-jobs-footer .btn {
+        padding: var(--space-2) var(--space-3);
+        min-width: auto;
+      }
+      
+      .day-jobs-footer .btn .btn-text {
+        display: none;
+      }
+      
+      .day-jobs-footer .btn span:first-child {
+        font-size: 1.1rem;
+      }
+    }
+
+    /* Very small screens - stack buttons */
+    @media (max-width: 400px) {
+      .day-jobs-footer {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+      
+      .day-jobs-footer .btn {
+        flex: 1 1 calc(50% - var(--space-2));
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -822,15 +917,20 @@
     <div class="modal-body" id="dayJobsContent">
       <!-- Populated by JS -->
     </div>
-    <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="closeDayJobsBtn" data-i18n="close">Close</button>
-        <button type="button" class="btn btn-secondary" id="previewAllRoutesBtn">Preview All Routes</button>
-        <button type="button" class="btn btn-secondary" id="distributeAndRouteBtn">
-        <span>🗺️</span> Distribute & Route
-      </button>
-      <button type="button" class="btn btn-primary" id="addJobForDayBtn">
-        <span>➕</span> Add Job
-      </button>
+    <div class="modal-footer day-jobs-footer">
+        <button type="button" class="btn btn-danger btn-sm" id="deleteAllDayJobsBtn" title="Delete All">
+          <span>🗑️</span> <span class="btn-text">Delete All</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" id="closeDayJobsBtn" data-i18n="close">Close</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="previewAllRoutesBtn" title="Preview Routes">
+          <span>🗺️</span> <span class="btn-text">Routes</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" id="distributeAndRouteBtn" title="Distribute & Route">
+          <span>📍</span> <span class="btn-text">Distribute</span>
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" id="addJobForDayBtn" title="Add Job">
+          <span>➕</span> <span class="btn-text">Add Job</span>
+        </button>
     </div>
   </div>
 
@@ -1208,6 +1308,8 @@
       }
       
       grid.innerHTML = html;
+      // At the end of renderMonthView function, add:
+      setTimeout(() => initDragAndDrop(), 0);
     }
 
     function renderJobChips(daySchedules, maxShow = 3) {
@@ -1224,11 +1326,7 @@
         // Use the schedule status as a chip class to color chips by status
         const statusClass = (['scheduled','in_progress','completed','cancelled','rescheduled'].includes(schedule.status) ? schedule.status : 'scheduled');
         
-        html += `
-          <div class="job-chip ${statusClass}" onclick="event.stopPropagation(); viewSchedule('${schedule.id}')" title="${clientName}">
-            ${clientName}
-          </div>
-        `;
+        html += `<div class="job-chip ${statusClass}" draggable="true" data-schedule-id="${schedule.id}" onclick="event.stopPropagation(); viewSchedule('${schedule.id}')" title="${client?.firstName || ''} ${client?.lastName || ''} - Drag to move, Ctrl+Drag to copy">${clientName}</div>`;
       });
       
       if (sorted.length > maxShow) {
@@ -1473,6 +1571,130 @@
     };
 
     // ============================================
+    // DRAG AND DROP
+    // ============================================
+    let draggedScheduleId = null;
+    let isDragCopy = false;
+
+    function initDragAndDrop() {
+      // Make job chips draggable
+      document.querySelectorAll('.job-chip[data-schedule-id]').forEach(chip => {
+        chip.draggable = true;
+        
+        chip.addEventListener('dragstart', (e) => {
+          draggedScheduleId = chip.dataset.scheduleId;
+          isDragCopy = e.ctrlKey || e.metaKey;
+          chip.classList.add('dragging');
+          e.dataTransfer.effectAllowed = isDragCopy ? 'copy' : 'move';
+          e.dataTransfer.setData('text/plain', draggedScheduleId);
+        });
+        
+        chip.addEventListener('dragend', () => {
+          chip.classList.remove('dragging');
+          document.querySelectorAll('.calendar-cell').forEach(cell => {
+            cell.classList.remove('drag-over', 'drag-over-copy');
+          });
+          draggedScheduleId = null;
+          isDragCopy = false;
+        });
+      });
+      
+      // Make calendar cells drop targets
+      document.querySelectorAll('.calendar-cell[data-date]').forEach(cell => {
+        cell.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          const isCopy = e.ctrlKey || e.metaKey;
+          e.dataTransfer.dropEffect = isCopy ? 'copy' : 'move';
+          cell.classList.remove('drag-over', 'drag-over-copy');
+          cell.classList.add(isCopy ? 'drag-over-copy' : 'drag-over');
+        });
+        
+        cell.addEventListener('dragleave', () => {
+          cell.classList.remove('drag-over', 'drag-over-copy');
+        });
+        
+        cell.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          cell.classList.remove('drag-over', 'drag-over-copy');
+          
+          const scheduleId = e.dataTransfer.getData('text/plain');
+          const newDate = cell.dataset.date;
+          const isCopy = e.ctrlKey || e.metaKey;
+          
+          if (scheduleId && newDate) {
+            await handleScheduleDrop(scheduleId, newDate, isCopy);
+          }
+        });
+      });
+    }
+
+    async function handleScheduleDrop(scheduleId, newDate, isCopy) {
+      const schedule = schedules.find(s => s.id === scheduleId);
+      if (!schedule) return;
+      
+      // Don't do anything if dropping on the same date (for move)
+      if (!isCopy && schedule.date === newDate) return;
+      
+      const client = clients.find(c => c.id === schedule.clientId);
+      
+      // Check for duplicate client on the target date
+      const existingOnDate = schedules.find(s => 
+        s.clientId === schedule.clientId && 
+        s.date === newDate && 
+        s.id !== scheduleId
+      );
+      
+      if (existingOnDate) {
+        showToast('warning', 'Duplicate', `${client?.firstName || ''} ${client?.lastName || ''} is already scheduled for ${newDate}`);
+        return;
+      }
+      
+      // Determine status based on date
+      const today = formatDateStr(new Date());
+      const newStatus = newDate >= today ? 'scheduled' : schedule.status;
+      
+      try {
+        if (isCopy) {
+          // Create a new schedule (copy)
+          const newScheduleData = {
+            clientId: schedule.clientId,
+            teamId: schedule.teamId || '',
+            date: newDate,
+            serviceDetails: { ...schedule.serviceDetails },
+            estimatedDuration: schedule.estimatedDuration || 2,
+            status: newStatus,
+            notes: schedule.notes || '',
+            routeOrder: 0,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now()
+          };
+          
+          const docRef = await addDoc(collection(db, 'schedules'), newScheduleData);
+          await logScheduleAction(AuditActions.CREATE, docRef.id, 
+            `Copied ${client?.firstName || ''} ${client?.lastName || ''} to ${newDate}`);
+          showToast('success', 'Copied', `Job copied to ${newDate}`);
+        } else {
+          // Update existing schedule (move)
+          await updateDoc(doc(db, 'schedules', scheduleId), {
+            date: newDate,
+            status: newStatus,
+            routeOrder: 0,
+            updatedAt: Timestamp.now()
+          });
+          await logScheduleAction(AuditActions.UPDATE, scheduleId, 
+            `Moved ${client?.firstName || ''} ${client?.lastName || ''} to ${newDate}`);
+          showToast('success', 'Moved', `Job moved to ${newDate}`);
+        }
+        
+        await loadSchedules();
+        renderCalendar();
+      } catch (error) {
+        console.error(`Error ${isCopy ? 'copying' : 'moving'} schedule:`, error);
+        showToast('error', 'Error', `Failed to ${isCopy ? 'copy' : 'move'} job`);
+      }
+    }
+
+    // ============================================
     // SCHEDULE CRUD
     // ============================================
     function openAddScheduleModal(dateStr = null) {
@@ -1649,6 +1871,20 @@
         showToast('error', i18n.t('error'), i18n.t('required'));
         return;
       }
+      // Check for duplicate client on the same date (excluding current schedule being edited)
+
+      const duplicateSchedule = schedules.find(s => 
+        s.clientId === clientId && 
+        s.date === date && 
+        s.id !== editingScheduleId
+      );
+
+      if (duplicateSchedule) {
+        const client = clients.find(c => c.id === clientId);
+        showToast('warning', 'Duplicate', `${client?.firstName || ''} ${client?.lastName || ''} is already scheduled for ${date}`);
+        return;
+      }
+
       // Default the team to the first available team if none selected
       if (!teamId && teams && teams.length > 0) teamId = teams[0].id;
       
@@ -1735,20 +1971,78 @@ const scheduleData = {
       }
     }
 
+    async function deleteAllDaySchedules(dateStr) {
+      const daySchedules = schedules.filter(s => s.date === dateStr);
+      
+      if (daySchedules.length === 0) {
+        showToast('info', 'No Jobs', 'No jobs to delete for this day');
+        return;
+      }
+      
+      const confirmed = await confirmDialog(
+        'Delete All Jobs',
+        `Are you sure you want to delete all ${daySchedules.length} job(s) scheduled for this day? This cannot be undone.`,
+        'Delete All',
+        'Cancel'
+      );
+      
+      if (!confirmed) return;
+      
+      // Show loading state
+      const deleteBtn = document.getElementById('deleteAllDayJobsBtn');
+      const originalHTML = deleteBtn.innerHTML;
+      deleteBtn.disabled = true;
+      deleteBtn.innerHTML = '<span class="spinner spinner-danger"></span> Deleting...';
+      
+      // Also disable other footer buttons to prevent conflicts
+      const footerBtns = document.querySelectorAll('#dayJobsModal .modal-footer .btn');
+      footerBtns.forEach(btn => btn.disabled = true);
+      
+      try {
+        let deleted = 0;
+        for (const schedule of daySchedules) {
+          await deleteDoc(doc(db, 'schedules', schedule.id));
+          deleted++;
+        }
+        
+        await logScheduleAction(AuditActions.DELETE, null, `Bulk deleted ${deleted} schedules for ${dateStr}`);
+        showToast('success', i18n.t('success'), `${deleted} jobs deleted`);
+        
+        closeModal('dayJobsModal');
+        await loadSchedules();
+        renderCalendar();
+      } catch (error) {
+        console.error('Error deleting schedules:', error);
+        showToast('error', i18n.t('error'), 'Failed to delete schedules');
+      } finally {
+        // Reset button states
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = originalHTML;
+        footerBtns.forEach(btn => btn.disabled = false);
+      }
+    }
+
     // ============================================
     // AUTO-SCHEDULE GENERATION
     // ============================================
     function openAutoScheduleModal() {
       const today = new Date();
-      const nextWeek = addDays(today, 7);
-      const twoWeeksOut = addDays(today, 14);
       
-      document.getElementById('autoStartDate').value = formatDateStr(nextWeek);
-      document.getElementById('autoEndDate').value = formatDateStr(twoWeeksOut);
+      // Find next Monday
+      let nextMonday = new Date(today);
+      const dayOfWeek = today.getDay();
+      const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
+      nextMonday = addDays(today, daysUntilMonday);
+      
+      // End on Sunday (6 days after Monday)
+      const nextSunday = addDays(nextMonday, 6);
+      
+      document.getElementById('autoStartDate').value = formatDateStr(nextMonday);
+      document.getElementById('autoEndDate').value = formatDateStr(nextSunday);
       
       // Populate team select
       const teamSelect = document.getElementById('autoDefaultTeam');
-      teamSelect.innerHTML = '<option value="">Auto-assign (round robin)</option>' +
+      teamSelect.innerHTML = '<option value="">Auto-assign (distribute by proximity)</option>' +
         teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
       
       estimateJobs();
@@ -1795,88 +2089,206 @@ const scheduleData = {
         showToast('error', i18n.t('error'), 'Please select valid dates');
         return;
       }
-      
-      const eligibleClients = clients.filter(c => c.scheduleType && c.scheduleType !== 'oneTime');
-      
-      let created = 0;
-      let teamIndex = 0;
-      
-      for (const client of eligibleClients) {
-        // Calculate next service date based on schedule type
-        let interval = 7;
-        switch (client.scheduleType) {
-          case 'weekly': interval = 7; break;
-          case 'biweekly': interval = 14; break;
-          case 'every3weeks': interval = 21; break;
-          case 'monthly': interval = 30; break;
-          case 'custom': interval = client.customScheduleDays || 30; break;
-        }
+
+      // Validate: max 1 week range (Mon-Sun)
+      const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      if (daysDiff > 7) {
+        showToast('error', i18n.t('error'), 'Schedule generation is limited to 1 week (Monday-Sunday)');
+        return;
+      }
+
+      // Show loading state
+      const generateBtn = document.getElementById('generateSchedulesBtn');
+      const originalText = generateBtn.textContent;
+      generateBtn.disabled = true;
+      generateBtn.innerHTML = '<span class="spinner"></span> Generating...';
+
+      try {
+        // Load 1-2 months of historical data to determine scheduling needs
+        const twoMonthsAgo = addDays(new Date(), -60);
+        const oneMonthAgo = addDays(new Date(), -30);
         
-        // Find preferred day
-        let currentDate = new Date(startDate);
-        if (client.preferredDay) {
-          const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
-          const targetDay = dayMap[client.preferredDay];
-          while (currentDate.getDay() !== targetDay) {
-            currentDate = addDays(currentDate, 1);
+        // Query existing schedules from past 2 months to now + end date range
+        const historicalStartStr = formatDateStr(twoMonthsAgo);
+        const futureEndStr = formatDateStr(endDate);
+        
+        const q = query(
+          collection(db, 'schedules'),
+          where('date', '>=', historicalStartStr),
+          where('date', '<=', futureEndStr)
+        );
+        const snapshot = await getDocs(q);
+        const allSchedules = [];
+        snapshot.forEach(doc => allSchedules.push({ id: doc.id, ...doc.data() }));
+
+        const eligibleClients = clients.filter(c => c.scheduleType && c.scheduleType !== 'oneTime');
+        
+        if (eligibleClients.length === 0) {
+          showToast('warning', 'No Clients', 'No recurring clients found');
+          return;
+        }
+
+        // Collect all new schedules to create (grouped by date for distribution)
+        const schedulesToCreate = {}; // dateStr -> array of schedule data
+        
+        for (const client of eligibleClients) {
+          // Calculate interval based on schedule type
+          let interval = 7;
+          switch (client.scheduleType) {
+            case 'weekly': interval = 7; break;
+            case 'biweekly': interval = 14; break;
+            case 'every3weeks': interval = 21; break;
+            case 'monthly': interval = 30; break;
+            case 'custom': interval = client.customScheduleDays || 30; break;
           }
-        }
-        
-        // Generate schedules
-        while (currentDate <= endDate) {
-          const dateStr = formatDateStr(currentDate);
           
-          // Check if already scheduled
-          const existing = schedules.find(s => s.clientId === client.id && s.date === dateStr);
+          // Find last service date for this client (from historical data)
+          const clientHistory = allSchedules
+            .filter(s => s.clientId === client.id && s.status !== 'cancelled')
+            .sort((a, b) => b.date.localeCompare(a.date));
           
-          if (!existing) {
-            // Assign team (round robin if not specified)
-            const teamId = defaultTeamId || (teams.length > 0 ? teams[teamIndex % teams.length].id : null);
-            teamIndex++;
-                        
-            // Calculate total price from base + any extras due this visit
-            const totalPrice = client.basePrice || 0;
-
-            // Build areas list from client's included floors
-            const includedAreas = [];
-            if (client.areas?.basement?.includedInBase) includedAreas.push('basement');
-            if (client.areas?.mainLevel?.includedInBase) includedAreas.push('mainLevel');
-            if (client.areas?.upstairs?.includedInBase) includedAreas.push('upstairs');
-
-            const scheduleData = {
-              clientId: client.id,
-              teamId: teamId || '',
-              date: dateStr,
-              serviceDetails: {
-                areas: includedAreas,
-                addOns: [],
-                totalPrice
-              },
-              estimatedDuration: 2,
-              status: 'scheduled',
-              notes: '',
-              createdAt: Timestamp.now(),
-              updatedAt: Timestamp.now()
-            };
-            
-            try {
-              await addDoc(collection(db, 'schedules'), scheduleData);
-              created++;
-            } catch (error) {
-              console.error('Error creating schedule:', error);
+          let nextServiceDate;
+          
+          if (clientHistory.length > 0) {
+            // Calculate next service date based on last service
+            const lastServiceDate = new Date(clientHistory[0].date + 'T00:00:00');
+            nextServiceDate = addDays(lastServiceDate, interval);
+          } else {
+            // No history - start from the beginning of the range
+            nextServiceDate = new Date(startDate);
+          }
+          
+          // Adjust to preferred day if set
+          if (client.preferredDay) {
+            const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+            const targetDay = dayMap[client.preferredDay];
+            while (nextServiceDate.getDay() !== targetDay) {
+              nextServiceDate = addDays(nextServiceDate, 1);
             }
           }
           
-          currentDate = addDays(currentDate, interval);
+          // Generate schedules within the date range
+          while (nextServiceDate <= endDate) {
+            if (nextServiceDate >= startDate) {
+              const dateStr = formatDateStr(nextServiceDate);
+              
+              // Check if already scheduled for this date
+              const existing = allSchedules.find(s => s.clientId === client.id && s.date === dateStr);
+              
+              // Check for duplicate - client already scheduled for this date in our pending list
+              const pendingDuplicate = schedulesToCreate[dateStr]?.find(s => s.clientId === client.id);
+              if (!existing && !pendingDuplicate) {
+                // Calculate total price from base
+                const totalPrice = client.basePrice || 0;
+                
+                // Build areas list from client's included floors
+                const includedAreas = [];
+                if (client.areas?.basement?.includedInBase) includedAreas.push('basement');
+                if (client.areas?.mainLevel?.includedInBase) includedAreas.push('mainLevel');
+                if (client.areas?.upstairs?.includedInBase) includedAreas.push('upstairs');
+                
+                const scheduleData = {
+                  clientId: client.id,
+                  client: client, // Keep reference for distribution
+                  date: dateStr,
+                  serviceDetails: {
+                    areas: includedAreas,
+                    addOns: [],
+                    totalPrice
+                  },
+                  estimatedDuration: 2,
+                  status: 'scheduled',
+                  notes: '',
+                  createdAt: Timestamp.now(),
+                  updatedAt: Timestamp.now()
+                };
+                
+                if (!schedulesToCreate[dateStr]) schedulesToCreate[dateStr] = [];
+                schedulesToCreate[dateStr].push(scheduleData);
+              }
+            }
+            
+            nextServiceDate = addDays(nextServiceDate, interval);
+          }
         }
+        
+        // Now distribute and create schedules per day (similar to distributeAndRouteDay)
+        let created = 0;
+        const activeTeams = teams.filter(t => t.isActive !== false);
+        
+        for (const [dateStr, daySchedules] of Object.entries(schedulesToCreate)) {
+          if (daySchedules.length === 0) continue;
+          
+          // Sort clients by proximity
+          const dayClients = daySchedules.map(s => s.client).filter(c => c);
+          const sortedClients = sortClientsByProximity(dayClients);
+          
+          // Distribute among teams
+          const jobsPerTeam = Math.ceil(sortedClients.length / Math.max(activeTeams.length, 1));
+          const teamAssignments = {};
+          activeTeams.forEach(t => teamAssignments[t.id] = []);
+          
+          sortedClients.forEach((client, idx) => {
+            if (activeTeams.length > 0) {
+              const teamIdx = Math.floor(idx / jobsPerTeam);
+              const team = activeTeams[Math.min(teamIdx, activeTeams.length - 1)];
+              teamAssignments[team.id].push(client);
+            }
+          });
+          
+          // Create schedules with team assignments and route order
+          for (const [teamId, teamClients] of Object.entries(teamAssignments)) {
+            const optimized = sortClientsByProximity(teamClients);
+            for (let i = 0; i < optimized.length; i++) {
+              const client = optimized[i];
+              const scheduleData = daySchedules.find(s => s.clientId === client.id);
+              if (scheduleData) {
+                // Remove temporary client reference and add team info
+                delete scheduleData.client;
+                scheduleData.teamId = teamId;
+                scheduleData.routeOrder = i + 1;
+                
+                try {
+                  await addDoc(collection(db, 'schedules'), scheduleData);
+                  created++;
+                } catch (error) {
+                  console.error('Error creating schedule:', error);
+                }
+              }
+            }
+          }
+          
+          // Handle case with no teams - create without team assignment
+          if (activeTeams.length === 0) {
+            for (const scheduleData of daySchedules) {
+              delete scheduleData.client;
+              scheduleData.teamId = '';
+              scheduleData.routeOrder = 0;
+              try {
+                await addDoc(collection(db, 'schedules'), scheduleData);
+                created++;
+              } catch (error) {
+                console.error('Error creating schedule:', error);
+              }
+            }
+          }
+        }
+        
+        await logScheduleAction(AuditActions.CREATE, null, `Auto-generated ${created} schedules`);
+        showToast('success', i18n.t('success'), `${created} schedules created`);
+        
+        closeModal('autoScheduleModal');
+        await loadSchedules();
+        renderCalendar();
+        
+      } catch (error) {
+        console.error('Error generating schedules:', error);
+        showToast('error', i18n.t('error'), 'Failed to generate schedules');
+      } finally {
+        // Reset button state
+        generateBtn.disabled = false;
+        generateBtn.textContent = originalText;
       }
-      
-      await logScheduleAction(AuditActions.CREATE, null, `Auto-generated ${created} schedules`);
-      showToast('success', i18n.t('success'), `${created} schedules created`);
-      
-      closeModal('autoScheduleModal');
-      await loadSchedules();
-      renderCalendar();
     }
 
     function shouldScheduleClient(client, dateStr) {
@@ -2463,6 +2875,11 @@ function formatDateStr(date) {
           
           renderCalendar();
         });
+      });
+
+      // Delete all day schedules
+      document.getElementById('deleteAllDayJobsBtn')?.addEventListener('click', () => {
+        if (selectedDate) deleteAllDaySchedules(selectedDate);
       });
 
       // Team filter

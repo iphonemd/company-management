@@ -349,11 +349,6 @@
       font-weight: 600;
     }
     
-    .schedule-list {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    
     .schedule-item {
       padding: var(--space-4) var(--space-5);
       border-bottom: 1px solid var(--gray-100);
@@ -2499,8 +2494,7 @@
           <div class="schedule-item ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''} ${isCancelled ? 'cancelled' : ''}" ${handler}>
             <div class="schedule-order">${isCompleted ? '✓' : orderNum}</div>
             <div class="schedule-time">
-              <div class="schedule-time-slot">${sch.timeSlot === 'morning' ? '🌅' : '🌆'}</div>
-              <div class="schedule-time-label">${sch.timeSlot === 'morning' ? 'AM' : 'PM'}</div>
+              <div style="margin-top:6px;"><button class="schedule-nav-btn" data-address="${(addressStr || '').replace(/\"/g, '&quot;')}">🧭 Ir</button></div>
             </div>
             <div class="schedule-info">
               <div class="schedule-client">${client.firstName} ${client.lastName}</div>
@@ -2510,7 +2504,6 @@
             <div class="schedule-status">
               <div class="schedule-price">${formatCurrency(sch.serviceDetails?.totalPrice || 0)}</div>
               ${badges[sch.status] || ''}
-              <div style="margin-top:6px;"><button class="schedule-nav-btn" data-address="${(addressStr || '').replace(/\"/g, '&quot;')}">🧭 Ir</button></div>
             </div>
           </div>
         `;
