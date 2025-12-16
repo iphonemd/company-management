@@ -174,9 +174,9 @@
                 <table class="table">
                   <thead>
                     <tr>
-                      <th data-i18n="time">Time</th>
-                      <th data-i18n="clients">Client</th>
+                      <th>#</th>
                       <th data-i18n="team">Team</th>
+                      <th data-i18n="clients">Client</th>
                       <th data-i18n="serviceType">Service</th>
                       <th data-i18n="status">Status</th>
                     </tr>
@@ -273,9 +273,9 @@
       collection, doc, getDoc, getDocs, query, where, orderBy, limit, Timestamp
     } from './js/firebase-config.js';
     import { i18n } from './js/i18n.js';
-    import { 
-      formatCurrency, formatDate, formatDateTime, getToday, 
-      getStartOfWeek, getEndOfWeek, showToast, getInitials
+    import {
+      formatCurrency, formatDate, formatDateTime, getToday,
+      getStartOfWeek, getEndOfWeek, showToast, getInitials, getServiceSummary
     } from './js/utils.js';
 
     // ============================================
@@ -388,6 +388,7 @@
 
       } catch (error) {
         console.error('Error loading stats:', error);
+        showToast('error', i18n.t('error'), 'Failed to load dashboard stats');
       }
     }
 
@@ -399,9 +400,8 @@
         const today = getToday();
         const schedulesRef = collection(db, 'schedules');
         const todayQuery = query(
-          schedulesRef, 
-          where('date', '==', today),
-          orderBy('timeSlot')
+          schedulesRef,
+          where('date', '==', today)
         );
         const snapshot = await getDocs(todayQuery);
 
@@ -421,8 +421,20 @@
         const clients = await getClientsMap();
         const teams = await getTeamsMap();
 
+        // Convert to array and sort by team name, then routeOrder
+        const jobs = [];
         snapshot.forEach(doc => {
-          const job = { id: doc.id, ...doc.data() };
+          jobs.push({ id: doc.id, ...doc.data() });
+        });
+
+        jobs.sort((a, b) => {
+          const teamA = teams[a.teamId]?.name || 'Unassigned';
+          const teamB = teams[b.teamId]?.name || 'Unassigned';
+          if (teamA !== teamB) return teamA.localeCompare(teamB);
+          return (a.routeOrder || 0) - (b.routeOrder || 0);
+        });
+
+        jobs.forEach(job => {
           const client = clients[job.clientId] || { firstName: 'Unknown', lastName: '' };
           const team = teams[job.teamId] || { name: 'Unassigned' };
 
@@ -435,12 +447,12 @@
 
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td>${job.timeSlot === 'morning' ? '🌅 ' + i18n.t('morning') : '🌆 ' + i18n.t('afternoon')}</td>
+            <td>${job.routeOrder || '-'}</td>
+            <td>${team.name}</td>
             <td>
               <div class="font-semibold">${client.firstName} ${client.lastName}</div>
               <div class="text-sm text-gray-500">${client.address?.street || ''}</div>
             </td>
-            <td>${team.name}</td>
             <td>
               <span class="badge badge-primary">
                 ${getServiceSummary(client)}
@@ -457,6 +469,7 @@
 
       } catch (error) {
         console.error('Error loading today schedule:', error);
+        showToast('error', i18n.t('error'), 'Failed to load today\'s schedule');
       }
     }
 
@@ -511,6 +524,7 @@
 
       } catch (error) {
         console.error('Error loading pending payments:', error);
+        showToast('error', i18n.t('error'), 'Failed to load pending payments');
       }
     }
 
@@ -570,6 +584,7 @@
 
       } catch (error) {
         console.error('Error loading activity:', error);
+        showToast('error', i18n.t('error'), 'Failed to load recent activity');
       }
     }
 
@@ -592,23 +607,6 @@
         map[doc.id] = { id: doc.id, ...doc.data() };
       });
       return map;
-    }
-
-    function toLocalDateString(date) {
-      return date.getFullYear() + '-' + 
-        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-        String(date.getDate()).padStart(2, '0');
-    }
-
-    function getServiceSummary(client) {
-      if (!client?.areas) return 'Standard';
-      
-      const floors = [];
-      if (client.areas.basement?.includedInBase) floors.push('Basement');
-      if (client.areas.mainLevel?.includedInBase) floors.push('Main');
-      if (client.areas.upstairs?.includedInBase) floors.push('Upstairs');
-      
-      return floors.length > 0 ? floors.join('+') : 'Standard';
     }
 
     // ============================================

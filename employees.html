@@ -6,6 +6,114 @@
   <title>CleanPro - Employees</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧹</text></svg>">
+  <style>
+    /* Sortable columns */
+    .sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+    .sortable:hover {
+      background-color: var(--gray-100);
+    }
+    .sort-indicator {
+      margin-left: 4px;
+      opacity: 0.4;
+    }
+    .sortable.asc .sort-indicator::after {
+      content: '▲';
+      opacity: 1;
+    }
+    .sortable.desc .sort-indicator::after {
+      content: '▼';
+      opacity: 1;
+    }
+
+    /* Employee selection UI for team members */
+    .employee-selection-container {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .employee-selection-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--gray-50);
+      border-radius: var(--radius-lg);
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .employee-selection-item:hover:not(.disabled) {
+      background: var(--gray-100);
+    }
+    .employee-selection-item.selected {
+      background: var(--primary-50);
+      border-color: var(--primary-300);
+    }
+    .employee-selection-item.disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      background: var(--gray-100);
+    }
+    .employee-selection-item.in-other-team {
+      opacity: 0.6;
+    }
+    .employee-selection-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      font-size: var(--text-sm);
+      flex-shrink: 0;
+    }
+    .employee-selection-info {
+      flex: 1;
+    }
+    .employee-selection-name {
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+    .employee-selection-role {
+      font-size: var(--text-xs);
+      color: var(--gray-500);
+    }
+    .employee-selection-checkbox {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--gray-300);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+    .employee-selection-item.selected .employee-selection-checkbox {
+      background: var(--primary-500);
+      border-color: var(--primary-500);
+      color: white;
+    }
+
+    /* Form validation styles */
+    .form-input.error,
+    .form-select.error {
+      border-color: var(--danger-500);
+      background-color: var(--danger-50);
+    }
+    .form-error {
+      color: var(--danger-500);
+      font-size: var(--text-xs);
+      margin-top: 4px;
+    }
+  </style>
 </head>
 <body>
   <div class="app-layout">
@@ -180,9 +288,9 @@
               <table class="table" id="employeesTable">
                 <thead>
                   <tr>
-                    <th data-i18n="firstName">Name</th>
+                    <th class="sortable asc" data-sort="name" data-i18n="firstName">Name <span class="sort-indicator"></span></th>
                     <th data-i18n="phone">Phone</th>
-                    <th data-i18n="team">Team</th>
+                    <th class="sortable asc" data-sort="team" data-i18n="team">Team <span class="sort-indicator"></span></th>
                     <th data-i18n="hourlyRate">Hourly Rate</th>
                     <th data-i18n="status">Status</th>
                     <th data-i18n="actions">Actions</th>
@@ -348,12 +456,10 @@
 
         <div class="form-group">
           <label class="form-label" data-i18n="teamMembers">Team Members</label>
-          <div class="card" style="max-height: 250px; overflow-y: auto;">
-            <div class="card-body" id="teamMembersList">
-              <!-- Populated by JS -->
-            </div>
+          <div class="employee-selection-container" id="teamMembersList" style="max-height: 300px; overflow-y: auto;">
+            <!-- Populated by JS -->
           </div>
-          <p class="form-helper">Select 3-4 employees for this team</p>
+          <p class="form-helper">Select employees for this team</p>
         </div>
 
         <div class="form-group">
@@ -422,7 +528,9 @@
     let editingEmployeeId = null;
     let editingTeamId = null;
     let selectedEmployeeForAccount = null;
-    let currentAdminEmail = null; // Store admin email on login
+    let currentAdminEmail = null;
+    let sortColumn = null;
+    let sortDirection = 'asc';
 
     // ============================================
     // AUTHENTICATION CHECK
@@ -451,25 +559,20 @@
     // INITIALIZE PAGE
     // ============================================
     async function initializePage() {
-      // Store admin email for re-auth
       currentAdminEmail = currentUser.email;
-      // Set user info in sidebar
       document.getElementById('userName').textContent = currentAdmin.name;
       document.getElementById('userAvatar').textContent = getInitials(
-        currentAdmin.name.split(' ')[0], 
+        currentAdmin.name.split(' ')[0],
         currentAdmin.name.split(' ')[1] || ''
       );
 
-      // Initialize language
       updateLanguage();
       i18n.updatePageTranslations();
 
-      // Load data
-      await loadEmployees();
+      // Load teams first so employee rendering can show team names
       await loadTeams();
-
-
-      // Setup event listeners
+      await loadEmployees();
+      await loadTeams(); // Reload teams to reflect any changes from employee load
       setupEventListeners();
 
         // Sync any pending user accounts from previous session
@@ -544,8 +647,27 @@
 
       // Apply search
       if (currentSearch) {
-        filteredEmployees = filterBySearch(filteredEmployees, currentSearch, 
+        filteredEmployees = filterBySearch(filteredEmployees, currentSearch,
           ['firstName', 'lastName', 'phone', 'email']);
+      }
+
+      // Apply sorting
+      if (sortColumn) {
+        filteredEmployees.sort((a, b) => {
+          let valA, valB;
+          if (sortColumn === 'name') {
+            valA = `${a.firstName} ${a.lastName}`.toLowerCase();
+            valB = `${b.firstName} ${b.lastName}`.toLowerCase();
+          } else if (sortColumn === 'team') {
+            const teamA = teams.find(t => t.id === a.teamId);
+            const teamB = teams.find(t => t.id === b.teamId);
+            valA = teamA?.name?.toLowerCase() || 'zzz';
+            valB = teamB?.name?.toLowerCase() || 'zzz';
+          }
+          if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+          if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        });
       }
 
       const tbody = document.getElementById('employeesBody');
@@ -683,6 +805,7 @@
     // ============================================
     function openAddEmployeeModal() {
       editingEmployeeId = null;
+      clearValidationErrors();
       document.getElementById('employeeModalTitle').textContent = i18n.t('addEmployee');
       document.getElementById('employeeForm').reset();
       document.getElementById('empIsActive').checked = true;
@@ -690,8 +813,6 @@
       populateEmployeeTeamSelect();
       openModal('employeeModal');
     }
-    // Create new account
-    // Open the create account modal
     // Make closeModal available globally for inline onclick handlers
     window.closeModal = closeModal;
     window.openCreateAccountModal = function(empId) {
@@ -713,26 +834,21 @@
     };
 
     // Confirm and create the account
-    window.confirmCreateAccount = async function() {
+    window.confirmCreateAccount = async function () {
       if (!selectedEmployeeForAccount) return;
-      
-      const tempPassword = document.getElementById('tempPassword').value;
+
+      const tempPassword = document.getElementById('tempPassword').value.trim();
       const adminPassword = document.getElementById('adminPasswordInput').value;
-      
+
       if (!tempPassword || tempPassword.length < 6) {
         showToast('error', 'Error', 'Password must be at least 6 characters');
         return;
       }
-      
-      if (!adminPassword) {
-        showToast('error', 'Error', 'Please enter your admin password');
-        return;
-      }
-      
+
       const btn = document.getElementById('confirmCreateAccountBtn');
       btn.disabled = true;
       btn.innerHTML = '⏳ Creating...';
-      
+
       try {
         const result = await createEmployeeAccount(
           selectedEmployeeForAccount.email,
@@ -747,115 +863,66 @@
           currentAdminEmail,
           adminPassword
         );
-        
-        if (result.success) {
-          closeModal('createAccountModal');
-          showToast('success', 'Account Created!', 
-            `Login account created for ${selectedEmployeeForAccount.firstName}. ` +
-            `Their temporary password is: ${tempPassword}`
+
+        if (!result.success) throw new Error(result.error);
+
+        // 🔑 Ensure admin session
+        if (!auth.currentUser) {
+          await signInWithEmailAndPassword(
+            auth,
+            currentAdminEmail,
+            adminPassword
           );
-          
-          // Reload employees to show updated status
-          await loadEmployees();
-        } else {
-          showToast('error', 'Error', result.error);
         }
+
+        console.log('AUTH USER:', auth.currentUser.email);
+
+        const employeeRef = doc(db, 'employees', selectedEmployeeForAccount.id);
+
+        const snap = await getDoc(employeeRef);
+        console.log('EMP DOC EXISTS:', snap.exists());
+
+        // ✅ MERGE = cannot fail if doc missing
+        await setDoc(
+          employeeRef,
+          {
+            hasAccount: true,
+            userId: result.uid,
+            updatedAt: new Date()
+          },
+          { merge: true }
+        );
+
+        closeModal('createAccountModal');
+
+        showToast(
+          'success',
+          'Account Created',
+          `Account created for ${selectedEmployeeForAccount.firstName}`
+        );
+
+        await loadEmployees();
+
       } catch (error) {
-        console.error('Error creating account:', error);
-        showToast('error', 'Error', 'Failed to create account. Please try again.');
+        console.error('ACCOUNT CREATE FAILED:', error);
+        showToast('error', 'Error', error.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '✅ Create Account';
       }
-      
-      btn.disabled = false;
-      btn.innerHTML = '✅ Create Account';
     };
-
-
 
     // Regenerate password
     window.regeneratePassword = function() {
       document.getElementById('tempPassword').value = generateTempPassword(10);
     };
 
-    window.createAccount = function(empId) {
-      const emp = employees.find(e => e.id === empId);
-      if (!emp) return;
-      
-      if (!emp.email) {
-        showToast('error', 'Error', 'Employee must have an email address to create an account');
-        return;
-      }
-      
-      selectedEmployeeForAccount = emp;
-      document.getElementById('accountEmpName').textContent = emp.firstName + ' ' + emp.lastName;
-      document.getElementById('accountEmpEmail').textContent = emp.email;
-      document.getElementById('tempPassword').value = generateTempPassword();
-      
-      openModal('createAccountModal');
-    };
-
-    document.getElementById('confirmCreateAccountBtn').addEventListener('click', async () => {
-      if (!selectedEmployeeForAccount) return;
-      
-      const password = document.getElementById('tempPassword').value.trim();
-      if (!password || password.length < 6) {
-        showToast('error', 'Error', 'Password must be at least 6 characters');
-        return;
-      }
-      
-      // Show loading
-      const btn = document.getElementById('confirmCreateAccountBtn');
-      btn.disabled = true;
-      btn.textContent = 'Creating...';
-      
-      try {
-        const result = await createEmployeeAccount(
-          selectedEmployeeForAccount.email,
-          password,
-          {
-            employeeId: selectedEmployeeForAccount.id,
-            firstName: selectedEmployeeForAccount.firstName,
-            lastName: selectedEmployeeForAccount.lastName,
-            teamId: selectedEmployeeForAccount.teamId,
-            role: selectedEmployeeForAccount.role || 'employee'
-          }
-        );
-        
-        if (result.success) {
-          // Update the employee record to indicate they have an account
-          await updateDoc(doc(db, 'employees', selectedEmployeeForAccount.id), {
-            hasAccount: true,
-            userId: result.uid
-          });
-          
-          showToast('success', 'Success', 'Account created! Employee can now log in.');
-          closeModal('createAccountModal');
-          
-          // Note: Admin may be signed out - handle re-authentication
-          if (!auth.currentUser) {
-            showToast('warning', 'Session Expired', 'Please log in again');
-            setTimeout(() => {
-              window.location.href = 'index.html';
-            }, 2000);
-          } else {
-            await loadEmployees();
-          }
-        } else {
-          showToast('error', 'Error', result.error);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        showToast('error', 'Error', 'Failed to create account');
-      }
-      
-      btn.disabled = false;
-      btn.textContent = 'Create Account';
-    });
-
     window.editEmployee = async function(id) {
       editingEmployeeId = id;
       const emp = employees.find(e => e.id === id);
       if (!emp) return;
 
+      clearValidationErrors();
       document.getElementById('employeeModalTitle').textContent = i18n.t('editEmployee');
       document.getElementById('employeeId').value = id;
       document.getElementById('empFirstName').value = emp.firstName || '';
@@ -935,21 +1002,77 @@
       openModal('viewEmployeeModal');
     };
 
+    function clearValidationErrors() {
+      document.querySelectorAll('.form-input.error, .form-select.error').forEach(el => {
+        el.classList.remove('error');
+      });
+      document.querySelectorAll('.form-error').forEach(el => el.remove());
+    }
+
+    function showFieldError(fieldId, message) {
+      const field = document.getElementById(fieldId);
+      if (!field) return;
+      field.classList.add('error');
+      const errorEl = document.createElement('div');
+      errorEl.className = 'form-error';
+      errorEl.textContent = message;
+      field.parentNode.appendChild(errorEl);
+    }
+
+    function validateEmail(email) {
+      if (!email) return true;
+      const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return regex.test(email);
+    }
+
+    function validatePhone(phone) {
+      if (!phone) return true;
+      const cleaned = phone.replace(/\D/g, '');
+      return cleaned.length >= 10;
+    }
+
     async function saveEmployee() {
+      clearValidationErrors();
       const firstName = document.getElementById('empFirstName').value.trim();
       const lastName = document.getElementById('empLastName').value.trim();
+      const email = document.getElementById('empEmail').value.trim();
+      const phone = document.getElementById('empPhone').value.trim();
+      const hourlyRate = document.getElementById('empHourlyRate').value;
 
-      if (!firstName || !lastName) {
-        showToast('error', i18n.t('error'), i18n.t('required'));
+      let hasErrors = false;
+
+      if (!firstName) {
+        showFieldError('empFirstName', 'First name is required');
+        hasErrors = true;
+      }
+      if (!lastName) {
+        showFieldError('empLastName', 'Last name is required');
+        hasErrors = true;
+      }
+      if (email && !validateEmail(email)) {
+        showFieldError('empEmail', 'Please enter a valid email address');
+        hasErrors = true;
+      }
+      if (phone && !validatePhone(phone)) {
+        showFieldError('empPhone', 'Please enter a valid phone number (at least 10 digits)');
+        hasErrors = true;
+      }
+      if (hourlyRate && (isNaN(parseFloat(hourlyRate)) || parseFloat(hourlyRate) < 0)) {
+        showFieldError('empHourlyRate', 'Please enter a valid hourly rate');
+        hasErrors = true;
+      }
+
+      if (hasErrors) {
+        showToast('error', i18n.t('error'), 'Please fix the errors in the form');
         return;
       }
 
       const employeeData = {
         firstName,
         lastName,
-        phone: document.getElementById('empPhone').value.trim(),
-        email: document.getElementById('empEmail').value.trim(),
-        hourlyRate: parseFloat(document.getElementById('empHourlyRate').value) || 0,
+        phone,
+        email,
+        hourlyRate: parseFloat(hourlyRate) || 0,
         hireDate: document.getElementById('empHireDate').value || null,
         teamId: document.getElementById('empTeam').value || null,
         isActive: document.getElementById('empIsActive').checked,
@@ -980,6 +1103,8 @@
 
         closeModal('employeeModal');
         await loadEmployees();
+        await loadTeams(); // Reload teams to reflect any changes from employee load
+
       } catch (error) {
         console.error('Error saving employee:', error);
         showToast('error', i18n.t('error'), 'Failed to save employee');
@@ -1015,6 +1140,7 @@
     // ============================================
     function openAddTeamModal() {
       editingTeamId = null;
+      clearValidationErrors();
       document.getElementById('teamModalTitle').textContent = i18n.t('addTeam');
       document.getElementById('teamForm').reset();
       document.getElementById('teamIsActive').checked = true;
@@ -1028,6 +1154,7 @@
       const team = teams.find(t => t.id === id);
       if (!team) return;
 
+      clearValidationErrors();
       document.getElementById('teamModalTitle').textContent = i18n.t('editTeam');
       document.getElementById('teamId').value = id;
       document.getElementById('teamName').value = team.name || '';
@@ -1040,16 +1167,22 @@
     };
 
     async function saveTeam() {
+      clearValidationErrors();
       const name = document.getElementById('teamName').value.trim();
 
+      let hasErrors = false;
       if (!name) {
-        showToast('error', i18n.t('error'), i18n.t('required'));
+        showFieldError('teamName', 'Team name is required');
+        hasErrors = true;
+      }
+      if (hasErrors) {
+        showToast('error', i18n.t('error'), 'Please fix the errors in the form');
         return;
       }
 
-      // Get selected members
-      const memberCheckboxes = document.querySelectorAll('#teamMembersList input[type="checkbox"]:checked');
-      const memberIds = Array.from(memberCheckboxes).map(cb => cb.value);
+      // Get selected members from new UI
+      const selectedItems = document.querySelectorAll('#teamMembersList .employee-selection-item.selected');
+      const memberIds = Array.from(selectedItems).map(item => item.dataset.empId);
 
       const teamData = {
         name,
@@ -1087,6 +1220,7 @@
         closeModal('teamModal');
         await loadTeams();
         await loadEmployees();
+        await loadTeams(); // Reload teams to reflect any changes from employee load
       } catch (error) {
         console.error('Error saving team:', error);
         showToast('error', i18n.t('error'), 'Failed to save team');
@@ -1160,18 +1294,38 @@
 
     function populateTeamMembersList(selectedIds = []) {
       const container = document.getElementById('teamMembersList');
-      container.innerHTML = employees.filter(e => e.isActive).map(e => `
-        <label class="form-check" style="padding: 8px 0; border-bottom: 1px solid var(--gray-100);">
-          <input type="checkbox" class="form-check-input" value="${e.id}" 
-            ${selectedIds.includes(e.id) ? 'checked' : ''}>
-          <span class="form-check-label">
-            <span class="font-semibold">${e.firstName} ${e.lastName}</span>
-            ${e.teamId && e.teamId !== editingTeamId ? 
-              `<span class="text-sm text-gray-500 ml-2">(${teams.find(t => t.id === e.teamId)?.name || ''})</span>` : ''}
-          </span>
-        </label>
-      `).join('');
+      const activeEmployees = employees.filter(e => e.isActive);
+
+      container.innerHTML = activeEmployees.map(e => {
+        const isSelected = selectedIds.includes(e.id);
+        const inOtherTeam = e.teamId && e.teamId !== editingTeamId;
+        const otherTeam = inOtherTeam ? teams.find(t => t.id === e.teamId) : null;
+        const avatarColor = getAvatarColor(e.firstName + e.lastName);
+
+        return `
+          <div class="employee-selection-item ${isSelected ? 'selected' : ''} ${inOtherTeam && !isSelected ? 'in-other-team' : ''}"
+               data-emp-id="${e.id}"
+               onclick="toggleTeamMember(this)">
+            <div class="employee-selection-avatar" style="background-color: ${avatarColor}">
+              ${getInitials(e.firstName, e.lastName)}
+            </div>
+            <div class="employee-selection-info">
+              <div class="employee-selection-name">${e.firstName} ${e.lastName}</div>
+              <div class="employee-selection-role">
+                ${otherTeam ? `Currently in: ${otherTeam.name}` : 'Available'}
+              </div>
+            </div>
+            <div class="employee-selection-checkbox">${isSelected ? '✓' : ''}</div>
+          </div>
+        `;
+      }).join('') || '<p class="text-gray-500">No active employees available</p>';
     }
+
+    window.toggleTeamMember = function(element) {
+      element.classList.toggle('selected');
+      const checkbox = element.querySelector('.employee-selection-checkbox');
+      checkbox.innerHTML = element.classList.contains('selected') ? '✓' : '';
+    };
 
     // ============================================
     // HELPER FUNCTIONS
@@ -1242,6 +1396,25 @@
         currentSearch = e.target.value;
         renderEmployees();
       }, 300));
+
+      // Sortable columns
+      document.querySelectorAll('.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+          const column = th.dataset.sort;
+          if (sortColumn === column) {
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+          } else {
+            sortColumn = column;
+            sortDirection = 'asc';
+          }
+          // Update UI
+          document.querySelectorAll('.sortable').forEach(el => {
+            el.classList.remove('asc', 'desc');
+          });
+          th.classList.add(sortDirection);
+          renderEmployees();
+        });
+      });
 
       // Add Employee buttons
       document.getElementById('addEmployeeBtn').addEventListener('click', openAddEmployeeModal);

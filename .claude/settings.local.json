@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /b \"C:\\Users\\David\\OneDrive - High Point Roofing and Waterproofing\\VS Code\\Company management\")"
+    ]
+  }
+}
