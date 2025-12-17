@@ -4,7 +4,8 @@
       "Bash(dir /b \"C:\\Users\\David\\OneDrive - High Point Roofing and Waterproofing\\VS Code\\Company management\")",
       "Bash(firebase functions:list:*)",
       "Bash(firebase functions:log:*)",
-      "Bash(firebase deploy:*)"
+      "Bash(firebase deploy:*)",
+      "Bash(node -c:*)"
     ]
   }
 }
