@@ -1456,39 +1456,26 @@
     });
 
     async function initializePage() {
-      console.log('Starting page initialization...');
       updateClock();
       clockInterval = setInterval(updateClock, 1000);
 
       try {
-        console.log('Loading office settings...');
         await loadOfficeSettings();
-        console.log('Loading clients...');
         await loadClients();
-        console.log('Loading teams...');
         await loadAllTeams();
-        console.log('Loading team info...');
         await loadTeamInfo();
-        console.log('Loading today schedules...');
         await loadTodaySchedules();
-        console.log('Loading time entries...');
         await loadTimeEntries();
-
-        console.log('Restoring state...');
         await restoreState();
         updateStatusUI();
-        console.log('About to render schedule with', Object.keys(clients).length, 'clients');
         renderSchedule();
       } catch (e) {
-        console.error('Initialization error:', e);
         showToast('error', 'Error', 'No se pudo inicializar la aplicación');
         return;
       }
       try {
         setupEventListeners();
-      } catch (e) {
-        console.error('Event listener setup error:', e);
-      }
+      } catch (e) {}
       setupStickyJobCard();
       
       // Start time monitoring for long work warnings
@@ -2108,11 +2095,17 @@
       try {
         // Calculate hours based on actual job completions (per-job hours)
         const todayStr = getLocalDateString();
+
+        // Get job completions AFTER the last clock in time of this session
         const jobCompletionsSnap = await getDocs(
-          query(collection(db, 'jobCompletions'), where('date', '==', todayStr))
+          query(
+            collection(db, 'jobCompletions'),
+            where('date', '==', todayStr),
+            where('createdAt', '>=', Timestamp.fromDate(clockInTime))
+          )
         );
 
-        // Calculate total hours per employee from job completions
+        // Calculate total hours per employee from job completions in THIS session
         const jobHoursByEmployee = {};
         jobCompletionsSnap.forEach(docSnap => {
           const jobCompletion = docSnap.data();
@@ -2147,8 +2140,12 @@
             }
             employeeHours[empId] += jobMs;
           } else {
-            // Employee didn't work any jobs - delete their time entry
-            await deleteDoc(doc(db, 'timeEntries', entry.id));
+            // Employee didn't work any jobs - mark as 0 hours instead of deleting
+            // (deletion requires admin role, but we only allow authorized users here)
+            await updateDoc(doc(db, 'timeEntries', entry.id), {
+              clockOut: Timestamp.fromDate(clockOutTime),
+              hoursWorked: 0
+            });
           }
         }
         
