@@ -17,6 +17,11 @@
     .area-row .area-name { flex: 1; display: flex; align-items: center; gap: 0.5rem; }
     .extra-badge { background: var(--warning-100); color: var(--warning-700); padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
     .base-service-summary { background: var(--primary-50); border: 1px solid var(--primary-200); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    .sortable { cursor: pointer; user-select: none; transition: background-color 0.2s; }
+    .sortable:hover { background-color: var(--gray-100); }
+    .sort-indicator { display: inline-block; margin-left: 4px; width: 14px; height: 14px; font-size: 11px; line-height: 14px; font-weight: bold; opacity: 0; }
+    .sortable.asc .sort-indicator::after { content: '▲'; opacity: 1; }
+    .sortable.desc .sort-indicator::after { content: '▼'; opacity: 1; }
   </style>
 </head>
 <body>
@@ -110,11 +115,11 @@
             <table class="table" id="clientsTable">
               <thead>
                 <tr>
-                  <th data-i18n="clients">Client</th>
+                  <th class="sortable" data-sort="name" data-i18n="clients">Client <span class="sort-indicator"></span></th>
                   <th data-i18n="address">Address</th>
                   <th data-i18n="phone">Phone</th>
-                  <th data-i18n="scheduleType">Schedule</th>
-                  <th data-i18n="basePrice">Price</th>
+                  <th class="sortable" data-sort="schedule" data-i18n="scheduleType">Schedule <span class="sort-indicator"></span></th>
+                  <th class="sortable" data-sort="price" data-i18n="basePrice">Price <span class="sort-indicator"></span></th>
                   <th data-i18n="status">Status</th>
                   <th data-i18n="actions">Actions</th>
                 </tr>
@@ -511,14 +516,15 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script type="module">
-    import { auth, db, onAuthStateChanged, signOut, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, Timestamp } from './js/firebase-config.js';
+    import { auth, db, onAuthStateChanged, signOut, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, Timestamp } from './js/firebase-config.js';
     import { i18n } from './js/i18n.js';
-    import { showToast, openModal, closeModal, closeAllModals, formatPhone, formatCurrency, formatDate, getInitials, confirmDialog, debounce, filterBySearch, sortByField, getScheduleTypeLabel, getServiceTypeLabel } from './js/utils.js';
+    import { showToast, openModal, closeModal, closeAllModals, formatPhone, formatCurrency, getInitials, confirmDialog, debounce, filterBySearch } from './js/utils.js';
     import { logClientAction, AuditActions, trackChanges } from './js/audit.js';
 
     let currentUser = null, currentAdmin = null, clients = [], currentFilter = 'all', currentScheduleFilter = '', currentSearch = '', editingClientId = null;
     let importData = [], importHeaders = [], columnMappings = {}, currentImportStep = 1;
     let googleMapsApiKey = null;
+    let sortColumn = null, sortDirection = 'asc';
 
     window.toggleFloorIncluded = function(floor) {
       const included = document.getElementById(`${floor}Included`).checked;
@@ -532,9 +538,6 @@
         const configDoc = await getDoc(doc(db, 'config', 'googleMaps'));
         if (configDoc.exists()) {
           googleMapsApiKey = configDoc.data().apiKey;
-          console.log('Google Maps API key loaded');
-        } else {
-          console.warn('Google Maps API key not found in Firebase');
         }
       } catch (e) {
         console.error('Error loading Google Maps API key:', e);
@@ -543,26 +546,23 @@
 
     async function geocodeAddress(street, city, state, zip) {
       if (!googleMapsApiKey) {
-        console.warn('No Google Maps API key available');
         return null;
       }
-      
+
       const fullAddress = `${street}, ${city}, ${state} ${zip}`;
       const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${googleMapsApiKey}`;
-      
+
       try {
         const response = await fetch(url);
         const data = await response.json();
-        
+
         if (data.status === 'OK' && data.results.length > 0) {
           const location = data.results[0].geometry.location;
-          console.log(`Geocoded "${fullAddress}" to:`, location);
           return {
             lat: location.lat,
             lng: location.lng
           };
         } else {
-          console.warn('Geocoding failed:', data.status);
           return null;
         }
       } catch (e) {
@@ -605,6 +605,28 @@
       if (currentScheduleFilter) filtered = filtered.filter(c => c.scheduleType === currentScheduleFilter);
       if (currentSearch) filtered = filterBySearch(filtered, currentSearch, ['firstName', 'lastName', 'nickname', 'phone', 'address.street']);
 
+      // Apply sorting
+      if (sortColumn) {
+        filtered.sort((a, b) => {
+          let valA, valB;
+
+          if (sortColumn === 'name') {
+            valA = `${a.firstName} ${a.lastName}`.toLowerCase();
+            valB = `${b.firstName} ${b.lastName}`.toLowerCase();
+          } else if (sortColumn === 'schedule') {
+            valA = a.scheduleType || '';
+            valB = b.scheduleType || '';
+          } else if (sortColumn === 'price') {
+            valA = a.basePrice || 0;
+            valB = b.basePrice || 0;
+          }
+
+          if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+          if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+
       document.getElementById('clientCount').textContent = filtered.length;
       const tbody = document.getElementById('clientsBody');
       const noClients = document.getElementById('noClients');
@@ -623,6 +645,36 @@
           <td><div class="flex gap-2"><button class="btn btn-sm btn-secondary" onclick="viewClient('${client.id}')" title="View">👁️</button><button class="btn btn-sm btn-secondary" onclick="editClient('${client.id}')" title="Edit">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteClient('${client.id}')" title="Delete">🗑️</button></div></td>
         </tr>`;
       }).join('');
+
+      // Update sort indicators
+      document.querySelectorAll('th.sortable').forEach(th => {
+        th.classList.remove('asc', 'desc');
+        const indicator = th.querySelector('.sort-indicator');
+        if (indicator) {
+          indicator.style.opacity = '0';
+        }
+      });
+      if (sortColumn) {
+        document.querySelectorAll('th.sortable').forEach(th => {
+          if (th.dataset.sort === sortColumn) {
+            th.classList.add(sortDirection);
+            let indicator = th.querySelector('.sort-indicator');
+            if (!indicator) {
+              indicator = document.createElement('span');
+              indicator.className = 'sort-indicator';
+              th.appendChild(indicator);
+            }
+            indicator.style.display = 'inline-block';
+            indicator.style.marginLeft = '4px';
+            indicator.style.width = '14px';
+            indicator.style.height = '14px';
+            indicator.style.fontSize = '11px';
+            indicator.style.lineHeight = '14px';
+            indicator.style.fontWeight = 'bold';
+            indicator.style.opacity = '1';
+          }
+        });
+      }
     }
 
     function openAddClientModal() {
@@ -789,11 +841,126 @@
       openModal('viewClientModal');
     };
 
-    async function saveClient() {
+    // Input validation helper
+    function validateClientInput() {
       const firstName = document.getElementById('clientFirstName').value.trim();
       const lastName = document.getElementById('clientLastName').value.trim();
       const street = document.getElementById('clientStreet').value.trim();
-      if (!firstName || !lastName || !street) { showToast('error', i18n.t('error'), i18n.t('required')); return; }
+      const phone = document.getElementById('clientPhone').value.trim();
+      const email = document.getElementById('clientEmail').value.trim();
+      const city = document.getElementById('clientCity').value.trim();
+      const state = document.getElementById('clientState').value.trim();
+      const zip = document.getElementById('clientZip').value.trim();
+      const basePrice = document.getElementById('clientBasePrice').value.trim();
+      const customDays = document.getElementById('clientCustomDays').value.trim();
+      const scheduleType = document.getElementById('clientScheduleType').value;
+
+      // Required fields - MUST be filled
+      if (!firstName) return { valid: false, error: 'First Name is required' };
+      if (!lastName) return { valid: false, error: 'Last Name is required' };
+      if (!street) return { valid: false, error: 'Street Address is required' };
+
+      // OPTIONAL fields - only validate if they have a value
+
+      // Phone validation (only if provided and not empty)
+      if (phone && phone.length > 0) {
+        const phoneRegex = /^[0-9\s\-\+\(\)]+$/;
+        const digitsOnly = phone.replace(/\D/g, '');
+        if (!phoneRegex.test(phone) || digitsOnly.length < 10) {
+          return { valid: false, error: 'Phone number must contain at least 10 digits. Use format like (402) 555-1234 or +1-402-555-1234' };
+        }
+      }
+
+      // Email validation (only if provided and not empty)
+      if (email && email.length > 0) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return { valid: false, error: 'Email format is invalid' };
+        }
+      }
+
+      // City validation (only if provided and not empty)
+      if (city && city.length > 0) {
+        const cityRegex = /^[a-zA-Z\s\-']+$/;
+        if (!cityRegex.test(city)) {
+          return { valid: false, error: 'City can only contain letters, spaces, hyphens, and apostrophes' };
+        }
+      }
+
+      // State validation (only if provided and not empty)
+      if (state && state.length > 0) {
+        const stateRegex = /^[A-Za-z]{1,2}$/;
+        if (!stateRegex.test(state)) {
+          return { valid: false, error: 'State must be a 2-letter code (e.g., NE, CA, TX)' };
+        }
+      }
+
+      // ZIP code validation (only if provided and not empty)
+      if (zip && zip.length > 0) {
+        const zipRegex = /^\d{5}(-\d{4})?$/;
+        if (!zipRegex.test(zip)) {
+          return { valid: false, error: 'ZIP Code must be 5 digits or in format 12345-6789' };
+        }
+      }
+
+      // Base price validation (only if provided)
+      if (basePrice && basePrice.length > 0) {
+        const price = parseFloat(basePrice);
+        if (isNaN(price) || price < 0) {
+          return { valid: false, error: 'Base Price must be a positive number' };
+        }
+      }
+
+      // Custom days validation (only if schedule type is custom)
+      if (scheduleType === 'custom') {
+        if (!customDays || customDays.length === 0) {
+          return { valid: false, error: 'Custom interval (days) is required when schedule type is Custom' };
+        }
+        const days = parseInt(customDays);
+        if (isNaN(days) || days < 1) {
+          return { valid: false, error: 'Custom interval must be at least 1 day' };
+        }
+      }
+
+      // Validate extra prices (basement, main, upstairs) - only if provided
+      const basementPrice = document.getElementById('basementExtraPrice').value.trim();
+      if (basementPrice && basementPrice.length > 0) {
+        const price = parseFloat(basementPrice);
+        if (isNaN(price) || price < 0) {
+          return { valid: false, error: 'Basement extra price must be a positive number' };
+        }
+      }
+
+      const mainPrice = document.getElementById('mainExtraPrice').value.trim();
+      if (mainPrice && mainPrice.length > 0) {
+        const price = parseFloat(mainPrice);
+        if (isNaN(price) || price < 0) {
+          return { valid: false, error: 'Main level extra price must be a positive number' };
+        }
+      }
+
+      const upstairsPrice = document.getElementById('upstairsExtraPrice').value.trim();
+      if (upstairsPrice && upstairsPrice.length > 0) {
+        const price = parseFloat(upstairsPrice);
+        if (isNaN(price) || price < 0) {
+          return { valid: false, error: 'Upstairs extra price must be a positive number' };
+        }
+      }
+
+      return { valid: true };
+    }
+
+    async function saveClient() {
+      // Validate all inputs
+      const validation = validateClientInput();
+      if (!validation.valid) {
+        showToast('error', i18n.t('error'), validation.error);
+        return;
+      }
+
+      const firstName = document.getElementById('clientFirstName').value.trim();
+      const lastName = document.getElementById('clientLastName').value.trim();
+      const street = document.getElementById('clientStreet').value.trim();
 
       const city = document.getElementById('clientCity').value.trim();
       const state = document.getElementById('clientState').value.trim();
@@ -1117,6 +1284,120 @@ function setupColumnMapping() {
       document.getElementById('startImportBtn').addEventListener('click', startImport);
       document.getElementById('doneImportBtn').addEventListener('click', async () => { closeModal('importModal'); await loadClients(); });
       document.getElementById('modalBackdrop').addEventListener('click', closeAllModals);
+
+      // Sortable columns - use event delegation on table header
+      const clientsTable = document.getElementById('clientsTable');
+      if (clientsTable) {
+        clientsTable.addEventListener('click', (e) => {
+          const th = e.target.closest('th.sortable');
+          if (!th) return;
+
+          const column = th.dataset.sort;
+
+          // Toggle sort direction if same column, else start ascending
+          if (sortColumn === column) {
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+          } else {
+            sortColumn = column;
+            sortDirection = 'asc';
+          }
+
+          renderClients();
+        });
+      }
+
+      // Real-time input validation listeners
+      document.getElementById('clientPhone').addEventListener('blur', () => {
+        const phone = document.getElementById('clientPhone').value.trim();
+        if (phone) {
+          const phoneRegex = /^[0-9\s\-\+\(\)]+$/;
+          const digitsOnly = phone.replace(/\D/g, '');
+          if (!phoneRegex.test(phone) || digitsOnly.length < 10) {
+            showToast('warning', 'Validation', 'Phone number must contain at least 10 digits');
+          }
+        }
+      });
+
+      document.getElementById('clientEmail').addEventListener('blur', () => {
+        const email = document.getElementById('clientEmail').value.trim();
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          showToast('warning', 'Validation', 'Email format may be invalid');
+        }
+      });
+
+      document.getElementById('clientZip').addEventListener('blur', () => {
+        const zip = document.getElementById('clientZip').value.trim();
+        if (zip && !/^\d{5}(-\d{4})?$/.test(zip)) {
+          showToast('warning', 'Validation', 'ZIP Code should be 5 digits or 12345-6789 format');
+        }
+      });
+
+      document.getElementById('clientCity').addEventListener('blur', () => {
+        const city = document.getElementById('clientCity').value.trim();
+        if (city && !/^[a-zA-Z\s\-']+$/.test(city)) {
+          showToast('warning', 'Validation', 'City can only contain letters, spaces, hyphens, and apostrophes');
+        }
+      });
+
+      document.getElementById('clientState').addEventListener('blur', () => {
+        const state = document.getElementById('clientState').value.trim();
+        if (state && !/^[A-Za-z]{1,2}$/.test(state)) {
+          showToast('warning', 'Validation', 'State should be a 2-letter code (e.g., NE, CA)');
+        }
+      });
+
+      document.getElementById('clientBasePrice').addEventListener('blur', () => {
+        const basePrice = document.getElementById('clientBasePrice').value.trim();
+        if (basePrice) {
+          const price = parseFloat(basePrice);
+          if (isNaN(price) || price < 0) {
+            showToast('warning', 'Validation', 'Base Price must be a positive number');
+          }
+        }
+      });
+
+      document.getElementById('basementExtraPrice').addEventListener('blur', () => {
+        const price = document.getElementById('basementExtraPrice').value.trim();
+        if (price) {
+          const numPrice = parseFloat(price);
+          if (isNaN(numPrice) || numPrice < 0) {
+            showToast('warning', 'Validation', 'Basement extra price must be a positive number');
+          }
+        }
+      });
+
+      document.getElementById('mainExtraPrice').addEventListener('blur', () => {
+        const price = document.getElementById('mainExtraPrice').value.trim();
+        if (price) {
+          const numPrice = parseFloat(price);
+          if (isNaN(numPrice) || numPrice < 0) {
+            showToast('warning', 'Validation', 'Main level extra price must be a positive number');
+          }
+        }
+      });
+
+      document.getElementById('upstairsExtraPrice').addEventListener('blur', () => {
+        const price = document.getElementById('upstairsExtraPrice').value.trim();
+        if (price) {
+          const numPrice = parseFloat(price);
+          if (isNaN(numPrice) || numPrice < 0) {
+            showToast('warning', 'Validation', 'Upstairs extra price must be a positive number');
+          }
+        }
+      });
+
+      document.getElementById('clientCustomDays').addEventListener('blur', () => {
+        const scheduleType = document.getElementById('clientScheduleType').value;
+        if (scheduleType === 'custom') {
+          const customDays = document.getElementById('clientCustomDays').value.trim();
+          if (customDays) {
+            const days = parseInt(customDays);
+            if (isNaN(days) || days < 1) {
+              showToast('warning', 'Validation', 'Custom interval must be at least 1 day');
+            }
+          }
+        }
+      });
     }
   </script>
 </body>
