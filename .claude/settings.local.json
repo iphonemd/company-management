@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir /b \"C:\\Users\\David\\OneDrive - High Point Roofing and Waterproofing\\VS Code\\Company management\")"
+      "Bash(dir /b \"C:\\Users\\David\\OneDrive - High Point Roofing and Waterproofing\\VS Code\\Company management\")",
+      "Bash(firebase functions:list:*)",
+      "Bash(firebase functions:log:*)",
+      "Bash(firebase deploy:*)"
     ]
   }
 }

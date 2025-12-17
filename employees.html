@@ -16,17 +16,14 @@
     .sortable:hover {
       background-color: var(--gray-100);
     }
-    .sort-indicator {
-      margin-left: 4px;
-      opacity: 0.4;
+    .sort-indicator::after {
+      content: attr(data-arrow);
     }
     .sortable.asc .sort-indicator::after {
       content: '▲';
-      opacity: 1;
     }
     .sortable.desc .sort-indicator::after {
       content: '▼';
-      opacity: 1;
     }
 
     /* Employee selection UI for team members */
@@ -247,13 +244,6 @@
       <p class="form-helper">Give this password to the employee. They should change it after first login.</p>
     </div>
     
-    <hr style="margin: 20px 0;">
-    
-    <div class="form-group">
-      <label class="form-label form-label-required">Your Admin Password</label>
-      <input type="password" class="form-input" id="adminPasswordInput" placeholder="Enter your password to confirm">
-      <p class="form-helper">Required to stay logged in after creating the account.</p>
-    </div>
   </div>
   <div class="modal-footer">
     <button type="button" class="btn btn-secondary" onclick="closeModal('createAccountModal')">Cancel</button>
@@ -288,9 +278,9 @@
               <table class="table" id="employeesTable">
                 <thead>
                   <tr>
-                    <th class="sortable asc" data-sort="name" data-i18n="firstName">Name <span class="sort-indicator"></span></th>
+                    <th class="sortable" data-sort="name" data-i18n="firstName">Name <span class="sort-indicator"></span></th>
                     <th data-i18n="phone">Phone</th>
-                    <th class="sortable asc" data-sort="team" data-i18n="team">Team <span class="sort-indicator"></span></th>
+                    <th class="sortable" data-sort="team" data-i18n="team">Team <span class="sort-indicator"></span></th>
                     <th data-i18n="hourlyRate">Hourly Rate</th>
                     <th data-i18n="status">Status</th>
                     <th data-i18n="actions">Actions</th>
@@ -496,9 +486,9 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script type="module">
-    import { 
-      auth, db, onAuthStateChanged, signOut,
-      collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, 
+    import {
+      app, auth, db, onAuthStateChanged, signOut,
+      collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
       query, where, orderBy, Timestamp
     } from './js/firebase-config.js';
     import { i18n } from './js/i18n.js';
@@ -509,11 +499,8 @@
     } from './js/utils.js';
     import { logEmployeeAction, logTeamAction, AuditActions, trackChanges } from './js/audit.js';
 
-    import { 
-      createEmployeeAccount, 
-      createEmployeeAccountSimple,
-      syncPendingUserAccounts,
-      generateTempPassword 
+    import {
+      generateTempPassword
     } from './js/user-management.js';
 
     // ============================================
@@ -531,6 +518,7 @@
     let currentAdminEmail = null;
     let sortColumn = null;
     let sortDirection = 'asc';
+    let createEmployeeAccountFn;
 
     // ============================================
     // AUTHENTICATION CHECK
@@ -574,12 +562,6 @@
       await loadEmployees();
       await loadTeams(); // Reload teams to reflect any changes from employee load
       setupEventListeners();
-
-        // Sync any pending user accounts from previous session
-      const syncResult = await syncPendingUserAccounts();
-      if (syncResult.synced > 0) {
-        showToast('success', 'Synced', `${syncResult.synced} pending user account(s) completed.`);
-      }
 
       // Check URL params for actions
       const urlParams = new URLSearchParams(window.location.search);
@@ -686,7 +668,7 @@
       tbody.innerHTML = filteredEmployees.map(emp => {
         const team = teams.find(t => t.id === emp.teamId);
         const isLeader = team && team.leaderId === emp.id;
-        
+
         return `
           <tr data-id="${emp.id}">
             <td>
@@ -721,9 +703,9 @@
               </div>
             </td>
             <td>
-              ${emp.hasAccount ? 
-                `<span class="badge badge-success">✅ Has Login</span>` : 
-                emp.email ? 
+              ${emp.hasAccount ?
+                `<span class="badge badge-success">✅ Has Login</span>` :
+                emp.email ?
                   `<button class="btn btn-xs btn-primary" onclick="openCreateAccountModal('${emp.id}')">
                     🔐 Create Login
                   </button>` :
@@ -733,6 +715,53 @@
           </tr>
         `;
       }).join('');
+
+      // Restore sort direction classes to headers
+      document.querySelectorAll('.sortable').forEach(th => {
+        th.classList.remove('asc', 'desc');
+        let indicator = th.querySelector('.sort-indicator');
+
+        // Create indicator if it doesn't exist
+        if (!indicator) {
+          indicator = document.createElement('span');
+          indicator.className = 'sort-indicator';
+          indicator.style.display = 'inline-block';
+          indicator.style.marginLeft = '4px';
+          indicator.style.width = '14px';
+          indicator.style.height = '14px';
+          indicator.style.fontSize = '11px';
+          indicator.style.lineHeight = '14px';
+          indicator.style.fontWeight = 'bold';
+          th.appendChild(indicator);
+        }
+
+        indicator.style.opacity = '0';
+      });
+
+      if (sortColumn) {
+        document.querySelectorAll('.sortable').forEach(th => {
+          if (th.dataset.sort === sortColumn) {
+            th.classList.add(sortDirection);
+            let indicator = th.querySelector('.sort-indicator');
+
+            // Ensure indicator exists
+            if (!indicator) {
+              indicator = document.createElement('span');
+              indicator.className = 'sort-indicator';
+              indicator.style.display = 'inline-block';
+              indicator.style.marginLeft = '4px';
+              indicator.style.width = '14px';
+              indicator.style.height = '14px';
+              indicator.style.fontSize = '11px';
+              indicator.style.lineHeight = '14px';
+              indicator.style.fontWeight = 'bold';
+              th.appendChild(indicator);
+            }
+
+            indicator.style.opacity = '1';
+          }
+        });
+      }
     }
 
     // ============================================
@@ -828,88 +857,77 @@
       document.getElementById('accountEmpName').textContent = emp.firstName + ' ' + emp.lastName;
       document.getElementById('accountEmpEmail').textContent = emp.email;
       document.getElementById('tempPassword').value = generateTempPassword(10);
-      document.getElementById('adminPasswordInput').value = '';
       
       openModal('createAccountModal');
     };
 
     // Confirm and create the account
-    window.confirmCreateAccount = async function () {
-      if (!selectedEmployeeForAccount) return;
+    // Cloud Function handles everything: Auth creation + Firestore sync
+    window.confirmCreateAccount = async function() {
+        if (!selectedEmployeeForAccount) return;
 
-      const tempPassword = document.getElementById('tempPassword').value.trim();
-      const adminPassword = document.getElementById('adminPasswordInput').value;
+        const tempPassword = document.getElementById("tempPassword").value.trim();
+        const btn = document.getElementById("confirmCreateAccountBtn");
 
-      if (!tempPassword || tempPassword.length < 6) {
-        showToast('error', 'Error', 'Password must be at least 6 characters');
-        return;
-      }
-
-      const btn = document.getElementById('confirmCreateAccountBtn');
-      btn.disabled = true;
-      btn.innerHTML = '⏳ Creating...';
-
-      try {
-        const result = await createEmployeeAccount(
-          selectedEmployeeForAccount.email,
-          tempPassword,
-          {
-            employeeId: selectedEmployeeForAccount.id,
-            firstName: selectedEmployeeForAccount.firstName,
-            lastName: selectedEmployeeForAccount.lastName,
-            teamId: selectedEmployeeForAccount.teamId,
-            role: selectedEmployeeForAccount.role || 'employee'
-          },
-          currentAdminEmail,
-          adminPassword
-        );
-
-        if (!result.success) throw new Error(result.error);
-
-        // 🔑 Ensure admin session
-        if (!auth.currentUser) {
-          await signInWithEmailAndPassword(
-            auth,
-            currentAdminEmail,
-            adminPassword
-          );
+        // Validate Password Length
+        if (!tempPassword || tempPassword.length < 6) {
+            showToast("error", "Error", "Password must be at least 6 characters");
+            return;
         }
 
-        console.log('AUTH USER:', auth.currentUser.email);
+        // UI Loading State
+        btn.disabled = true;
+        btn.innerHTML = "⏳ Creating...";
 
-        const employeeRef = doc(db, 'employees', selectedEmployeeForAccount.id);
+        try {
+            // Get admin's current token
+            const adminToken = await currentUser?.getIdToken(true);
+            console.log('Admin token obtained, calling Cloud Function...');
 
-        const snap = await getDoc(employeeRef);
-        console.log('EMP DOC EXISTS:', snap.exists());
+            // Call Cloud Function to create auth account and sync Firestore
+            const response = await fetch('https://us-central1-cleanpro-74d87.cloudfunctions.net/syncEmployeeAccount', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
+              },
+              body: JSON.stringify({
+                employeeId: selectedEmployeeForAccount.id,
+                email: selectedEmployeeForAccount.email,
+                firstName: selectedEmployeeForAccount.firstName,
+                lastName: selectedEmployeeForAccount.lastName,
+                teamId: selectedEmployeeForAccount.teamId || null,
+                role: "employee",
+                tempPassword: tempPassword
+              })
+            });
 
-        // ✅ MERGE = cannot fail if doc missing
-        await setDoc(
-          employeeRef,
-          {
-            hasAccount: true,
-            userId: result.uid,
-            updatedAt: new Date()
-          },
-          { merge: true }
-        );
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
 
-        closeModal('createAccountModal');
+            const result = await response.json();
+            console.log('Account creation result:', result);
 
-        showToast(
-          'success',
-          'Account Created',
-          `Account created for ${selectedEmployeeForAccount.firstName}`
-        );
+            // Success Handling
+            showToast(
+                "success",
+                "Account Created",
+                `Login created for ${selectedEmployeeForAccount.firstName}`
+            );
 
-        await loadEmployees();
+            closeModal("createAccountModal");
+            await loadEmployees(); // Refresh list to show the "Has Login" badge
 
-      } catch (error) {
-        console.error('ACCOUNT CREATE FAILED:', error);
-        showToast('error', 'Error', error.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '✅ Create Account';
-      }
+        } catch (error) {
+            console.error("Creation error:", error);
+            showToast("error", "Error", error.message || "Failed to create account");
+        } finally {
+            // Reset UI
+            btn.disabled = false;
+            btn.innerHTML = "✅ Create Account";
+        }
     };
 
     // Regenerate password
@@ -1085,18 +1103,26 @@
           // Update existing employee
           const oldData = employees.find(e => e.id === editingEmployeeId);
           await updateDoc(doc(db, 'employees', editingEmployeeId), employeeData);
-          
-          const changes = trackChanges(oldData, employeeData, 
+
+          // If isActive status changed and employee has a login account, sync to users collection
+          if (oldData.isActive !== employeeData.isActive && oldData.authUid) {
+            await updateDoc(doc(db, 'users', oldData.authUid), {
+              isActive: employeeData.isActive,
+              updatedAt: Timestamp.now()
+            });
+          }
+
+          const changes = trackChanges(oldData, employeeData,
             ['firstName', 'lastName', 'phone', 'email', 'hourlyRate', 'teamId', 'isActive']);
-          await logEmployeeAction(AuditActions.UPDATE, editingEmployeeId, 
+          await logEmployeeAction(AuditActions.UPDATE, editingEmployeeId,
             `${firstName} ${lastName}`, changes);
-          
+
           showToast('success', i18n.t('success'), i18n.t('employeeUpdated'));
         } else {
           // Create new employee
           employeeData.createdAt = Timestamp.now();
           const docRef = await addDoc(collection(db, 'employees'), employeeData);
-          
+
           await logEmployeeAction(AuditActions.CREATE, docRef.id, `${firstName} ${lastName}`);
           showToast('success', i18n.t('success'), i18n.t('employeeAdded'));
         }
@@ -1125,6 +1151,29 @@
       if (!confirmed) return;
 
       try {
+        // If employee has a login account, delete it via Cloud Function
+        if (emp.authUid || emp.hasAccount) {
+          const adminToken = await currentUser?.getIdToken(true);
+          const response = await fetch('https://us-central1-cleanpro-74d87.cloudfunctions.net/deleteEmployeeAccount', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${adminToken}`
+            },
+            body: JSON.stringify({
+              employeeId: id,
+              authUid: emp.authUid || null
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}`);
+          }
+          console.log('Employee account deleted via Cloud Function');
+        }
+
+        // Delete the employee document
         await deleteDoc(doc(db, 'employees', id));
         await logEmployeeAction(AuditActions.DELETE, id, `${emp.firstName} ${emp.lastName}`);
         showToast('success', i18n.t('success'), i18n.t('employeeDeleted'));
@@ -1397,9 +1446,13 @@
         renderEmployees();
       }, 300));
 
-      // Sortable columns
-      document.querySelectorAll('.sortable').forEach(th => {
-        th.addEventListener('click', () => {
+      // Sortable columns - use event delegation on table header
+      const employeesTable = document.getElementById('employeesTable');
+      if (employeesTable) {
+        employeesTable.addEventListener('click', (e) => {
+          const th = e.target.closest('th.sortable');
+          if (!th) return;
+
           const column = th.dataset.sort;
           if (sortColumn === column) {
             sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
@@ -1408,13 +1461,34 @@
             sortDirection = 'asc';
           }
           // Update UI
-          document.querySelectorAll('.sortable').forEach(el => {
+          document.querySelectorAll('th.sortable').forEach(el => {
             el.classList.remove('asc', 'desc');
+            const indicator = el.querySelector('.sort-indicator');
+            if (indicator) {
+              indicator.style.opacity = '0';
+            }
           });
           th.classList.add(sortDirection);
+          let indicator = th.querySelector('.sort-indicator');
+
+          // Create indicator if it doesn't exist
+          if (!indicator) {
+            indicator = document.createElement('span');
+            indicator.className = 'sort-indicator';
+            indicator.style.display = 'inline-block';
+            indicator.style.marginLeft = '4px';
+            indicator.style.width = '14px';
+            indicator.style.height = '14px';
+            indicator.style.fontSize = '11px';
+            indicator.style.lineHeight = '14px';
+            indicator.style.fontWeight = 'bold';
+            th.appendChild(indicator);
+          }
+
+          indicator.style.opacity = '1';
           renderEmployees();
         });
-      });
+      }
 
       // Add Employee buttons
       document.getElementById('addEmployeeBtn').addEventListener('click', openAddEmployeeModal);

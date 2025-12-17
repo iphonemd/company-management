@@ -37,7 +37,7 @@ firebase deploy --only hosting
 - `i18n.js` - Internationalization with English/Spanish support. Uses `data-i18n` attributes for automatic translation
 - `utils.js` - Common utilities: date formatting, currency, DOM helpers, toast notifications, modals, CSV export
 - `audit.js` - Audit logging system with `logAudit()` and helper functions per module
-- `user-management.js` - Employee account creation with admin re-authentication flow
+- `user-management.js` - Employee account management utilities (password reset, account status updates). Account creation is handled by Cloud Functions
 
 **HTML pages:**
 - `index.html` - Login page
@@ -104,3 +104,150 @@ Schedules use a `routeOrder` field (integer) to enumerate clients per team per d
 - `status` - One of: scheduled, in_progress, completed, cancelled
 
 When displaying schedules, sort by team name first, then by routeOrder.
+
+## Firestore Security Rules
+
+The application uses role-based access control with two user types:
+- **Admins**: Full read/write access to manage the business
+- **Employees**: Limited access to perform their assigned work
+
+**Current Rules:**
+```firestore
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isEmployee() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isActive == true;
+    }
+
+    function isAuthorized() {
+      return isAdmin() || isEmployee();
+    }
+
+    // 1. Authentication Profiles
+    match /admins/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAdmin(); // For Cloud Functions
+      allow write: if isAdmin();
+    }
+
+    // 2. Operational Data (Read Only for Employees)
+    match /config/{docId} {
+      allow read: if isAuthorized();
+      allow write: if isAdmin();
+    }
+
+    match /clients/{docId} {
+      allow read: if isAuthorized();
+      allow write: if isAdmin();
+    }
+
+    match /employees/{docId} {
+      allow read: if isAuthorized();
+      allow write: if isAdmin();
+    }
+
+    match /teams/{docId} {
+      allow read: if isAuthorized();
+      allow write: if isAdmin();
+    }
+
+    // 3. Operational Data (Read & Write for Employees)
+    match /schedules/{docId} {
+      allow read: if isAuthorized();
+      allow update: if isAuthorized();
+      allow create, delete: if isAdmin();
+    }
+
+    match /timeEntries/{docId} {
+      allow read: if isAuthorized();
+      allow create, update: if isAuthorized();
+      allow delete: if isAdmin();
+    }
+
+    match /jobCompletions/{docId} {
+      allow read: if isAdmin();
+      allow create: if isAuthorized();
+      allow update, delete: if isAdmin();
+    }
+
+    match /payments/{docId} {
+      allow read: if isAdmin();
+      allow create: if isAuthorized();
+      allow update, delete: if isAdmin();
+    }
+
+    match /auditLog/{docId} {
+      allow read: if isAdmin();
+      allow create: if isAuthorized();
+      allow update, delete: if isAdmin();
+    }
+
+    // 4. Admin Only Data
+    match /expenses/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /invoices/{docId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
+```
+
+## Employee Account Management
+
+### Account Creation
+Account creation uses Cloud Functions (`functions/index.js`) for security:
+
+1. Admin calls `syncEmployeeAccount` Cloud Function
+2. Function verifies admin is authenticated and authorized
+3. Function creates Firebase Auth user with temporary password
+4. Function creates user document in `users` collection
+5. Function updates employee document with `hasAccount: true`
+6. Admin stays logged in throughout (no sign-out)
+
+### Account Deletion
+Deleting an employee automatically removes their login via `deleteEmployeeAccount` Cloud Function:
+
+1. Admin deletes employee from UI
+2. Function deletes Firebase Auth user
+3. Function deletes user document from Firestore
+4. Logs deletion to auditLog
+
+### Account Deactivation
+Admin can deactivate (not delete) an employee account:
+
+1. Edit employee and uncheck "Active" toggle
+2. System syncs isActive status to users collection
+3. Firestore security rules prevent inactive employees from accessing data
+4. Auth account remains but employee can't access the app
+
+**Key fields in `users` collection:**
+- `email` - Employee's email address
+- `role` - Always 'employee' for non-admin accounts
+- `employeeId` - Reference to employee document
+- `teamId` - Optional team assignment
+- `firstName`, `lastName` - Employee name
+- `isActive` - Account status (controls app access via security rules)
+- `createdAt` - Account creation timestamp
+- `createdBy` - Admin UID who created the account
+- `lastLogin` - Last login timestamp (null initially)
+- `updatedAt` - Last update timestamp
