@@ -24,21 +24,46 @@
     }
     
     .timeclock-header {
-      padding: var(--space-4) var(--space-5);
+      padding: var(--space-3) var(--space-5);
       display: flex;
       justify-content: space-between;
       align-items: center;
       color: white;
+      background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%);
     }
-    
-    .timeclock-logo {
+
+    .timeclock-clock-display {
       display: flex;
-      align-items: center;
-      gap: var(--space-2);
-      font-size: var(--text-xl);
-      font-weight: 700;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      font-size: var(--text-sm);
     }
-    
+
+    .timeclock-clock-time {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: 'Outfit', monospace;
+      color: #ffffff !important;
+      line-height: 1;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      display: block;
+      visibility: visible !important;
+    }
+
+    .timeclock-clock-date {
+      color: #ffffff !important;
+      font-size: var(--text-xs);
+      opacity: 1;
+      visibility: visible !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      display: block;
+    }
+
+    .timeclock-logo {
+      display: none;
+    }
+
     .timeclock-header-actions {
       display: flex;
       gap: var(--space-2);
@@ -434,15 +459,53 @@
     .team-card {
       background: white;
       border-radius: var(--radius-2xl);
-      padding: var(--space-5);
       margin-bottom: var(--space-4);
       box-shadow: var(--shadow-lg);
+      overflow: hidden;
     }
-    
+
+    .team-card-header {
+      padding: var(--space-4) var(--space-5);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      background: var(--gray-50);
+      border-bottom: 1px solid var(--gray-200);
+      transition: background var(--transition-fast);
+    }
+
+    .team-card-header:hover {
+      background: var(--gray-100);
+    }
+
+    .team-card-header.collapsed::before {
+      content: '▶️';
+      margin-right: var(--space-2);
+    }
+
+    .team-card-header:not(.collapsed)::before {
+      content: '▼';
+      margin-right: var(--space-2);
+    }
+
+    .team-card-content {
+      padding: var(--space-5);
+      display: none;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .team-card-content.expanded {
+      display: block;
+      max-height: 1000px;
+    }
+
     .team-title {
       font-weight: 700;
       font-size: var(--text-lg);
-      margin-bottom: var(--space-4);
+      flex: 1;
     }
     
     .team-member {
@@ -873,32 +936,23 @@
   <div class="timeclock-layout" id="mainLayout">
     <div class="timeclock-main">
       <header class="timeclock-header">
-        <div class="timeclock-logo">
-          <span>🧹</span>
-          <span>CleanPro</span>
+        <div class="timeclock-clock-display">
+          <div>
+            <div class="timeclock-clock-time">
+              <span id="headerTime">00:00</span>:<span id="headerSeconds">00</span>
+            </div>
+            <div class="timeclock-clock-date" id="headerDate">Today</div>
+          </div>
         </div>
         <div class="timeclock-header-actions">
+          <button class="timeclock-header-btn" id="refreshBtn" title="Refresh">🔄</button>
           <button class="timeclock-header-btn" id="langToggle" title="Language">🌐</button>
-          <button class="timeclock-header-btn" id="navNextBtn" title="Navigate Next">🧭</button>
-          <button class="timeclock-header-btn" id="historyBtn" title="History">📋</button>
           <button class="timeclock-header-btn" id="logoutBtn" title="Logout">🚪</button>
         </div>
       </header>
 
       <div class="timeclock-content">
-        <div class="current-time-card" style="padding: var(--space-3); margin-bottom: var(--space-3);">
-          <div id="teamBanner" style="font-size: var(--text-lg); font-weight: 600;"></div>
-        </div>
-
-        <div class="current-time-card">
-          <div class="current-date" id="currentDate">Jueves, 5 de diciembre de 2024</div>
-          <div class="current-time">
-            <span id="currentTime">09:45</span>
-            <span class="current-time-seconds" id="currentSeconds">:32</span>
-          </div>
-        </div>
-
-        <div class="status-card">
+        <div class="status-card" id="statusCard">
           <div class="status-header">
             <div class="status-indicator">
               <div class="status-dot clocked-out" id="statusDot"></div>
@@ -909,11 +963,32 @@
               <div class="hours-today-value" id="hoursToday">0:00</div>
             </div>
           </div>
-          <div class="clock-btn-container">
+          <div class="clock-btn-container" id="clockBtnContainer">
             <button class="clock-btn clock-in" id="clockBtn">
               <span class="clock-btn-icon">▶️</span>
               <span data-i18n="clockIn">Registrar Entrada</span>
             </button>
+          </div>
+          <!-- Admin Team Controls -->
+          <div class="admin-team-controls admin-only" id="adminTeamControls" style="display: none;">
+            <div class="form-group">
+              <label class="form-label">Seleccionar Equipo para Registrar</label>
+              <select class="form-select" id="adminClockTeamSelect">
+                <option value="">Seleccionar equipo...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <div style="display: flex; gap: var(--space-2);">
+                <button class="clock-btn clock-in" id="adminClockInBtn" style="flex: 1;">
+                  <span class="clock-btn-icon">▶️</span>
+                  <span>Registrar Entrada</span>
+                </button>
+                <button class="clock-btn clock-out" id="adminClockOutBtn" style="flex: 1;">
+                  <span class="clock-btn-icon">⏹️</span>
+                  <span>Registrar Salida</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -973,8 +1048,12 @@
         </div>
 
         <div class="team-card hidden" id="teamCard">
-          <div class="team-title">👥 Miembros del Equipo</div>
-          <div id="teamMembersList"></div>
+          <div class="team-card-header collapsed" id="teamCardHeader">
+            <div class="team-title">👥 Miembros del Equipo</div>
+          </div>
+          <div class="team-card-content" id="teamCardContent">
+            <div id="teamMembersList"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1195,9 +1274,9 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script type="module">
-    import { 
+    import {
       auth, db, onAuthStateChanged, signOut,
-      collection, doc, getDoc, getDocs, addDoc, updateDoc, 
+      collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
       query, where, orderBy, Timestamp
     } from './js/firebase-config.js';
     import { i18n } from './js/i18n.js';
@@ -1377,19 +1456,34 @@
     });
 
     async function initializePage() {
+      console.log('Starting page initialization...');
       updateClock();
       clockInterval = setInterval(updateClock, 1000);
-      
-      await loadOfficeSettings();
-      await loadClients();
-      await loadAllTeams();
-      await loadTeamInfo();
-      await loadTodaySchedules();
-      await loadTimeEntries();
-      
-      await restoreState();
-      updateStatusUI();
-      renderSchedule();
+
+      try {
+        console.log('Loading office settings...');
+        await loadOfficeSettings();
+        console.log('Loading clients...');
+        await loadClients();
+        console.log('Loading teams...');
+        await loadAllTeams();
+        console.log('Loading team info...');
+        await loadTeamInfo();
+        console.log('Loading today schedules...');
+        await loadTodaySchedules();
+        console.log('Loading time entries...');
+        await loadTimeEntries();
+
+        console.log('Restoring state...');
+        await restoreState();
+        updateStatusUI();
+        console.log('About to render schedule with', Object.keys(clients).length, 'clients');
+        renderSchedule();
+      } catch (e) {
+        console.error('Initialization error:', e);
+        showToast('error', 'Error', 'No se pudo inicializar la aplicación');
+        return;
+      }
       try {
         setupEventListeners();
       } catch (e) {
@@ -1399,14 +1493,11 @@
       
       // Start time monitoring for long work warnings
       startTimeMonitoring();
-      
-      if (currentTeam) {
-        document.getElementById('teamBanner').textContent = 'Equipo: ' + currentTeam.name;
-      } else if (isAdmin) {
-        document.getElementById('teamBanner').textContent = 'Admin - Todos los Equipos';
+
+      if (isAdmin) {
+        populateAdminTeamClockSelect();
+        setupAdminControls();
       }
-      
-      if (isAdmin) populateAdminTeamFilter();
       
       // PWA & Geolocation
       initPWA();
@@ -1785,7 +1876,9 @@
     async function loadClients() {
       try {
         const snap = await getDocs(collection(db, 'clients'));
+        clients = {}; // Clear old clients
         snap.forEach(d => { clients[d.id] = { id: d.id, ...d.data() }; });
+        console.log('Loaded clients:', Object.keys(clients).length);
       } catch (e) { console.error('Load clients error:', e); }
     }
 
@@ -1801,21 +1894,27 @@
       try {
         const todayStr = getLocalDateString();
         let q;
-        const filter = document.getElementById('adminTeamFilter')?.value;
-        
+        const filter = document.getElementById('adminClockTeamSelect')?.value;
+
         if (isAdmin && !filter) {
-          q = query(collection(db, 'schedules'), where('date', '==', todayStr), orderBy('timeSlot'));
+          // Admin viewing all teams
+          q = query(collection(db, 'schedules'), where('date', '==', todayStr));
+        } else if (isAdmin && filter) {
+          // Admin filtering by team
+          q = query(collection(db, 'schedules'), where('date', '==', todayStr), where('teamId', '==', filter));
+        } else if (currentTeam?.id) {
+          // Employee viewing their team's schedules
+          q = query(collection(db, 'schedules'), where('date', '==', todayStr), where('teamId', '==', currentTeam.id));
         } else {
-          const teamId = filter || currentTeam?.id;
-          q = teamId 
-            ? query(collection(db, 'schedules'), where('date', '==', todayStr), where('teamId', '==', teamId), orderBy('timeSlot'))
-            : query(collection(db, 'schedules'), where('date', '==', todayStr), orderBy('timeSlot'));
+          // Fallback: load all schedules for today
+          q = query(collection(db, 'schedules'), where('date', '==', todayStr));
         }
-        
+
         const snap = await getDocs(q);
         todaySchedules = [];
         snap.forEach(d => todaySchedules.push({ id: d.id, ...d.data() }));
         document.getElementById('scheduleCount').textContent = `${todaySchedules.length} trabajos`;
+        console.log('Loaded schedules:', todaySchedules.length, 'Loaded clients:', Object.keys(clients).length);
       } catch (e) { console.error('Load schedules error:', e); }
     }
 
@@ -1859,11 +1958,33 @@
     // ============================================
     function updateClock() {
       const now = new Date();
-      document.getElementById('currentDate').textContent = now.toLocaleDateString('es-MX', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      // Update header clock
+      const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      const secondsStr = String(now.getSeconds()).padStart(2,'0');
+      const dateStr = now.toLocaleDateString('es-MX', {
+        weekday: 'short', month: 'short', day: 'numeric'
       });
-      document.getElementById('currentTime').textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-      document.getElementById('currentSeconds').textContent = `:${String(now.getSeconds()).padStart(2,'0')}`;
+
+      const headerTimeEl = document.getElementById('headerTime');
+      const headerSecondsEl = document.getElementById('headerSeconds');
+      const headerDateEl = document.getElementById('headerDate');
+
+      if (headerTimeEl) {
+        headerTimeEl.textContent = timeStr;
+        headerTimeEl.style.color = '#ffffff';
+        headerTimeEl.style.display = 'block';
+      }
+      if (headerSecondsEl) {
+        headerSecondsEl.textContent = secondsStr;
+        headerSecondsEl.style.color = '#ffffff';
+        headerSecondsEl.style.display = 'inline';
+      }
+      if (headerDateEl) {
+        headerDateEl.textContent = dateStr;
+        headerDateEl.style.color = '#ffffff';
+        headerDateEl.style.display = 'block';
+      }
+
       if (isClockedIn && clockInTime) updateHoursWorked();
     }
 
@@ -1896,17 +2017,23 @@
     // CLOCK IN/OUT
     // ============================================
     async function clockIn() {
+      // Admins don't track time - they manage the team
+      if (isAdmin) {
+        showToast('info', 'Aviso', 'Los administradores no registran tiempo. Use los controles de equipo arriba.');
+        return;
+      }
+
       clockInTime = new Date();
       isClockedIn = true;
-      
+
       // Generate a unique session ID for this clock-in session
       const sessionId = `session_${Date.now()}`;
-      
+
       try {
         const todayStr = getLocalDateString();
-        
-        // Create time entry for the current user (team leader or admin)
-        const currentUserId = currentAdmin?.id || currentEmployee?.id;
+
+        // Create time entry for the current user (team leader or employee)
+        const currentUserId = currentEmployee?.id;
         const entry = {
           date: todayStr,
           employeeId: currentUserId,
@@ -1918,10 +2045,10 @@
         };
         const ref = await addDoc(collection(db, 'timeEntries'), entry);
         timeEntries.push({ id: ref.id, ...entry, clockIn: clockInTime });
-        
+
         // Store session ID for clock out
         localStorage.setItem('currentSessionId', sessionId);
-        
+
         // Also create time entries for all team members (they clock in with the team)
         for (const member of teamMembers) {
           if (member.id !== currentUserId) {
@@ -1940,13 +2067,13 @@
             timeEntries.push({ id: memberRef.id, ...memberEntry, clockIn: clockInTime });
           }
         }
-        
+
         showToast('success', 'Éxito', 'Entrada registrada para el equipo');
       } catch (e) {
         console.error('Clock in error:', e);
         showToast('error', 'Error', 'No se pudo registrar entrada');
       }
-      
+
       await saveState();
       updateStatusUI();
     }
@@ -1977,25 +2104,52 @@
       
       // Calculate hours for each employee for the summary
       const employeeHours = {};
-      
+
       try {
-        for (const entry of openEntries) {
-          const cin = entry.clockIn?.toDate ? entry.clockIn.toDate() : clockInTime;
-          const hoursMs = clockOutTime - cin;
-          const hours = hoursMs / 3600000;
-          
-          await updateDoc(doc(db, 'timeEntries', entry.id), {
-            clockOut: Timestamp.fromDate(clockOutTime),
-            hoursWorked: hours
-          });
-          entry.clockOut = clockOutTime;
-          entry.hoursWorked = hours;
-          
-          // Track hours per employee (in milliseconds for accurate display)
-          if (!employeeHours[entry.employeeId]) {
-            employeeHours[entry.employeeId] = 0;
+        // Calculate hours based on actual job completions (per-job hours)
+        const todayStr = getLocalDateString();
+        const jobCompletionsSnap = await getDocs(
+          query(collection(db, 'jobCompletions'), where('date', '==', todayStr))
+        );
+
+        // Calculate total hours per employee from job completions
+        const jobHoursByEmployee = {};
+        jobCompletionsSnap.forEach(docSnap => {
+          const jobCompletion = docSnap.data();
+          const empId = jobCompletion.employeeId;
+          const jobHours = jobCompletion.duration || 0; // hours
+
+          if (!jobHoursByEmployee[empId]) {
+            jobHoursByEmployee[empId] = 0;
           }
-          employeeHours[entry.employeeId] += hoursMs;
+          jobHoursByEmployee[empId] += jobHours;
+        });
+
+        // Update time entries: only for employees who worked, with hours from jobs
+        for (const entry of openEntries) {
+          const empId = entry.employeeId;
+
+          if (jobHoursByEmployee[empId] !== undefined) {
+            // Employee worked on jobs - use their job hours
+            const jobHours = jobHoursByEmployee[empId];
+            const jobMs = jobHours * 3600000;
+
+            await updateDoc(doc(db, 'timeEntries', entry.id), {
+              clockOut: Timestamp.fromDate(clockOutTime),
+              hoursWorked: jobHours
+            });
+            entry.clockOut = clockOutTime;
+            entry.hoursWorked = jobHours;
+
+            // Track hours per employee (in milliseconds for display)
+            if (!employeeHours[empId]) {
+              employeeHours[empId] = 0;
+            }
+            employeeHours[empId] += jobMs;
+          } else {
+            // Employee didn't work any jobs - delete their time entry
+            await deleteDoc(doc(db, 'timeEntries', entry.id));
+          }
         }
         
         // Clear session ID
@@ -2416,17 +2570,151 @@
     }
 
     // ============================================
+    // ADMIN TEAM CONTROLS
+    // ============================================
+    let adminClockTeamState = {}; // Track clock state per team { teamId: { isClockedIn, clockInTime, sessionId } }
+
+    function populateAdminTeamClockSelect() {
+      const select = document.getElementById('adminClockTeamSelect');
+      if (!select) return;
+
+      select.innerHTML = '<option value="">Seleccionar equipo...</option>' +
+        allTeams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    }
+
+    function setupAdminControls() {
+      // Show admin controls instead of regular clock button
+      const clockBtnContainer = document.getElementById('clockBtnContainer');
+      const adminControls = document.getElementById('adminTeamControls');
+
+      if (clockBtnContainer) clockBtnContainer.style.display = 'none';
+      if (adminControls) adminControls.style.display = 'block';
+
+      // Add event listeners for admin clock buttons
+      addListenerSafe('adminClockInBtn', 'click', adminClockIn);
+      addListenerSafe('adminClockOutBtn', 'click', adminClockOut);
+    }
+
+    async function adminClockIn() {
+      const teamId = document.getElementById('adminClockTeamSelect').value;
+      if (!teamId) {
+        showToast('warning', 'Aviso', 'Selecciona un equipo primero');
+        return;
+      }
+
+      const team = allTeams.find(t => t.id === teamId);
+      if (!team) return;
+
+      const sessionId = `session_${Date.now()}`;
+      const clockInTime = new Date();
+      const todayStr = getLocalDateString();
+
+      try {
+        // Find all employees in this team
+        const teamEmployees = await getDocs(
+          query(collection(db, 'employees'), where('teamId', '==', teamId))
+        );
+
+        // Clock in all team members
+        for (const empDoc of teamEmployees.docs) {
+          const emp = { id: empDoc.id, ...empDoc.data() };
+          const entry = {
+            date: todayStr,
+            employeeId: emp.id,
+            clockIn: Timestamp.fromDate(clockInTime),
+            clockOut: null,
+            hoursWorked: null,
+            sessionId: sessionId,
+            clockedInBy: currentAdmin.id,
+            teamClockInByAdmin: true,
+            createdAt: Timestamp.now()
+          };
+          await addDoc(collection(db, 'timeEntries'), entry);
+        }
+
+        // Track team state
+        adminClockTeamState[teamId] = { isClockedIn: true, clockInTime, sessionId };
+
+        showToast('success', 'Éxito', `Equipo ${team.name} registrado (${teamEmployees.size} miembros)`);
+      } catch (e) {
+        console.error('Admin clock in error:', e);
+        showToast('error', 'Error', 'No se pudo registrar entrada');
+      }
+    }
+
+    async function adminClockOut() {
+      const teamId = document.getElementById('adminClockTeamSelect').value;
+      if (!teamId) {
+        showToast('warning', 'Aviso', 'Selecciona un equipo primero');
+        return;
+      }
+
+      const team = allTeams.find(t => t.id === teamId);
+      const teamState = adminClockTeamState[teamId];
+
+      if (!teamState || !teamState.isClockedIn) {
+        showToast('warning', 'Aviso', `El equipo ${team.name} no está registrado`);
+        return;
+      }
+
+      const clockOutTime = new Date();
+      const todayStr = getLocalDateString();
+
+      try {
+        // Find all open entries for this team's session
+        const sessionId = teamState.sessionId;
+        const entries = await getDocs(
+          query(
+            collection(db, 'timeEntries'),
+            where('date', '==', todayStr),
+            where('sessionId', '==', sessionId)
+          )
+        );
+
+        // Clock out all team members
+        for (const entryDoc of entries.docs) {
+          const entry = entryDoc.data();
+          if (!entry.clockOut) {
+            const clockInDate = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
+            const hoursMs = clockOutTime - clockInDate;
+            const hours = hoursMs / 3600000;
+
+            await updateDoc(entryDoc.ref, {
+              clockOut: Timestamp.fromDate(clockOutTime),
+              hoursWorked: hours
+            });
+          }
+        }
+
+        // Clear team state
+        adminClockTeamState[teamId] = { isClockedIn: false };
+
+        showToast('success', 'Éxito', `Equipo ${team.name} salida registrada`);
+      } catch (e) {
+        console.error('Admin clock out error:', e);
+        showToast('error', 'Error', 'No se pudo registrar salida');
+      }
+    }
+
+    // ============================================
     // UI UPDATES
     // ============================================
     function updateStatusUI() {
+      if (isAdmin) {
+        // Admins don't have a time tracking status
+        document.getElementById('statusCard').style.display = 'block';
+        document.getElementById('statusCard').querySelector('.status-header').style.display = 'none';
+        return;
+      }
+
       const dot = document.getElementById('statusDot');
       const text = document.getElementById('statusText');
       const btn = document.getElementById('clockBtn');
       const card = document.getElementById('currentJobCard');
-      
+
       dot.className = 'status-dot';
       text.className = 'status-text';
-      
+
       if (!isClockedIn) {
         dot.classList.add('clocked-out');
         text.classList.add('clocked-out');
@@ -2454,15 +2742,103 @@
       }
     }
 
+    // Render team progress view for admins
+    function renderAdminTeamProgress() {
+      const container = document.getElementById('scheduleList');
+      if (!container) return;
+
+      // Group schedules by team
+      const schedulesByTeam = {};
+      todaySchedules.forEach(sch => {
+        if (!schedulesByTeam[sch.teamId]) {
+          schedulesByTeam[sch.teamId] = [];
+        }
+        schedulesByTeam[sch.teamId].push(sch);
+      });
+
+      if (Object.keys(schedulesByTeam).length === 0) {
+        container.innerHTML = '<div class="empty-schedule"><div class="empty-schedule-icon">📅</div><div>No hay trabajos para hoy</div></div>';
+        return;
+      }
+
+      // Render progress for each team
+      const teamHTML = Object.entries(schedulesByTeam).map(([teamId, schedules]) => {
+        const team = allTeams.find(t => t.id === teamId);
+        const teamName = team ? team.name : 'Equipo Desconocido';
+
+        const completed = schedules.filter(s => s.status === 'completed').length;
+        const inProgress = schedules.filter(s => s.status === 'in_progress').length;
+        const scheduled = schedules.filter(s => s.status === 'scheduled').length;
+        const cancelled = schedules.filter(s => s.status === 'cancelled').length;
+        const total = schedules.length;
+
+        const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        const jobItems = schedules.map(sch => {
+          const client = clients[sch.clientId];
+          if (!client) return '';
+
+          const badges = {
+            scheduled: '<span class="badge badge-primary">Programado</span>',
+            in_progress: '<span class="badge badge-warning">En Progreso</span>',
+            completed: '<span class="badge badge-success">Completado</span>',
+            cancelled: '<span class="badge badge-secondary">Cancelado</span>'
+          };
+
+          return `
+            <div class="schedule-item ${sch.status === 'completed' ? 'completed' : ''} ${sch.status === 'in_progress' ? 'active' : ''}" onclick="window.showAdminStatusModal('${sch.id}')">
+              <div class="schedule-order">${sch.status === 'completed' ? '✓' : ''}</div>
+              <div class="schedule-info">
+                <div class="schedule-client">${client.firstName} ${client.lastName}</div>
+                <div class="schedule-address">${client.address?.street || ''}</div>
+              </div>
+              <div class="schedule-status">
+                <div class="schedule-price">${formatCurrency(sch.serviceDetails?.totalPrice || 0)}</div>
+                ${badges[sch.status] || ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="schedule-card">
+            <div class="schedule-header">
+              <div class="schedule-title">${teamName}</div>
+              <div class="schedule-count">${completed}/${total} completado</div>
+            </div>
+            <div style="padding: 0 var(--space-4); margin-bottom: var(--space-3);">
+              <div style="width: 100%; height: 8px; background: var(--gray-200); border-radius: var(--radius-full); overflow: hidden;">
+                <div style="width: ${progressPercent}%; height: 100%; background: var(--success-500); transition: width 0.3s ease;"></div>
+              </div>
+              <div style="font-size: var(--text-xs); color: var(--gray-600); margin-top: var(--space-1);">
+                ${inProgress} en progreso, ${scheduled} programado, ${cancelled} cancelado
+              </div>
+            </div>
+            <div class="schedule-list">
+              ${jobItems}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = `<div style="display: flex; flex-direction: column; gap: var(--space-4);">${teamHTML}</div>`;
+    }
+
     function renderSchedule() {
       const container = document.getElementById('scheduleList');
       if (!container) return;
-      
+
+      // For admins, show team progress view
+      if (isAdmin) {
+        renderAdminTeamProgress();
+        return;
+      }
+
       if (todaySchedules.length === 0) {
         container.innerHTML = '<div class="empty-schedule"><div class="empty-schedule-icon">📅</div><div>No hay trabajos para hoy</div></div>';
         return;
       }
-      
+
       // Sort schedules by route order (proximity-based)
       const sortedSchedules = sortSchedulesByRoute(todaySchedules);
       
@@ -2702,6 +3078,20 @@
 
     function setupEventListeners() {
       addListenerSafe('clockBtn', 'click', () => isClockedIn ? clockOut() : clockIn());
+      addListenerSafe('refreshBtn', 'click', async () => {
+        try {
+          await loadClients();
+          await loadAllTeams();
+          await loadTodaySchedules();
+          await loadTimeEntries();
+          renderSchedule();
+          updateStatusUI();
+          showToast('success', 'Actualizado', 'Datos recargados');
+        } catch (e) {
+          console.error('Refresh error:', e);
+          showToast('error', 'Error', 'No se pudo recargar');
+        }
+      });
       addListenerSafe('langToggle', 'click', () => {
         i18n.toggleLanguage();
         i18n.updatePageTranslations();
@@ -2713,7 +3103,6 @@
         await signOut(auth);
         window.location.href = 'index.html';
       });
-      addListenerSafe('historyBtn', 'click', showHistory);
       addListenerSafe('cancelJobBtn', 'click', showCancelJobModal);
       addListenerSafe('completeJobBtn', 'click', showCompleteJobModal);
       
@@ -2775,12 +3164,20 @@
         renderSchedule();
       });
 
-      // Header: Navigate to next job
-      addListenerSafe('navNextBtn', 'click', navigateToNextClient);
       addListenerSafe('navigateJobBtn', 'click', () => {
         if (!currentJob) return showToast('info', 'Sin Trabajo', 'No hay trabajo en curso');
         const addr = getAddressFromClient(currentJob.client);
         if (addr) openDirections(addr);
+      });
+
+      // Team card collapse/expand
+      addListenerSafe('teamCardHeader', 'click', () => {
+        const header = document.getElementById('teamCardHeader');
+        const content = document.getElementById('teamCardContent');
+        if (header && content) {
+          header.classList.toggle('collapsed');
+          content.classList.toggle('expanded');
+        }
       });
 
       // Event delegation for per-schedule navigate buttons

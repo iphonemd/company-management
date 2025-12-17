@@ -84,6 +84,10 @@
     .entry-edit-btn { background: none; border: none; color: var(--gray-400); cursor: pointer; padding: var(--space-1); margin-left: var(--space-2); border-radius: var(--radius-md); transition: all var(--transition-fast); }
     .entry-edit-btn:hover { background: var(--gray-200); color: var(--gray-700); }
     .no-entry { color: var(--gray-400); font-style: italic; }
+    .client-hours-item { display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) var(--space-3); background: var(--gray-50); border-radius: var(--radius-lg); margin-bottom: var(--space-2); }
+    .client-hours-item:last-child { margin-bottom: 0; }
+    .client-hours-name { font-size: var(--text-sm); color: var(--gray-700); flex: 1; }
+    .client-hours-value { font-weight: 600; color: var(--primary-600); min-width: 50px; text-align: right; }
     .time-edit-row { display: grid; grid-template-columns: 100px 1fr 1fr auto; gap: var(--space-3); align-items: center; padding: var(--space-3); background: var(--gray-50); border-radius: var(--radius-lg); margin-bottom: var(--space-2); }
     .time-edit-day { font-weight: 600; color: var(--gray-700); }
     .time-edit-input { padding: var(--space-2); border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); }
@@ -386,6 +390,35 @@
       <button type="button" class="btn btn-primary" id="saveAddBtn">➕ <span id="addEntryBtnText">Add Entry</span></button>
     </div>
   </div>
+
+  <div class="modal" id="addClientHoursModal">
+    <div class="modal-header">
+      <h3 class="modal-title">➕ <span id="addClientHoursModalTitle">Add Hours by Client</span> - <span id="addClientEmployeeName">Employee</span></h3>
+      <button class="modal-close" id="closeClientHoursModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" id="addClientHoursDateLabel">Date</label>
+        <input type="date" class="form-input" id="addClientHoursDate">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="addClientHoursClientLabel">Client</label>
+        <select class="form-select" id="addClientHoursClient"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="addClientHoursHoursLabel">Hours Worked</label>
+        <input type="number" class="form-input" id="addClientHoursHours" placeholder="e.g., 2.5" min="0" step="0.5">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="addClientHoursNotesLabel">Notes (optional)</label>
+        <input type="text" class="form-input" id="addClientHoursNotes" placeholder="e.g., Regular cleaning service">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelClientHoursBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveClientHoursBtn">➕ <span id="addClientHoursBtnText">Add Hours</span></button>
+    </div>
+  </div>
   
   <div class="modal-backdrop" id="sidebarOverlay"></div>
 
@@ -396,7 +429,7 @@
     import { i18n } from './js/i18n.js';
     import { showToast, openModal, closeModal, formatCurrency, getInitials } from './js/utils.js';
 
-    let currentUser = null, currentAdmin = null, employees = [], admins = [], allWorkers = [], teams = [], timeEntries = [];
+    let currentUser = null, currentAdmin = null, employees = [], admins = [], allWorkers = [], teams = [], timeEntries = [], jobCompletions = [], clients = [];
     let currentWeekStart = getMonday(new Date()), editingEmployeeId = null;
 
     function getMonday(date) {
@@ -461,7 +494,9 @@
       await loadEmployees();
       await loadAdmins();
       await loadTeams();
+      await loadClients();
       await loadTimeEntries();
+      await loadJobCompletions();
       combineWorkers();
       populateTeamFilter();
       updateWeekDisplay();
@@ -570,6 +605,24 @@
       } catch (error) { showToast('error', i18n.t('error'), i18n.t('failedToLoadTimeEntries') || 'Failed to load time entries'); }
     }
 
+    async function loadClients() {
+      try {
+        const snapshot = await getDocs(collection(db, 'clients'));
+        clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        clients.sort((a, b) => (a.firstName || '').localeCompare(b.firstName || ''));
+      } catch (error) { console.error('Failed to load clients:', error); }
+    }
+
+    async function loadJobCompletions() {
+      try {
+        const weekEnd = getSunday(currentWeekStart);
+        const startStr = getDateString(currentWeekStart);
+        const endStr = getDateString(weekEnd);
+        const snapshot = await getDocs(query(collection(db, 'jobCompletions'), where('date', '>=', startStr), where('date', '<=', endStr)));
+        jobCompletions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (error) { console.error('Failed to load job completions:', error); }
+    }
+
     function populateTeamFilter() {
       const select = document.getElementById('filterTeam');
       const currentValue = select.value;
@@ -645,17 +698,32 @@
       const dailyHours = [0, 0, 0, 0, 0, 0, 0];
       const workerEntries = timeEntries.filter(entry => doesEntryBelongToWorker(entry, worker));
       workerEntries.forEach(entry => {
-        if (entry.clockIn && entry.clockOut) {
-          const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
-          const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
-          const hours = (clockOut - clockIn) / (1000 * 60 * 60);
+        if (entry.hoursWorked) {
+          const hours = entry.hoursWorked;
           if (hours > 0) {
-            const entryDateStr = entry.date || getDateString(clockIn);
+            const entryDateStr = entry.date;
             weekDates.forEach((weekDate, dayIndex) => { if (getDateString(weekDate) === entryDateStr) dailyHours[dayIndex] += hours; });
           }
         }
       });
       return dailyHours;
+    }
+
+    function getEmployeeClientBreakdown(worker) {
+      const workerMatchIds = getWorkerMatchIds(worker);
+      const clientHours = {};
+      jobCompletions.forEach(job => {
+        if (workerMatchIds.includes(job.employeeId)) {
+          const clientId = job.clientId;
+          const clientName = job.clientName || 'Unknown Client';
+          if (!clientHours[clientId]) {
+            clientHours[clientId] = { name: clientName, hours: 0, jobs: [] };
+          }
+          clientHours[clientId].hours += job.duration || 0;
+          clientHours[clientId].jobs.push(job);
+        }
+      });
+      return clientHours;
     }
 
     function getEmployeeEntriesForDay(worker, dateStr) {
@@ -693,10 +761,8 @@
 
     function renderEmployeeCards() {
       const grid = document.getElementById('employeeCardsGrid');
-      const weekDates = getWeekDates(currentWeekStart);
       const filteredWorkers = getFilteredWorkers();
       const t = (key, fallback) => i18n.t(key) || fallback;
-      const lang = i18n.getLanguage();
       grid.innerHTML = filteredWorkers.map(worker => {
         const dailyHours = getEmployeeHoursForWeek(worker);
         const totalHours = dailyHours.reduce((sum, h) => sum + h, 0);
@@ -705,28 +771,11 @@
         const overtimeHours = Math.max(0, totalHours - 40);
         const grossPay = (regularHours * hourlyRate) + (overtimeHours * hourlyRate * 1.5);
         const team = teams.find(t => t.id === worker.teamId);
-        const entriesHtml = weekDates.map((date, dayIndex) => {
-          const dateStr = getDateString(date);
-          const dayEntries = getEmployeeEntriesForDay(worker, dateStr);
-          const hours = dailyHours[dayIndex];
-          if (dayEntries.length > 0) {
-            const entry = dayEntries[0];
-            if (entry.clockIn && entry.clockOut) {
-              const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
-              const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
-              const timeStr = clockIn.toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: 'numeric', minute: '2-digit' }) + ' - ' + clockOut.toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: 'numeric', minute: '2-digit' });
-                const clientInfo = entry.clientName ? '<div class="entry-client" style="font-size:11px;color:var(--gray-500);">🏠 ' + entry.clientName + '</div>' : '';
-                return '<div class="time-entry-item"><div class="entry-day">' + getDayName(dayIndex) + ' ' + date.getDate() + clientInfo + '</div><div class="entry-times">' + timeStr + '</div><div class="entry-hours">' + hours.toFixed(1) + 'h</div><button class="entry-edit-btn" onclick="editSingleEntry(\'' + worker.id + '\', \'' + dateStr + '\', \'' + entry.id + '\')">✏️</button></div>';
-              } else {
-              const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
-              const timeStr = clockIn.toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: 'numeric', minute: '2-digit' }) + ' - ⏳';
-              return '<div class="time-entry-item" style="background: var(--warning-50);"><div class="entry-day">' + getDayName(dayIndex) + ' ' + date.getDate() + '</div><div class="entry-times">' + timeStr + '</div><div class="entry-hours" style="color: var(--warning-600);">' + t('clockedIn', 'Clocked In') + '</div><button class="entry-edit-btn" onclick="editSingleEntry(\'' + worker.id + '\', \'' + dateStr + '\', \'' + entry.id + '\')">✏️</button></div>';
-            }
-          } else {
-            return '<div class="time-entry-item"><div class="entry-day">' + getDayName(dayIndex) + ' ' + date.getDate() + '</div><div class="entry-times no-entry">' + t('noEntry', 'No entry') + '</div><div class="entry-hours">-</div><button class="entry-edit-btn" onclick="addEntryForDay(\'' + worker.id + '\', \'' + dateStr + '\')" title="' + t('addEntry', 'Add entry') + '">➕</button></div>';
-          }
+        const clientBreakdown = getEmployeeClientBreakdown(worker);
+        const clientBreakdownHtml = Object.entries(clientBreakdown).map(([clientId, data]) => {
+          return '<div class="client-hours-item"><div class="client-hours-name">🏠 ' + data.name + '</div><div class="client-hours-value">' + data.hours.toFixed(1) + 'h</div></div>';
         }).join('');
-        return '<div class="employee-hours-card" data-employee-id="' + worker.id + '"><div class="employee-card-header"><div class="employee-card-avatar">' + getInitials(worker.firstName, worker.lastName) + '</div><div class="employee-card-info"><div class="employee-card-name">' + worker.firstName + ' ' + worker.lastName + '</div><div class="employee-card-team">' + (team ? team.name : t('noTeam', 'No Team')) + (hourlyRate > 0 ? ' • $' + hourlyRate.toFixed(2) + '/' + t('hr', 'hr') : '') + '</div></div></div><div class="employee-card-stats"><div class="stat-item"><div class="stat-value primary">' + totalHours.toFixed(1) + '</div><div class="stat-label">' + t('hours', 'Hours') + '</div></div><div class="stat-item"><div class="stat-value ' + (overtimeHours > 0 ? 'warning' : '') + '">' + overtimeHours.toFixed(1) + '</div><div class="stat-label">' + t('overtime', 'Overtime') + '</div></div><div class="stat-item"><div class="stat-value success">' + formatCurrency(grossPay) + '</div><div class="stat-label">' + t('grossPay', 'Gross Pay') + '</div></div></div><div class="time-entries-list">' + entriesHtml + '</div><div class="employee-card-actions"><button class="card-action-btn secondary" onclick="openEditModal(\'' + worker.id + '\')">✏️ ' + t('editHours', 'Edit Hours') + '</button><button class="card-action-btn primary" onclick="printEmployeeReport(\'' + worker.id + '\')">🖨️ ' + t('print', 'Print') + '</button></div></div>';
+        return '<div class="employee-hours-card" data-employee-id="' + worker.id + '"><div class="employee-card-header"><div class="employee-card-avatar">' + getInitials(worker.firstName, worker.lastName) + '</div><div class="employee-card-info"><div class="employee-card-name">' + worker.firstName + ' ' + worker.lastName + '</div><div class="employee-card-team">' + (team ? team.name : t('noTeam', 'No Team')) + (hourlyRate > 0 ? ' • $' + hourlyRate.toFixed(2) + '/' + t('hr', 'hr') : '') + '</div></div></div><div class="employee-card-stats"><div class="stat-item"><div class="stat-value primary">' + totalHours.toFixed(1) + '</div><div class="stat-label">' + t('hours', 'Hours') + '</div></div><div class="stat-item"><div class="stat-value ' + (overtimeHours > 0 ? 'warning' : '') + '">' + overtimeHours.toFixed(1) + '</div><div class="stat-label">' + t('overtime', 'Overtime') + '</div></div><div class="stat-item"><div class="stat-value success">' + formatCurrency(grossPay) + '</div><div class="stat-label">' + t('grossPay', 'Gross Pay') + '</div></div></div><div style="padding: var(--space-4); border-top: 1px solid var(--gray-100);"><div style="font-weight: 600; font-size: var(--text-sm); color: var(--gray-700); margin-bottom: var(--space-2);">🏠 ' + t('hoursByClient', 'Hours by Client') + '</div>' + (clientBreakdownHtml || '<div class="no-entry">' + t('noClientsWorked', 'No clients worked') + '</div>') + '</div><div class="employee-card-actions"><button class="card-action-btn secondary" onclick="openAddClientHoursModal(\'' + worker.id + '\')">➕ ' + t('addHours', 'Add Hours') + '</button><button class="card-action-btn primary" onclick="printEmployeeReport(\'' + worker.id + '\')">🖨️ ' + t('print', 'Print') + '</button></div></div>';
       }).join('');
     }
 
@@ -849,6 +898,58 @@
       document.getElementById('addEntryModal').dataset.entryId = entryId;
       openModal('addEntryModal');
     };
+
+    window.openAddClientHoursModal = function(workerId) {
+      const worker = allWorkers.find(w => w.id === workerId);
+      if (!worker) return;
+      document.getElementById('addClientEmployeeName').textContent = worker.firstName + ' ' + worker.lastName;
+      document.getElementById('addClientHoursDate').value = getDateString(new Date());
+      document.getElementById('addClientHoursHours').value = '';
+      document.getElementById('addClientHoursNotes').value = '';
+      const clientSelect = document.getElementById('addClientHoursClient');
+      clientSelect.innerHTML = '<option value="">Select a client...</option>' + clients.map(c => '<option value="' + c.id + '">' + (c.firstName || '') + ' ' + (c.lastName || '') + '</option>').join('');
+      document.getElementById('addClientHoursModal').dataset.employeeId = workerId;
+      openModal('addClientHoursModal');
+    };
+
+    async function saveClientHours() {
+      const employeeId = document.getElementById('addClientHoursModal').dataset.employeeId;
+      const dateStr = document.getElementById('addClientHoursDate').value;
+      const clientId = document.getElementById('addClientHoursClient').value;
+      const hoursStr = document.getElementById('addClientHoursHours').value;
+      const notes = document.getElementById('addClientHoursNotes').value;
+      const t = (key, fallback) => i18n.t(key) || fallback;
+      if (!employeeId || !dateStr || !clientId || !hoursStr) { showToast('error', t('error', 'Error'), t('fillRequiredFields', 'Please fill in all required fields')); return; }
+      const hours = parseFloat(hoursStr);
+      if (isNaN(hours) || hours <= 0) { showToast('error', t('error', 'Error'), t('invalidHours', 'Please enter a valid number of hours')); return; }
+      try {
+        const worker = allWorkers.find(w => w.id === employeeId);
+        const client = clients.find(c => c.id === clientId);
+        const employeeIdForEntry = worker?.workerType === 'admin' ? worker.id : (worker?.userId || employeeId);
+        const startTime = new Date(dateStr + 'T08:00:00');
+        const endTime = new Date(dateStr + 'T17:00:00');
+        await addDoc(collection(db, 'jobCompletions'), {
+          date: dateStr,
+          employeeId: employeeIdForEntry,
+          employeeName: (worker?.firstName || '') + ' ' + (worker?.lastName || ''),
+          clientId: clientId,
+          clientName: (client?.firstName || '') + ' ' + (client?.lastName || ''),
+          scheduleId: null,
+          startTime: Timestamp.fromDate(startTime),
+          endTime: Timestamp.fromDate(endTime),
+          duration: hours,
+          notes: notes,
+          createdAt: Timestamp.now(),
+          manual: true
+        });
+        showToast('success', t('success', 'Success'), t('hoursAdded', 'Hours added successfully'));
+        closeModal('addClientHoursModal');
+        await loadJobCompletions();
+        await loadTimeEntries();
+        renderPayrollTable();
+        renderEmployeeCards();
+      } catch (error) { console.error('Error saving client hours:', error); showToast('error', t('error', 'Error'), t('failedToSaveHours', 'Failed to save hours')); }
+    }
 
     async function saveNewEntry() {
       const modal = document.getElementById('addEntryModal');
@@ -1126,7 +1227,10 @@
       document.getElementById('closeAddModal').addEventListener('click', () => { delete document.getElementById('addEntryModal').dataset.entryId; closeModal('addEntryModal'); });
       document.getElementById('cancelAddBtn').addEventListener('click', () => { delete document.getElementById('addEntryModal').dataset.entryId; closeModal('addEntryModal'); });
       document.getElementById('saveAddBtn').addEventListener('click', saveNewEntry);
-      document.getElementById('sidebarOverlay').addEventListener('click', () => { closeModal('editHoursModal'); closeModal('addEntryModal'); });
+      document.getElementById('closeClientHoursModal').addEventListener('click', () => { closeModal('addClientHoursModal'); });
+      document.getElementById('cancelClientHoursBtn').addEventListener('click', () => { closeModal('addClientHoursModal'); });
+      document.getElementById('saveClientHoursBtn').addEventListener('click', saveClientHours);
+      document.getElementById('sidebarOverlay').addEventListener('click', () => { closeModal('editHoursModal'); closeModal('addEntryModal'); closeModal('addClientHoursModal'); });
       document.getElementById('langToggle').addEventListener('click', () => {
         i18n.toggleLanguage();
         updateLanguage();
