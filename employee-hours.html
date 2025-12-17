@@ -928,6 +928,8 @@
         const employeeIdForEntry = worker?.workerType === 'admin' ? worker.id : (worker?.userId || employeeId);
         const startTime = new Date(dateStr + 'T08:00:00');
         const endTime = new Date(dateStr + 'T17:00:00');
+
+        // Save to jobCompletions (tracks which client was worked on)
         await addDoc(collection(db, 'jobCompletions'), {
           date: dateStr,
           employeeId: employeeIdForEntry,
@@ -938,10 +940,38 @@
           startTime: Timestamp.fromDate(startTime),
           endTime: Timestamp.fromDate(endTime),
           duration: hours,
-          notes: notes,
           createdAt: Timestamp.now(),
           manual: true
         });
+
+        // Check if timeEntries record exists for this employee on this date
+        const existingEntries = timeEntries.filter(e => doesEntryBelongToWorker(e, worker) && e.date === dateStr);
+        if (existingEntries.length > 0) {
+          // Update existing entry with new hoursWorked
+          const entry = existingEntries[0];
+          const newTotalHours = (entry.hoursWorked || 0) + hours;
+          await updateDoc(doc(db, 'timeEntries', entry.id), {
+            hoursWorked: newTotalHours,
+            modifiedAt: Timestamp.now(),
+            modifiedBy: currentAdmin?.id
+          });
+        } else {
+          // Create new timeEntries record
+          await addDoc(collection(db, 'timeEntries'), {
+            employeeId: employeeIdForEntry,
+            date: dateStr,
+            clockIn: Timestamp.fromDate(startTime),
+            clockOut: Timestamp.fromDate(endTime),
+            hoursWorked: hours,
+            clientId: clientId,
+            scheduleId: null,
+            notes: notes,
+            createdAt: Timestamp.now(),
+            createdBy: currentAdmin?.id,
+            manual: true
+          });
+        }
+
         showToast('success', t('success', 'Success'), t('hoursAdded', 'Hours added successfully'));
         closeModal('addClientHoursModal');
         await loadJobCompletions();
