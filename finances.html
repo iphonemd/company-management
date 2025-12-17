@@ -449,6 +449,10 @@
             <p class="text-gray-500">Track revenue, expenses, and profitability</p>
           </div>
           <div class="page-actions">
+            <button class="btn btn-secondary" id="companySettingsBtn">
+              <span>⚙️</span>
+              <span>Company Settings</span>
+            </button>
             <button class="btn btn-secondary" id="addExpenseBtn">
               <span>💸</span>
               <span data-i18n="addExpense">Add Expense</span>
@@ -958,13 +962,78 @@
     </div>
   </div>
 
+  <!-- Company Settings Modal -->
+  <div class="modal modal-lg" id="companySettingsModal">
+    <div class="modal-header">
+      <h3 class="modal-title">Company Settings</h3>
+      <button class="modal-close" id="closeCompanySettingsModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="companySettingsForm">
+        <!-- Company Info Section -->
+        <h4>Company Information</h4>
+        <div class="form-group">
+          <label class="form-label form-label-required">Company Name</label>
+          <input type="text" class="form-input" id="settingsCompanyName" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tagline</label>
+          <input type="text" class="form-input" id="settingsTagline">
+        </div>
+        <div class="form-group">
+          <label class="form-label form-label-required">Phone Number</label>
+          <input type="tel" class="form-input" id="settingsPhone" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" id="settingsEmail">
+        </div>
+        <div class="form-group">
+          <label class="form-label form-label-required">Street Address</label>
+          <input type="text" class="form-input" id="settingsAddress" required>
+        </div>
+        <div class="grid grid-cols-3">
+          <div class="form-group">
+            <label class="form-label form-label-required">City</label>
+            <input type="text" class="form-input" id="settingsCity" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label form-label-required">State</label>
+            <input type="text" class="form-input" id="settingsState" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label form-label-required">ZIP Code</label>
+            <input type="text" class="form-input" id="settingsZip" required>
+          </div>
+        </div>
+
+        <!-- Email Template Section -->
+        <h4 class="mt-6">Invoice Email Template</h4>
+        <div class="form-group">
+          <label class="form-label form-label-required">Default Subject Line</label>
+          <input type="text" class="form-input" id="settingsEmailSubject" required>
+          <small class="text-gray-500">Use {invoiceNumber} as placeholder</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label form-label-required">Default Message</label>
+          <textarea class="form-input" id="settingsEmailMessage" rows="4" required></textarea>
+          <small class="text-gray-500">Use {invoiceNumber}, {amount}, {dueDate} as placeholders</small>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelSettingsBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
   <script type="module">
-    import { 
+    import {
       auth, db, onAuthStateChanged, signOut,
-      collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, 
+      collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, setDoc,
       query, where, orderBy, Timestamp
     } from './js/firebase-config.js';
     import { i18n } from './js/i18n.js';
@@ -993,6 +1062,8 @@
     let editingPaymentId = null;
     let invoiceItems = [];
     let currentInvoiceId = null;
+    let companyInfo = null;
+    let invoiceEmailTemplate = null;
 
     // ============================================
     // HELPER DATE FUNCTION
@@ -1042,8 +1113,9 @@
 
       // Load data
       await loadClients();
+      await loadCompanySettings();
       await loadData();
-      
+
       // Auto-update payment statuses (overdue for cleanings immediately, invoices after 1 week)
       await autoUpdatePaymentStatuses();
 
@@ -1245,13 +1317,48 @@
       try {
         const q = query(collection(db, 'schedules'), where('status', '==', 'completed'));
         const snapshot = await getDocs(q);
-        
+
         schedules = [];
         snapshot.forEach(doc => {
           schedules.push({ id: doc.id, ...doc.data() });
         });
       } catch (error) {
         console.error('Error loading schedules:', error);
+      }
+    }
+
+    async function loadCompanySettings() {
+      try {
+        const companyDoc = await getDoc(doc(db, 'config', 'companyInfo'));
+        const emailDoc = await getDoc(doc(db, 'config', 'invoiceEmailTemplate'));
+
+        if (companyDoc.exists()) {
+          companyInfo = companyDoc.data();
+        } else {
+          // Defaults
+          companyInfo = {
+            name: 'CleanPro',
+            tagline: 'Professional Cleaning Services',
+            phone: '(555) 123-4567',
+            email: '',
+            address: 'Your Business Address',
+            city: 'City',
+            state: 'State',
+            zip: 'ZIP'
+          };
+        }
+
+        if (emailDoc.exists()) {
+          invoiceEmailTemplate = emailDoc.data();
+        } else {
+          // Defaults
+          invoiceEmailTemplate = {
+            subject: 'Invoice {invoiceNumber} from {companyName}',
+            message: 'Please find attached your invoice. Payment is due within 7 days.'
+          };
+        }
+      } catch (error) {
+        console.error('Error loading company settings:', error);
       }
     }
 
@@ -1378,8 +1485,24 @@
       const invoice = invoices.find(i => i.id === id);
       if (!invoice) return;
       const client = clients[invoice.clientId] || {};
+      const dueDate = invoice.dueDate?.toDate ? invoice.dueDate.toDate() : new Date(invoice.dueDate);
+
+      // Use template with placeholders for subject
+      let subject = invoiceEmailTemplate?.subject || 'Invoice {invoiceNumber} from {companyName}';
+      subject = subject
+        .replace('{invoiceNumber}', invoice.invoiceNumber)
+        .replace('{companyName}', companyInfo?.name || 'CleanPro');
+
+      // Use template with placeholders for message
+      let messageTemplate = invoiceEmailTemplate?.message || 'Please find attached your invoice. Payment is due within 7 days.';
+      messageTemplate = messageTemplate
+        .replace('{invoiceNumber}', invoice.invoiceNumber)
+        .replace('{amount}', formatCurrency(invoice.total || 0))
+        .replace('{dueDate}', formatDate(dueDate, { month: 'long', day: 'numeric', year: 'numeric' }));
+
       document.getElementById('sendInvoiceEmail').value = client.email || '';
-      document.getElementById('sendInvoiceSubject').value = `Invoice ${invoice.invoiceNumber} from CleanPro`;
+      document.getElementById('sendInvoiceSubject').value = subject;
+      document.getElementById('sendInvoiceMessage').value = messageTemplate;
       openModal('sendInvoiceModal');
     };
 
@@ -1868,7 +1991,6 @@
       // Set dates
       const today = new Date();
       document.getElementById('invoiceDate').value = toLocalDateString(today);
-      document.getElementById('invoiceDate').value = todayStr;      
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 7);
       document.getElementById('invoiceDueDate').value = toLocalDateString(dueDate);
@@ -2034,23 +2156,23 @@
         <div class="invoice-preview">
           <div class="invoice-header">
             <div>
-              <div class="invoice-logo">🧹 CleanPro</div>
-              <div class="text-gray-500 mt-2">Professional Cleaning Services</div>
+              <div class="invoice-logo">🧹 ${companyInfo?.name || 'CleanPro'}</div>
+              <div class="text-gray-500 mt-2">${companyInfo?.tagline || 'Professional Cleaning Services'}</div>
             </div>
             <div class="invoice-title">
               <h2>INVOICE</h2>
               <div class="invoice-number">${invoice.invoiceNumber}</div>
             </div>
           </div>
-          
+
           <div class="invoice-parties">
             <div>
               <div class="invoice-party-label">From</div>
-              <div class="invoice-party-name">CleanPro Services</div>
+              <div class="invoice-party-name">${companyInfo?.name || 'CleanPro Services'}</div>
               <div class="invoice-party-details">
-                Your Business Address<br>
-                City, State ZIP<br>
-                Phone: (555) 123-4567
+                ${companyInfo?.address || 'Your Business Address'}<br>
+                ${companyInfo?.city || 'City'}, ${companyInfo?.state || 'State'} ${companyInfo?.zip || 'ZIP'}<br>
+                Phone: ${companyInfo?.phone || '(555) 123-4567'}${companyInfo?.email ? `<br>Email: ${companyInfo.email}` : ''}
               </div>
             </div>
             <div>
@@ -2161,156 +2283,230 @@
     function generateInvoicePDF(invoice, client, returnBase64 = false) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      
+
       const invoiceDate = invoice.invoiceDate?.toDate ? invoice.invoiceDate.toDate() : new Date(invoice.invoiceDate);
       const dueDate = invoice.dueDate?.toDate ? invoice.dueDate.toDate() : new Date(invoice.dueDate);
-      
+
       // Colors
       const primaryColor = [79, 70, 229]; // Indigo
       const grayColor = [107, 114, 128];
       const darkColor = [31, 41, 55];
-      
-      // Header
-      doc.setFillColor(...primaryColor);
-      doc.rect(0, 0, 220, 40, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(28);
+      const lightBgColor = [249, 250, 251];
+
+      // === HEADER SECTION ===
+      let yPos = 10;
+
+      // Logo and Company Name on Left
+      doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
-      doc.text('CleanPro', 20, 26);
-      
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Professional Cleaning Services', 20, 34);
-      
-      // Invoice Title
-      doc.setTextColor(...darkColor);
-      doc.setFontSize(24);
-      doc.setFont('helvetica', 'bold');
-      doc.text('INVOICE', 150, 60, { align: 'center' });
-      
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...grayColor);
-      doc.text(`#${invoice.invoiceNumber}`, 150, 68, { align: 'center' });
-      
-      // Bill To Section
-      doc.setFontSize(10);
       doc.setTextColor(...primaryColor);
-      doc.setFont('helvetica', 'bold');
-      doc.text('BILL TO', 20, 60);
-      
-      doc.setTextColor(...darkColor);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text(`${client.firstName || ''} ${client.lastName || ''}`, 20, 68);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(...grayColor);
-      let yPos = 74;
-      if (client.address?.street) { doc.text(client.address.street, 20, yPos); yPos += 5; }
-      if (client.address?.city) { doc.text(`${client.address.city}, ${client.address.state || ''} ${client.address.zip || ''}`, 20, yPos); yPos += 5; }
-      if (client.email) { doc.text(client.email, 20, yPos); yPos += 5; }
-      if (client.phone) { doc.text(client.phone, 20, yPos); }
-      
-      // Invoice Details Box
-      doc.setFillColor(249, 250, 251);
-      doc.roundedRect(120, 75, 70, 30, 2, 2, 'F');
-      
+      doc.text('🧹 ' + (companyInfo?.name || 'CleanPro'), 20, yPos);
+
+      // Tagline
       doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(...grayColor);
-      doc.text('Invoice Date:', 125, 84);
-      doc.text('Due Date:', 125, 92);
-      doc.text('Status:', 125, 100);
-      
-      doc.setTextColor(...darkColor);
+      doc.text(companyInfo?.tagline || 'Professional Cleaning Services', 20, yPos + 6);
+
+      // Invoice label on right
+      doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text(formatDate(invoiceDate, { month: 'short', day: 'numeric', year: 'numeric' }), 160, 84);
-      doc.text(formatDate(dueDate, { month: 'short', day: 'numeric', year: 'numeric' }), 160, 92);
-      
+      doc.setTextColor(...darkColor);
+      doc.text('INVOICE', 150, yPos + 3, { align: 'center' });
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...grayColor);
+      doc.text('#' + invoice.invoiceNumber, 150, yPos + 10, { align: 'center' });
+
+      yPos += 18;
+
+      // === FROM AND BILL TO SECTIONS ===
+      // From section
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...grayColor);
+      doc.text('FROM', 20, yPos);
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...darkColor);
+      doc.text(companyInfo?.name || 'CleanPro Services', 20, yPos + 6);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...grayColor);
+      let companyYPos = yPos + 12;
+      doc.text(companyInfo?.address || 'Your Business Address', 20, companyYPos);
+      doc.text(
+        `${companyInfo?.city || 'City'}, ${companyInfo?.state || 'State'} ${companyInfo?.zip || 'ZIP'}`,
+        20,
+        companyYPos + 5
+      );
+      doc.text('Phone: ' + (companyInfo?.phone || '(555) 123-4567'), 20, companyYPos + 10);
+      if (companyInfo?.email) {
+        doc.text('Email: ' + companyInfo.email, 20, companyYPos + 15);
+      }
+
+      // Bill To section
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...grayColor);
+      doc.text('BILL TO', 110, yPos);
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...darkColor);
+      doc.text(`${client.firstName || ''} ${client.lastName || ''}`, 110, yPos + 6);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...grayColor);
+      let billYPos = yPos + 12;
+      if (client.address?.street) {
+        doc.text(client.address.street, 110, billYPos);
+        billYPos += 5;
+      }
+      if (client.address?.city || client.address?.state || client.address?.zip) {
+        doc.text(
+          `${client.address?.city || ''}, ${client.address?.state || ''} ${client.address?.zip || ''}`,
+          110,
+          billYPos
+        );
+        billYPos += 5;
+      }
+      if (client.email) {
+        doc.text(client.email, 110, billYPos);
+        billYPos += 5;
+      }
+      if (client.phone) {
+        doc.text(client.phone, 110, billYPos);
+      }
+
+      yPos += 35;
+
+      // === INVOICE DETAILS BOX ===
+      doc.setFillColor(...lightBgColor);
+      doc.rect(20, yPos, 170, 25, 'F');
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...grayColor);
+      doc.text('Invoice Date:', 25, yPos + 7);
+      doc.text('Due Date:', 25, yPos + 15);
+      doc.text('Status:', 25, yPos + 23);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...darkColor);
+      doc.text(formatDate(invoiceDate, { month: 'long', day: 'numeric', year: 'numeric' }), 80, yPos + 7);
+      doc.text(formatDate(dueDate, { month: 'long', day: 'numeric', year: 'numeric' }), 80, yPos + 15);
+
       // Status badge
       const statusColors = { draft: [107, 114, 128], sent: [59, 130, 246], paid: [34, 197, 94], overdue: [239, 68, 68] };
       const statusColor = statusColors[invoice.status] || statusColors.draft;
       doc.setTextColor(...statusColor);
-      doc.text(invoice.status.toUpperCase(), 160, 100);
-      
-      // Items Table Header
-      const tableTop = 115;
+      doc.text(invoice.status.toUpperCase(), 80, yPos + 23);
+
+      yPos += 32;
+
+      // === ITEMS TABLE ===
+      const tableTop = yPos;
       doc.setFillColor(...primaryColor);
-      doc.rect(20, tableTop, 170, 10, 'F');
-      
+      doc.rect(20, tableTop, 170, 8, 'F');
+
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.text('Description', 25, tableTop + 7);
-      doc.text('Qty', 120, tableTop + 7);
-      doc.text('Rate', 140, tableTop + 7);
-      doc.text('Amount', 170, tableTop + 7);
-      
+      doc.text('Description', 25, tableTop + 6);
+      doc.text('Qty', 120, tableTop + 6);
+      doc.text('Rate', 140, tableTop + 6);
+      doc.text('Amount', 170, tableTop + 6);
+
       // Items
       doc.setTextColor(...darkColor);
       doc.setFont('helvetica', 'normal');
-      let itemY = tableTop + 18;
-      
+      doc.setFontSize(9);
+      let itemY = tableTop + 14;
+
       (invoice.items || []).forEach((item, index) => {
         if (index % 2 === 0) {
-          doc.setFillColor(249, 250, 251);
-          doc.rect(20, itemY - 5, 170, 10, 'F');
+          doc.setFillColor(...lightBgColor);
+          doc.rect(20, itemY - 4, 170, 8, 'F');
         }
         doc.text(item.description || '', 25, itemY);
         doc.text(String(item.quantity || 0), 120, itemY);
         doc.text(formatCurrency(item.rate || 0), 140, itemY);
         doc.text(formatCurrency((item.quantity || 0) * (item.rate || 0)), 170, itemY);
-        itemY += 10;
+        itemY += 8;
       });
-      
-      // Totals
-      const totalsY = itemY + 10;
+
+      // === TOTALS SECTION ===
+      yPos = itemY + 5;
+
       doc.setDrawColor(229, 231, 235);
-      doc.line(120, totalsY - 5, 190, totalsY - 5);
-      
+      doc.line(120, yPos, 190, yPos);
+
+      yPos += 6;
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(...grayColor);
-      doc.text('Subtotal:', 140, totalsY);
+      doc.text('Subtotal:', 140, yPos);
       doc.setTextColor(...darkColor);
-      doc.text(formatCurrency(invoice.subtotal || 0), 170, totalsY);
-      
+      doc.setFont('helvetica', 'bold');
+      doc.text(formatCurrency(invoice.subtotal || 0), 170, yPos);
+
+      yPos += 7;
+
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(...grayColor);
-      doc.text('Tax:', 140, totalsY + 8);
+      doc.text('Tax:', 140, yPos);
       doc.setTextColor(...darkColor);
-      doc.text(formatCurrency(invoice.tax || 0), 170, totalsY + 8);
-      
+      doc.setFont('helvetica', 'bold');
+      doc.text(formatCurrency(invoice.tax || 0), 170, yPos);
+
+      yPos += 8;
+
       doc.setDrawColor(...primaryColor);
       doc.setLineWidth(0.5);
-      doc.line(120, totalsY + 12, 190, totalsY + 12);
-      
-      doc.setFontSize(14);
+      doc.line(120, yPos, 190, yPos);
+
+      yPos += 8;
+
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...primaryColor);
-      doc.text('Total:', 140, totalsY + 22);
-      doc.text(formatCurrency(invoice.total || 0), 170, totalsY + 22);
-      
-      // Notes
+      doc.text('TOTAL:', 140, yPos);
+      doc.text(formatCurrency(invoice.total || 0), 170, yPos);
+
+      yPos += 12;
+
+      // === NOTES SECTION ===
       if (invoice.notes) {
-        const notesY = totalsY + 40;
-        doc.setFontSize(10);
-        doc.setTextColor(...primaryColor);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
-        doc.text('Notes:', 20, notesY);
-        doc.setTextColor(...grayColor);
+        doc.setTextColor(...primaryColor);
+        doc.text('Notes:', 20, yPos);
+
         doc.setFont('helvetica', 'normal');
-        doc.text(invoice.notes, 20, notesY + 7);
+        doc.setTextColor(...grayColor);
+        doc.text(invoice.notes, 20, yPos + 6);
+
+        yPos += 15;
       }
-      
-      // Footer
-      doc.setFillColor(249, 250, 251);
+
+      // === FOOTER ===
+      doc.setFillColor(...lightBgColor);
       doc.rect(0, 270, 220, 30, 'F');
+
       doc.setFontSize(10);
       doc.setTextColor(...grayColor);
-      doc.text('Thank you for your business!', 105, 282, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.text('Thank you for your business!', 110, 282, { align: 'center' });
+
       doc.setFontSize(8);
-      doc.text('CleanPro Professional Cleaning Services', 105, 288, { align: 'center' });
-      
+      doc.text(`${companyInfo?.name || 'CleanPro'} - ${companyInfo?.tagline || 'Professional Cleaning Services'}`, 110, 288, { align: 'center' });
+
       if (returnBase64) {
         return doc.output('datauristring').split(',')[1];
       }
@@ -2376,6 +2572,57 @@
     // ============================================
     // EVENT LISTENERS
     // ============================================
+    function openCompanySettings() {
+      document.getElementById('settingsCompanyName').value = companyInfo?.name || 'CleanPro';
+      document.getElementById('settingsTagline').value = companyInfo?.tagline || 'Professional Cleaning Services';
+      document.getElementById('settingsPhone').value = companyInfo?.phone || '';
+      document.getElementById('settingsEmail').value = companyInfo?.email || '';
+      document.getElementById('settingsAddress').value = companyInfo?.address || '';
+      document.getElementById('settingsCity').value = companyInfo?.city || '';
+      document.getElementById('settingsState').value = companyInfo?.state || '';
+      document.getElementById('settingsZip').value = companyInfo?.zip || '';
+      document.getElementById('settingsEmailSubject').value = invoiceEmailTemplate?.subject || 'Invoice {invoiceNumber} from {companyName}';
+      document.getElementById('settingsEmailMessage').value = invoiceEmailTemplate?.message || 'Please find attached your invoice. Payment is due within 7 days.';
+
+      openModal('companySettingsModal');
+    }
+
+    async function saveCompanySettings() {
+      const newCompanyInfo = {
+        name: document.getElementById('settingsCompanyName').value.trim(),
+        tagline: document.getElementById('settingsTagline').value.trim(),
+        phone: document.getElementById('settingsPhone').value.trim(),
+        email: document.getElementById('settingsEmail').value.trim(),
+        address: document.getElementById('settingsAddress').value.trim(),
+        city: document.getElementById('settingsCity').value.trim(),
+        state: document.getElementById('settingsState').value.trim(),
+        zip: document.getElementById('settingsZip').value.trim(),
+        updatedAt: Timestamp.now(),
+        updatedBy: currentAdmin.id
+      };
+
+      const newEmailTemplate = {
+        subject: document.getElementById('settingsEmailSubject').value.trim(),
+        message: document.getElementById('settingsEmailMessage').value.trim(),
+        updatedAt: Timestamp.now(),
+        updatedBy: currentAdmin.id
+      };
+
+      try {
+        await setDoc(doc(db, 'config', 'companyInfo'), newCompanyInfo);
+        await setDoc(doc(db, 'config', 'invoiceEmailTemplate'), newEmailTemplate);
+
+        companyInfo = newCompanyInfo;
+        invoiceEmailTemplate = newEmailTemplate;
+
+        showToast('success', 'Success', 'Company settings saved');
+        closeModal('companySettingsModal');
+      } catch (error) {
+        console.error('Error saving settings:', error);
+        showToast('error', 'Error', 'Failed to save settings');
+      }
+    }
+
     function setupEventListeners() {
       // Mobile menu
       document.getElementById('menuToggle').addEventListener('click', () => {
@@ -2474,7 +2721,13 @@
           closeModal('invoicePreviewModal');
           sendInvoice(currentInvoiceId);
         }
-      });      
+      });
+
+      // Company Settings Modal
+      document.getElementById('companySettingsBtn').addEventListener('click', openCompanySettings);
+      document.getElementById('saveSettingsBtn').addEventListener('click', saveCompanySettings);
+      document.getElementById('cancelSettingsBtn').addEventListener('click', () => closeModal('companySettingsModal'));
+      document.getElementById('closeCompanySettingsModal').addEventListener('click', () => closeModal('companySettingsModal'));
 
       // Modal backdrop
       document.getElementById('modalBackdrop').addEventListener('click', closeAllModals);

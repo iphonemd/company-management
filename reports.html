@@ -522,30 +522,49 @@
         <div class="report-content" id="overviewReport">
           <!-- KPI Grid -->
           <div class="kpi-grid">
+            <!-- 1. Total Revenue (Most Important) -->
             <div class="kpi-card">
               <div class="kpi-icon">💰</div>
               <div class="kpi-value success" id="kpiRevenue">$0</div>
               <div class="kpi-label">Total Revenue</div>
               <div class="kpi-change up" id="kpiRevenueChange">↑ 0%</div>
             </div>
+            <!-- 2. Total Expenses -->
+            <div class="kpi-card">
+              <div class="kpi-icon">💸</div>
+              <div class="kpi-value danger" id="kpiExpenses">$0</div>
+              <div class="kpi-label">Total Expenses</div>
+              <div class="kpi-change down" id="kpiExpensesChange">↓ 0%</div>
+            </div>
+            <!-- 3. Net Profit -->
+            <div class="kpi-card">
+              <div class="kpi-icon">💹</div>
+              <div class="kpi-value success" id="kpiProfit">$0</div>
+              <div class="kpi-label">Net Profit</div>
+              <div class="kpi-change up" id="kpiProfitChange">↑ 0%</div>
+            </div>
+            <!-- 4. Profit Margin % -->
+            <div class="kpi-card">
+              <div class="kpi-icon">📊</div>
+              <div class="kpi-value primary" id="kpiMargin">0%</div>
+              <div class="kpi-label">Profit Margin</div>
+              <div class="kpi-change up" id="kpiMarginChange">↑ 0%</div>
+            </div>
+            <!-- 5. Jobs Completed -->
             <div class="kpi-card">
               <div class="kpi-icon">📋</div>
               <div class="kpi-value primary" id="kpiJobs">0</div>
               <div class="kpi-label">Jobs Completed</div>
               <div class="kpi-change up" id="kpiJobsChange">↑ 0%</div>
             </div>
+            <!-- 6. Active Clients -->
             <div class="kpi-card">
               <div class="kpi-icon">🏠</div>
               <div class="kpi-value primary" id="kpiClients">0</div>
               <div class="kpi-label">Active Clients</div>
               <div class="kpi-change up" id="kpiClientsChange">↑ 0</div>
             </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">⏱️</div>
-              <div class="kpi-value warning" id="kpiAvgTime">0h</div>
-              <div class="kpi-label">Avg. Job Time</div>
-              <div class="kpi-change down" id="kpiAvgTimeChange">↓ 0%</div>
-            </div>
+            <!-- 7. Completion Rate -->
             <div class="kpi-card">
               <div class="kpi-icon">⭐</div>
               <div class="kpi-value success" id="kpiCompletionRate">0%</div>
@@ -860,14 +879,13 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script type="module">
-    import { 
+    import {
       auth, db, onAuthStateChanged, signOut,
-      collection, doc, getDoc, getDocs, 
-      query, where, orderBy, Timestamp
+      collection, doc, getDoc, getDocs
     } from './js/firebase-config.js';
     import { i18n } from './js/i18n.js';
-    import { 
-      showToast, formatCurrency, formatDate, getInitials
+    import {
+      showToast, formatCurrency, getInitials
     } from './js/utils.js';
 
     // ============================================
@@ -980,91 +998,94 @@
     async function loadAllData() {
       try {
         await Promise.all([
-          loadClients(),
-          loadEmployees(),
-          loadTeams(),
-          loadSchedules(),
-          loadPayments(),
-          loadExpenses(),
-          loadTimeEntries()
+          loadCollectionData('clients'),
+          loadCollectionData('employees'),
+          loadCollectionData('teams'),
+          loadCollectionData('schedules'),
+          loadCollectionData('payments'),
+          loadCollectionData('expenses'),
+          loadCollectionData('timeEntries')
         ]);
       } catch (error) {
         console.error('Error loading data:', error);
+        showToast('error', 'Data Load Error', 'Failed to load report data');
       }
     }
 
-    async function loadClients() {
-      const snapshot = await getDocs(collection(db, 'clients'));
-      clients = [];
-      snapshot.forEach(doc => clients.push({ id: doc.id, ...doc.data() }));
-    }
+    async function loadCollectionData(collectionName) {
+      const snapshot = await getDocs(collection(db, collectionName));
+      const data = [];
+      snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
 
-    async function loadEmployees() {
-      const snapshot = await getDocs(collection(db, 'employees'));
-      employees = [];
-      snapshot.forEach(doc => employees.push({ id: doc.id, ...doc.data() }));
-    }
-
-    async function loadTeams() {
-      const snapshot = await getDocs(collection(db, 'teams'));
-      teams = [];
-      snapshot.forEach(doc => teams.push({ id: doc.id, ...doc.data() }));
-    }
-
-    async function loadSchedules() {
-      const snapshot = await getDocs(collection(db, 'schedules'));
-      schedules = [];
-      snapshot.forEach(doc => schedules.push({ id: doc.id, ...doc.data() }));
-    }
-
-    async function loadPayments() {
-      const snapshot = await getDocs(collection(db, 'payments'));
-      payments = [];
-      snapshot.forEach(doc => payments.push({ id: doc.id, ...doc.data() }));
-    }
-
-    async function loadExpenses() {
-      const snapshot = await getDocs(collection(db, 'expenses'));
-      expenses = [];
-      snapshot.forEach(doc => expenses.push({ id: doc.id, ...doc.data() }));
-    }
-
-    async function loadTimeEntries() {
-      const snapshot = await getDocs(collection(db, 'timeEntries'));
-      timeEntries = [];
-      snapshot.forEach(doc => timeEntries.push({ id: doc.id, ...doc.data() }));
+      switch (collectionName) {
+        case 'clients':
+          clients = data;
+          break;
+        case 'employees':
+          employees = data;
+          break;
+        case 'teams':
+          teams = data;
+          break;
+        case 'schedules':
+          schedules = data;
+          break;
+        case 'payments':
+          payments = data;
+          break;
+        case 'expenses':
+          expenses = data;
+          break;
+        case 'timeEntries':
+          timeEntries = data;
+          break;
+      }
     }
 
     // ============================================
     // RENDER REPORTS
     // ============================================
     function renderCurrentReport() {
-      // Hide all reports
-      document.querySelectorAll('.report-content').forEach(r => r.classList.add('hidden'));
-      
-      // Show current report
-      document.getElementById(currentReport + 'Report').classList.remove('hidden');
-      
-      // Destroy existing charts
-      Object.values(charts).forEach(chart => chart.destroy());
-      charts = {};
-      
-      switch (currentReport) {
-        case 'overview':
-          renderOverviewReport();
-          break;
-        case 'revenue':
-          renderRevenueReport();
-          break;
-        case 'clients':
-          renderClientsReport();
-          break;
-        case 'employees':
-          renderEmployeesReport();
-          break;
-        case 'operations':
-          renderOperationsReport();
-          break;
+      try {
+        // Hide all reports
+        document.querySelectorAll('.report-content').forEach(r => r.classList.add('hidden'));
+
+        // Show current report
+        const reportElement = document.getElementById(currentReport + 'Report');
+        if (!reportElement) {
+          console.error(`Report element not found: ${currentReport}Report`);
+          return;
+        }
+        reportElement.classList.remove('hidden');
+
+        // Destroy existing charts
+        Object.values(charts).forEach(chart => {
+          if (chart && chart.destroy) {
+            chart.destroy();
+          }
+        });
+        charts = {};
+
+        switch (currentReport) {
+          case 'overview':
+            renderOverviewReport();
+            break;
+          case 'revenue':
+            renderRevenueReport();
+            break;
+          case 'clients':
+            renderClientsReport();
+            break;
+          case 'employees':
+            renderEmployeesReport();
+            break;
+          case 'operations':
+            renderOperationsReport();
+            break;
+        }
+      } catch (error) {
+        console.error('Error rendering report:', error);
+        showToast('error', 'Render Error', 'Failed to render report');
       }
     }
 
@@ -1076,28 +1097,37 @@
       const filteredSchedules = filterByDate(schedules, 'date');
       const filteredPayments = filterByDate(payments, 'date');
       const filteredExpenses = filterByDate(expenses, 'date');
-      
-      // Calculate KPIs
+
+      // Calculate KPIs - Financial Metrics
       const totalRevenue = filteredPayments
         .filter(p => p.status === 'paid')
         .reduce((sum, p) => sum + (p.amount || 0), 0);
-      
+
+      const totalExpenses = filteredExpenses
+        .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+      const netProfit = totalRevenue - totalExpenses;
+      const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0;
+
+      // Calculate KPIs - Operational Metrics
       const completedJobs = filteredSchedules.filter(s => s.status === 'completed').length;
       const activeClients = clients.filter(c => c.isActive).length;
-      
+
       const totalJobTime = filteredSchedules
         .filter(s => s.status === 'completed')
         .reduce((sum, s) => sum + (s.estimatedDuration || 2), 0);
       const avgJobTime = completedJobs > 0 ? totalJobTime / completedJobs : 0;
-      
+
       const totalJobs = filteredSchedules.length;
       const completionRate = totalJobs > 0 ? (completedJobs / totalJobs * 100) : 0;
-      
+
       // Update KPI displays
       document.getElementById('kpiRevenue').textContent = formatCurrency(totalRevenue);
+      document.getElementById('kpiExpenses').textContent = formatCurrency(totalExpenses);
+      document.getElementById('kpiProfit').textContent = formatCurrency(netProfit);
+      document.getElementById('kpiMargin').textContent = profitMargin.toFixed(1) + '%';
       document.getElementById('kpiJobs').textContent = completedJobs;
       document.getElementById('kpiClients').textContent = activeClients;
-      document.getElementById('kpiAvgTime').textContent = avgJobTime.toFixed(1) + 'h';
       document.getElementById('kpiCompletionRate').textContent = completionRate.toFixed(0) + '%';
       
       // Revenue Chart
@@ -1224,23 +1254,30 @@
 
     function renderServiceTypeChart(filteredSchedules) {
       const ctx = document.getElementById('serviceTypeChart').getContext('2d');
-      
-      // Count schedules by included floors
+
+      // Count unique clients by their primary service area
+      const clientIds = new Set(filteredSchedules.map(s => s.clientId));
       const floorCounts = {
         basement: 0,
         mainLevel: 0,
         upstairs: 0
       };
-      
-      filteredSchedules.forEach(s => {
-        const client = clients.find(c => c.id === s.clientId);
+
+      clientIds.forEach(clientId => {
+        const client = clients.find(c => c.id === clientId);
         if (client?.areas) {
-          if (client.areas.basement?.includedInBase) floorCounts.basement++;
-          if (client.areas.mainLevel?.includedInBase) floorCounts.mainLevel++;
-          if (client.areas.upstairs?.includedInBase) floorCounts.upstairs++;
+          // Count which floors this client includes
+          const hasBasement = client.areas.basement?.includedInBase;
+          const hasMainLevel = client.areas.mainLevel?.includedInBase;
+          const hasUpstairs = client.areas.upstairs?.includedInBase;
+
+          // Categorize client by primary area (or by first included area)
+          if (hasBasement) floorCounts.basement++;
+          if (hasMainLevel) floorCounts.mainLevel++;
+          if (hasUpstairs) floorCounts.upstairs++;
         }
       });
-      
+
       charts.serviceType = new Chart(ctx, {
         type: 'pie',
         data: {
@@ -1308,38 +1345,44 @@
 
     function renderScheduleHeatmap(filteredSchedules) {
       const container = document.getElementById('scheduleHeatmap');
-      
+
       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const slots = ['Morning', 'Afternoon'];
-      
-      // Calculate counts
+      const routePositions = ['Route 1', 'Route 2', 'Route 3', 'Route 4', 'Route 5'];
+
+      // Calculate counts by day and route order
       const counts = {};
       filteredSchedules.forEach(schedule => {
         const date = new Date(schedule.date);
         const day = date.getDay();
-        const slot = schedule.timeSlot || 'morning';
-        const key = `${day}-${slot}`;
+        const routeOrder = schedule.routeOrder || 0;
+        const key = `${day}-${routeOrder}`;
         counts[key] = (counts[key] || 0) + 1;
       });
-      
-      // Find max for scaling
+
+      // Find max route order in data
+      const maxRouteOrder = Math.max(
+        ...filteredSchedules.map(s => s.routeOrder || 0),
+        4
+      );
+
+      // Find max count for scaling
       const maxCount = Math.max(...Object.values(counts), 1);
-      
+
       let html = '<div class="heatmap-header"></div>';
       days.forEach(day => {
         html += `<div class="heatmap-header">${day}</div>`;
       });
-      
-      slots.forEach(slot => {
-        html += `<div class="heatmap-label">${slot}</div>`;
+
+      for (let route = 0; route <= maxRouteOrder; route++) {
+        html += `<div class="heatmap-label">${routePositions[route] || `Position ${route + 1}`}</div>`;
         for (let day = 0; day < 7; day++) {
-          const key = `${day}-${slot.toLowerCase()}`;
+          const key = `${day}-${route}`;
           const count = counts[key] || 0;
-          const level = Math.ceil((count / maxCount) * 5);
+          const level = count === 0 ? 0 : Math.ceil((count / maxCount) * 5);
           html += `<div class="heatmap-cell level-${level}">${count}</div>`;
         }
-      });
-      
+      }
+
       container.innerHTML = html;
     }
 
@@ -1654,39 +1697,49 @@
         }
       });
       
-      // Hours Worked - use real timeEntries data
+      // Hours Worked - aggregate by team from timeEntries
       const hoursCtx = document.getElementById('hoursWorkedChart').getContext('2d');
-      
-      // Calculate actual hours from timeEntries for each employee
+
+      // Calculate actual hours from timeEntries for each team
       const filteredTimeEntries = filterByDate(timeEntries, 'clockIn');
-      const employeeHours = {};
-      
+      const teamHours = {};
+
       filteredTimeEntries.forEach(entry => {
         if (entry.clockIn && entry.clockOut) {
           const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
           const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
           const hours = (clockOut - clockIn) / (1000 * 60 * 60);
-          employeeHours[entry.odooEmployeeId || entry.odooUserId] = (employeeHours[entry.odooEmployeeId || entry.odooUserId] || 0) + hours;
+
+          // Find employee by odoo ID to get their team
+          const emp = employees.find(e =>
+            e.odooEmployeeId === entry.odooEmployeeId ||
+            e.odooUserId === entry.odooEmployeeId ||
+            e.odooEmployeeId === entry.odooUserId ||
+            e.odooUserId === entry.odooUserId
+          );
+
+          if (emp?.teamId) {
+            teamHours[emp.teamId] = (teamHours[emp.teamId] || 0) + hours;
+          }
         }
       });
-      
-      // Map to employee names and sort by hours
-      const empHoursData = employees
-        .map(emp => ({
-          name: emp.firstName,
-          odooId: emp.odooEmployeeId || emp.odooUserId,
-          hours: employeeHours[emp.odooEmployeeId] || employeeHours[emp.odooUserId] || 0
+
+      // Map to team names and sort by hours
+      const teamHoursData = teams
+        .map(team => ({
+          name: team.name,
+          hours: teamHours[team.id] || 0
         }))
-        .sort((a, b) => b.hours - a.hours)
-        .slice(0, 8);
-      
-      const empLabels = empHoursData.map(e => e.name);
-      const hoursData = empHoursData.map(e => Math.round(e.hours * 10) / 10);
-      
+        .filter(t => t.hours > 0)
+        .sort((a, b) => b.hours - a.hours);
+
+      const hoursLabels = teamHoursData.map(t => t.name);
+      const hoursData = teamHoursData.map(t => Math.round(t.hours * 10) / 10);
+
       charts.hoursWorked = new Chart(hoursCtx, {
         type: 'bar',
         data: {
-          labels: empLabels,
+          labels: hoursLabels,
           datasets: [{
             label: 'Hours',
             data: hoursData,
@@ -1707,11 +1760,11 @@
 
     function renderEmployeePerformanceTable() {
       const tbody = document.getElementById('employeePerformanceBody');
-      
+
       // Calculate actual hours from timeEntries
       const filteredTimeEntries = filterByDate(timeEntries, 'clockIn');
       const employeeHours = {};
-      
+
       filteredTimeEntries.forEach(entry => {
         if (entry.clockIn && entry.clockOut) {
           const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
@@ -1721,24 +1774,60 @@
           employeeHours[odooId] = (employeeHours[odooId] || 0) + hours;
         }
       });
-      
+
+      // Calculate team total hours and revenue for revenue per hour allocation
+      const teamTotalHours = {};
+      const teamRevenue = {};
+      const teamSchedules = {};
+
+      employees.forEach(emp => {
+        if (emp.teamId) {
+          if (!teamTotalHours[emp.teamId]) {
+            teamTotalHours[emp.teamId] = 0;
+            teamRevenue[emp.teamId] = 0;
+            teamSchedules[emp.teamId] = [];
+          }
+
+          const empHours = employeeHours[emp.odooEmployeeId] || employeeHours[emp.odooUserId] || 0;
+          teamTotalHours[emp.teamId] += empHours;
+        }
+      });
+
+      // Calculate team revenue
+      const filteredSchedules = filterByDate(schedules, 'date');
+      filteredSchedules.filter(s => s.status === 'completed').forEach(schedule => {
+        if (schedule.teamId) {
+          if (!teamRevenue[schedule.teamId]) {
+            teamRevenue[schedule.teamId] = 0;
+          }
+          teamRevenue[schedule.teamId] += schedule.serviceDetails?.totalPrice || 0;
+        }
+      });
+
       const empStats = employees.map(emp => {
         const team = teams.find(t => t.id === emp.teamId);
-        const teamSchedules = schedules.filter(s => s.teamId === emp.teamId && s.status === 'completed');
-        const jobs = Math.floor(teamSchedules.length / (team?.memberIds?.length || 1));
-        const hours = employeeHours[emp.odooEmployeeId] || employeeHours[emp.odooUserId] || 0;
-        const revenue = teamSchedules.reduce((sum, s) => sum + (s.serviceDetails?.totalPrice || 0), 0) / (team?.memberIds?.length || 1);
-        
+        const empJobs = filteredSchedules.filter(
+          s => s.teamId === emp.teamId && s.status === 'completed'
+        ).length;
+        const empHours = employeeHours[emp.odooEmployeeId] || employeeHours[emp.odooUserId] || 0;
+
+        // Allocate revenue based on this employee's share of team hours
+        let empRevenue = 0;
+        if (teamTotalHours[emp.teamId] > 0) {
+          const empHourShare = empHours / teamTotalHours[emp.teamId];
+          empRevenue = (teamRevenue[emp.teamId] || 0) * empHourShare;
+        }
+
         return {
           ...emp,
           team: team?.name || '-',
-          jobs,
-          hours: Math.round(hours * 10) / 10,
-          avgTime: jobs > 0 ? (hours / jobs).toFixed(1) : '-',
-          revenue
+          jobs: empJobs,
+          hours: Math.round(empHours * 10) / 10,
+          avgTime: empJobs > 0 ? (empHours / empJobs).toFixed(1) : '-',
+          revenue: empRevenue
         };
       });
-      
+
       tbody.innerHTML = empStats.slice(0, 10).map(emp => `
         <tr>
           <td class="font-semibold">${emp.firstName} ${emp.lastName}</td>
@@ -2044,7 +2133,15 @@
     // HELPER FUNCTIONS
     // ============================================
     function filterByDate(items, dateField) {
+      if (!Array.isArray(items) || !startDate || !endDate) {
+        return [];
+      }
+
       return items.filter(item => {
+        if (!item || !item[dateField]) {
+          return false;
+        }
+
         let date;
         if (typeof item[dateField] === 'string') {
           date = new Date(item[dateField]);
@@ -2053,6 +2150,11 @@
         } else {
           return false;
         }
+
+        if (isNaN(date.getTime())) {
+          return false;
+        }
+
         return date >= startDate && date <= endDate;
       });
     }
@@ -2060,22 +2162,28 @@
     function getServiceSummary(clientId) {
       const client = clients.find(c => c.id === clientId);
       if (!client?.areas) return 'Standard';
-      
+
       const floors = [];
       if (client.areas.basement?.includedInBase) floors.push('Basement');
       if (client.areas.mainLevel?.includedInBase) floors.push('Main');
       if (client.areas.upstairs?.includedInBase) floors.push('Upstairs');
-      
+
       return floors.length > 0 ? floors.join('+') : 'Standard';
     }
 
     function toLocalDateString(date) {
-      return date.getFullYear() + '-' + 
-        String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+      if (!(date instanceof Date) || isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.getFullYear() + '-' +
+        String(date.getMonth() + 1).padStart(2, '0') + '-' +
         String(date.getDate()).padStart(2, '0');
     }
 
     function getAvatarColor(name) {
+      if (!name || typeof name !== 'string') {
+        return '#0d9488';
+      }
       const colors = ['#0d9488', '#f97316', '#8b5cf6', '#ec4899', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
       let hash = 0;
       for (let i = 0; i < name.length; i++) {
@@ -2085,8 +2193,11 @@
     }
 
     function updateLanguage() {
+      const langLabel = document.getElementById('langLabel');
+      if (!langLabel) return;
+
       const lang = i18n.getLanguage();
-      document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN';
+      langLabel.textContent = lang === 'en' ? 'ES' : 'EN';
       i18n.updatePageTranslations();
     }
 
@@ -2094,29 +2205,57 @@
     // EVENT LISTENERS
     // ============================================
     function setupEventListeners() {
-      // Mobile menu
-      document.getElementById('menuToggle').addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('sidebarOverlay').classList.toggle('active');
-      });
+      const getElement = (id) => {
+        const el = document.getElementById(id);
+        if (!el) {
+          console.warn(`Element not found: ${id}`);
+        }
+        return el;
+      };
 
-      document.getElementById('sidebarOverlay').addEventListener('click', () => {
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('sidebarOverlay').classList.remove('active');
-      });
+      // Mobile menu
+      const menuToggle = getElement('menuToggle');
+      if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+          const sidebar = getElement('sidebar');
+          const overlay = getElement('sidebarOverlay');
+          sidebar?.classList.toggle('open');
+          overlay?.classList.toggle('active');
+        });
+      }
+
+      const sidebarOverlay = getElement('sidebarOverlay');
+      if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', () => {
+          const sidebar = getElement('sidebar');
+          sidebar?.classList.remove('open');
+          sidebarOverlay.classList.remove('active');
+        });
+      }
 
       // Language
-      document.getElementById('langToggle').addEventListener('click', () => {
-        i18n.toggleLanguage();
-        updateLanguage();
-        renderCurrentReport();
-      });
+      const langToggle = getElement('langToggle');
+      if (langToggle) {
+        langToggle.addEventListener('click', () => {
+          i18n.toggleLanguage();
+          updateLanguage();
+          renderCurrentReport();
+        });
+      }
 
       // Logout
-      document.getElementById('logoutBtn').addEventListener('click', async () => {
-        await signOut(auth);
-        window.location.href = 'index.html';
-      });
+      const logoutBtn = getElement('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+          try {
+            await signOut(auth);
+            window.location.href = 'index.html';
+          } catch (error) {
+            console.error('Logout error:', error);
+            showToast('error', 'Logout Error', 'Failed to logout');
+          }
+        });
+      }
 
       // Report type selector
       document.querySelectorAll('.report-type-btn').forEach(btn => {
@@ -2129,41 +2268,66 @@
       });
 
       // Date range
-      document.getElementById('dateRangeSelect').addEventListener('change', (e) => {
-        if (e.target.value === 'custom') {
-          document.getElementById('customDateGroup').classList.remove('hidden');
-        } else {
-          setDateRange(e.target.value);
-          renderCurrentReport();
-        }
-      });
+      const dateRangeSelect = getElement('dateRangeSelect');
+      if (dateRangeSelect) {
+        dateRangeSelect.addEventListener('change', (e) => {
+          if (e.target.value === 'custom') {
+            const customGroup = getElement('customDateGroup');
+            customGroup?.classList.remove('hidden');
+          } else {
+            setDateRange(e.target.value);
+            renderCurrentReport();
+          }
+        });
+      }
 
-      document.getElementById('applyDateBtn').addEventListener('click', () => {
-        startDate = new Date(document.getElementById('startDate').value);
-        endDate = new Date(document.getElementById('endDate').value);
-        endDate.setHours(23, 59, 59, 999);
-        renderCurrentReport();
-      });
+      const applyDateBtn = getElement('applyDateBtn');
+      if (applyDateBtn) {
+        applyDateBtn.addEventListener('click', () => {
+          const startInput = getElement('startDate');
+          const endInput = getElement('endDate');
+
+          if (startInput?.value && endInput?.value) {
+            startDate = new Date(startInput.value);
+            endDate = new Date(endInput.value);
+            endDate.setHours(23, 59, 59, 999);
+
+            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+              renderCurrentReport();
+            } else {
+              showToast('error', 'Invalid Date', 'Please select valid dates');
+            }
+          }
+        });
+      }
 
       // Export dropdown
-      document.getElementById('exportBtn').addEventListener('click', () => {
-        document.getElementById('exportMenu').classList.toggle('open');
-      });
+      const exportBtn = getElement('exportBtn');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+          const exportMenu = getElement('exportMenu');
+          exportMenu?.classList.toggle('open');
+        });
+      }
 
       // Close export menu on outside click
       document.addEventListener('click', (e) => {
         if (!e.target.closest('.export-dropdown')) {
-          document.getElementById('exportMenu').classList.remove('open');
+          const exportMenu = getElement('exportMenu');
+          exportMenu?.classList.remove('open');
         }
       });
 
       // Revenue period selector
-      document.getElementById('revenuePeriod')?.addEventListener('change', () => {
-        if (charts.revenue) {
-          charts.revenue.destroy();
-          renderRevenueChart();
-        }
-      });
+      const revenuePeriod = getElement('revenuePeriod');
+      if (revenuePeriod) {
+        revenuePeriod.addEventListener('change', () => {
+          if (charts.revenue && charts.revenue.destroy) {
+            charts.revenue.destroy();
+            renderRevenueChart();
+          }
+        });
+      }
     }
   </script>
 </body>
