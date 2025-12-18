@@ -1091,9 +1091,19 @@
     };
 
     window.editSingleEntry = function(workerId, dateStr, entryId) {
-      const entry = timeEntries.find(e => e.id === entryId);
+      // Try to find in timeEntries first, then jobCompletions
+      let entry = timeEntries.find(e => e.id === entryId);
+      let fromJobCompletion = false;
+      if (!entry) {
+        entry = jobCompletions.find(j => j.id === entryId);
+        fromJobCompletion = true;
+      }
       if (!entry) return;
-      const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
+
+      // Get clock in/out times - they have different field names in the two collections
+      const clockInTime = fromJobCompletion ? entry.startTime : entry.clockIn;
+      const clockOutTime = fromJobCompletion ? entry.endTime : entry.clockOut;
+      const clockIn = clockInTime?.toDate ? clockInTime.toDate() : new Date(clockInTime);
 
       // Populate client dropdown
       const clientSelect = document.getElementById('addEntryClient');
@@ -1103,12 +1113,13 @@
       document.getElementById('addEntryDate').value = dateStr;
       document.getElementById('addEntryClient').value = entry.clientId || '';  // Pre-select client if exists
       document.getElementById('addEntryClockIn').value = clockIn.toTimeString().slice(0, 5);
-      if (entry.clockOut) {
-        const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
+      if (clockOutTime) {
+        const clockOut = clockOutTime?.toDate ? clockOutTime.toDate() : new Date(clockOutTime);
         document.getElementById('addEntryClockOut').value = clockOut.toTimeString().slice(0, 5);
       } else { document.getElementById('addEntryClockOut').value = ''; }
       document.getElementById('addEntryNotes').value = entry.notes || '';
       document.getElementById('addEntryModal').dataset.entryId = entryId;
+      document.getElementById('addEntryModal').dataset.fromJobCompletion = fromJobCompletion;
       openModal('addEntryModal');
     };
 
@@ -1206,6 +1217,7 @@
       if (!workerId || !dateStr || !clockInValue || !clockOutValue) { showToast('error', i18n.t('error'), i18n.t('fillRequiredFields') || 'Please fill in all required fields'); return; }
       const worker = allWorkers.find(w => w.id === workerId);
       const employeeIdForEntry = worker?.id || workerId;  // Always use employee document ID
+      const employeeName = worker ? (worker.firstName + ' ' + worker.lastName) : '';
       const [year, month, day] = dateStr.split('-').map(Number);
       const [inH, inM] = clockInValue.split(':').map(Number);
       const [outH, outM] = clockOutValue.split(':').map(Number);
@@ -1214,15 +1226,37 @@
       const hoursWorked = (clockOut - clockIn) / (1000 * 60 * 60);
       try {
         if (entryId) {
-          await updateDoc(doc(db, 'timeEntries', entryId), { clockIn: Timestamp.fromDate(clockIn), clockOut: Timestamp.fromDate(clockOut), hoursWorked: hoursWorked, notes: notes, clientId: clientId, modifiedAt: Timestamp.now(), modifiedBy: currentAdmin?.id });
+          // For updates, check if it's from jobCompletions or timeEntries
+          const fromJobCompletion = modal.dataset.fromJobCompletion === 'true';
+          if (fromJobCompletion) {
+            await updateDoc(doc(db, 'jobCompletions', entryId), { startTime: Timestamp.fromDate(clockIn), endTime: Timestamp.fromDate(clockOut), duration: hoursWorked, clientId: clientId, modifiedAt: Timestamp.now(), modifiedBy: currentAdmin?.id });
+          } else {
+            await updateDoc(doc(db, 'timeEntries', entryId), { clockIn: Timestamp.fromDate(clockIn), clockOut: Timestamp.fromDate(clockOut), hoursWorked: hoursWorked, notes: notes, clientId: clientId, modifiedAt: Timestamp.now(), modifiedBy: currentAdmin?.id });
+          }
           showToast('success', i18n.t('success'), i18n.t('timeEntryUpdated') || 'Time entry updated');
         } else {
-          await addDoc(collection(db, 'timeEntries'), { employeeId: employeeIdForEntry, date: dateStr, clockIn: Timestamp.fromDate(clockIn), clockOut: Timestamp.fromDate(clockOut), hoursWorked: hoursWorked, notes: notes, clientId: clientId, scheduleId: null, createdAt: Timestamp.now(), createdBy: currentAdmin?.id, manual: true });
+          // Create new entries in jobCompletions with manual flag
+          const clientName = clientId ? (clients.find(c => c.id === clientId)?.firstName || '') + ' ' + (clients.find(c => c.id === clientId)?.lastName || '') : null;
+          await addDoc(collection(db, 'jobCompletions'), {
+            employeeId: employeeIdForEntry,
+            employeeName: employeeName,
+            clientId: clientId,
+            clientName: clientName?.trim() || null,
+            date: dateStr,
+            startTime: Timestamp.fromDate(clockIn),
+            endTime: Timestamp.fromDate(clockOut),
+            duration: hoursWorked,
+            scheduleId: null,
+            createdAt: Timestamp.now(),
+            createdBy: currentAdmin?.id,
+            manual: true
+          });
           showToast('success', i18n.t('success'), i18n.t('timeEntryAdded') || 'Time entry added');
         }
         delete modal.dataset.entryId;
+        delete modal.dataset.fromJobCompletion;
         closeModal('addEntryModal');
-        await loadTimeEntries();
+        await loadTimeEntries();  // This will reload both timeEntries and jobCompletions
         renderPayrollTable();
         renderEmployeeCards();
       } catch (error) { showToast('error', i18n.t('error'), i18n.t('failedToSaveEntry') || 'Failed to save time entry'); }
