@@ -1047,15 +1047,17 @@
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">Select Clients to Add</label>
-        <p class="text-gray-500 text-sm mb-3">Hold Ctrl/Cmd to select multiple clients</p>
-        <select class="form-select" id="bulkClientSelect" multiple style="min-height: 300px;">
-          <!-- Options populated by JS -->
-        </select>
+        <input type="text" class="form-input" id="bulkClientSearch" placeholder="Search clients by name or address...">
+      </div>
+      <div class="form-group" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: var(--space-3);">
+        <div id="bulkClientCheckboxes">
+          <!-- Checkboxes populated by JS -->
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Assign to Team</label>
         <select class="form-select" id="bulkTeamSelect">
-          <option value="">-- Unassigned --</option>
+          <!-- Options populated by JS, defaulting to first team -->
         </select>
       </div>
       <div class="form-group">
@@ -1696,12 +1698,18 @@
       if (coords.length === 0) return null;
 
       const startCoords = officeSettings.start?.coordinates || null;
-      const endCoords = officeSettings.end?.coordinates || null;
+      const endCoords = officeSettings.end?.coordinates || startCoords; // Default end to start (round trip)
       const origin = startCoords ? `${startCoords.lat},${startCoords.lng}` : `${coords[0].lat},${coords[0].lng}`;
       const destination = endCoords ? `${endCoords.lat},${endCoords.lng}` : `${coords[coords.length - 1].lat},${coords[coords.length - 1].lng}`;
 
+      // All client coordinates should be waypoints
       const waypointCoords = coords.map(c => `${c.lat},${c.lng}`);
-      if (!startCoords && waypointCoords.length > 0) waypointCoords.shift();
+      // Don't include start office as a waypoint (it's already the origin)
+      if (startCoords && waypointCoords.length > 0) {
+        // Remove first waypoint if it matches the start office
+        const firstClientCoords = waypointCoords[0];
+        // In practice, we'll include all clients and let Google Maps handle it
+      }
       const waypoints = waypointCoords.length > 0 ? waypointCoords.join('|') : '';
 
       let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
@@ -2573,8 +2581,8 @@ const scheduleData = {
         return;
       }
 
-      // Include all clients with recurring schedules (regardless of active status)
-      let eligibleClients = clients.filter(c => c.scheduleType !== 'oneTime');
+      // Include active clients with recurring schedules (regardless of schedule status)
+      let eligibleClients = clients.filter(c => c.isActive && c.scheduleType !== 'oneTime');
 
       // Simple estimation based on schedule frequency
       let totalJobs = 0;
@@ -2635,8 +2643,9 @@ const scheduleData = {
         const snapshot = await getDocs(q);
         const allSchedules = [];
         snapshot.forEach(doc => allSchedules.push({ id: doc.id, ...doc.data() }));
-        // Filter clients to only those with recurring schedules and some history (regardless of active status)
+        // Filter to active clients with recurring schedules and some history (regardless of schedule status)
         const eligibleClients = clients.filter(c => {
+          if (!c.isActive) return false;
           if (!c.scheduleType || c.scheduleType === 'oneTime') return false;
 
           // Check if client has any schedule history in the past 2 months
@@ -2740,19 +2749,30 @@ const scheduleData = {
         for (const [dateStr, daySchedules] of Object.entries(schedulesToCreate)) {
           if (daySchedules.length === 0) continue;
 
-          // Use geographic clustering for team distribution
+          // Sort clients by proximity, then distribute evenly across teams
           const dayClients = daySchedules.map(s => s.client).filter(c => c);
-          const geoClusters = clusterClientsByGeography(dayClients, activeTeams.length);
+          const sortedClients = sortClientsByProximity(dayClients);
 
-          // Assign clusters to teams and sort within clusters by proximity
+          // Distribute clients evenly across teams (4-3-3 pattern for balance)
           const teamAssignments = {};
           activeTeams.forEach(t => teamAssignments[t.id] = []);
 
-          geoClusters.forEach((cluster, idx) => {
-            const teamId = activeTeams[Math.min(idx, activeTeams.length - 1)].id;
-            // Sort clients within cluster by proximity
-            const sortedCluster = sortClientsByProximity(cluster);
-            teamAssignments[teamId].push(...sortedCluster);
+          const jobsPerTeam = Math.floor(sortedClients.length / activeTeams.length);
+          const remainder = sortedClients.length % activeTeams.length;
+
+          sortedClients.forEach((client, idx) => {
+            // Distribute jobs: first `remainder` teams get jobsPerTeam + 1 jobs
+            let teamIdx = 0;
+            let currentIdx = 0;
+            for (let i = 0; i < activeTeams.length; i++) {
+              const jobsForThisTeam = jobsPerTeam + (i < remainder ? 1 : 0);
+              if (idx < currentIdx + jobsForThisTeam) {
+                teamIdx = i;
+                break;
+              }
+              currentIdx += jobsForThisTeam;
+            }
+            teamAssignments[activeTeams[teamIdx].id].push(client);
           });
           
           // Create schedules with team assignments and route order
@@ -3069,19 +3089,30 @@ const scheduleData = {
         return { schedule: s, client };
       }).filter(sc => sc.client);
 
-      // Use geographic clustering to group nearby clients
-      const clientsForClustering = scheduleClients.map(sc => sc.client);
-      const geoClusters = clusterClientsByGeography(clientsForClustering, activeTeams.length);
+      // Sort clients by proximity, then distribute evenly across teams
+      const allClients = scheduleClients.map(sc => sc.client);
+      const sortedClients = sortClientsByProximity(allClients);
 
-      // Assign clusters to teams and sort within clusters by proximity
+      // Distribute clients evenly across teams (4-3-3 pattern for balance)
       const teamAssignments = {};
       activeTeams.forEach(t => teamAssignments[t.id] = []);
 
-      geoClusters.forEach((cluster, idx) => {
-        const teamId = activeTeams[Math.min(idx, activeTeams.length - 1)].id;
-        // Sort clients within cluster by proximity
-        const sortedCluster = sortClientsByProximity(cluster);
-        teamAssignments[teamId].push(...sortedCluster);
+      const jobsPerTeam = Math.floor(sortedClients.length / activeTeams.length);
+      const remainder = sortedClients.length % activeTeams.length;
+
+      sortedClients.forEach((client, idx) => {
+        // Distribute jobs: first `remainder` teams get jobsPerTeam + 1 jobs
+        let teamIdx = 0;
+        let currentIdx = 0;
+        for (let i = 0; i < activeTeams.length; i++) {
+          const jobsForThisTeam = jobsPerTeam + (i < remainder ? 1 : 0);
+          if (idx < currentIdx + jobsForThisTeam) {
+            teamIdx = i;
+            break;
+          }
+          currentIdx += jobsForThisTeam;
+        }
+        teamAssignments[activeTeams[teamIdx].id].push(client);
       });
       
       let updateCount = 0;
@@ -3464,32 +3495,68 @@ function formatDateStr(date) {
     // BULK ADD CLIENTS
     // ============================================
     async function openBulkAddModal() {
-      // Populate client select with all active clients
-      const clientSelect = document.getElementById('bulkClientSelect');
       const dateStr = selectedDate;
 
       // Get already scheduled clients for this day
       const daySchedules = schedules.filter(s => s.date === dateStr);
       const scheduledClientIds = new Set(daySchedules.map(s => s.clientId));
 
-      // Populate with non-scheduled clients
-      clientSelect.innerHTML = clients
+      // Get available clients (not scheduled for this day)
+      const availableClients = clients
         .filter(c => !scheduledClientIds.has(c.id))
-        .map(c => `<option value="${c.id}">${c.lastName}, ${c.firstName} - ${c.address?.street || ''}</option>`)
+        .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
+
+      // Store available clients for filtering
+      window.bulkAvailableClients = availableClients;
+
+      // Populate checkboxes
+      const checkboxesContainer = document.getElementById('bulkClientCheckboxes');
+      checkboxesContainer.innerHTML = availableClients
+        .map(c => `
+          <label class="form-check" style="display: flex; align-items: center; margin-bottom: var(--space-2); cursor: pointer;">
+            <input type="checkbox" class="form-check-input bulk-client-checkbox" value="${c.id}" style="cursor: pointer;">
+            <span class="form-check-label" style="cursor: pointer;">${c.lastName}, ${c.firstName}</span>
+            <span class="text-gray-500" style="font-size: 0.85rem; margin-left: auto;">${c.address?.street || ''}</span>
+          </label>
+        `)
         .join('');
 
-      // Populate team select
+      // Populate team select with first team as default
       const teamSelect = document.getElementById('bulkTeamSelect');
-      teamSelect.innerHTML = '<option value="">-- Unassigned --</option>' +
-        teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+      teamSelect.innerHTML = teams
+        .map((t, idx) => `<option value="${t.id}" ${idx === 0 ? 'selected' : ''}>${t.name}</option>`)
+        .join('');
+
+      // If no teams, add unassigned option
+      if (teams.length === 0) {
+        teamSelect.innerHTML = '<option value="">-- Unassigned --</option>';
+      }
+
+      // Setup search functionality
+      const searchInput = document.getElementById('bulkClientSearch');
+      searchInput.value = '';
+      searchInput.addEventListener('input', filterBulkClients);
 
       openModal('bulkAddModal');
     }
 
+    function filterBulkClients() {
+      const searchTerm = document.getElementById('bulkClientSearch').value.toLowerCase();
+      const checkboxes = document.querySelectorAll('.bulk-client-checkbox');
+
+      checkboxes.forEach(checkbox => {
+        const label = checkbox.closest('label');
+        const clientText = label.textContent.toLowerCase();
+        const isMatch = searchTerm === '' || clientText.includes(searchTerm);
+        label.style.display = isMatch ? 'flex' : 'none';
+      });
+    }
+
     async function confirmBulkAdd() {
-      const clientSelect = document.getElementById('bulkClientSelect');
-      const selectedClients = Array.from(clientSelect.selectedOptions).map(opt => opt.value);
-      const teamId = document.getElementById('bulkTeamSelect').value || '';
+      // Get selected checkboxes
+      const selectedCheckboxes = document.querySelectorAll('.bulk-client-checkbox:checked');
+      const selectedClients = Array.from(selectedCheckboxes).map(cb => cb.value);
+      const teamId = document.getElementById('bulkTeamSelect').value;
       const duration = parseFloat(document.getElementById('bulkDuration').value) || 2;
       const dateStr = selectedDate;
 
