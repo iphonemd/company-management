@@ -883,6 +883,9 @@
     function getEmployeeHoursForWeek(worker) {
       const weekDates = getWeekDates(currentWeekStart);
       const dailyHours = [0, 0, 0, 0, 0, 0, 0];
+      const workerMatchIds = getWorkerMatchIds(worker);
+
+      // Add hours from timeEntries
       const workerEntries = timeEntries.filter(entry => doesEntryBelongToWorker(entry, worker));
       workerEntries.forEach(entry => {
         if (entry.hoursWorked) {
@@ -893,6 +896,16 @@
           }
         }
       });
+
+      // Add hours from jobCompletions
+      const workerJobs = jobCompletions.filter(job => workerMatchIds.includes(job.employeeId));
+      workerJobs.forEach(job => {
+        if (job.duration && job.duration > 0) {
+          const jobDateStr = job.date;
+          weekDates.forEach((weekDate, dayIndex) => { if (getDateString(weekDate) === jobDateStr) dailyHours[dayIndex] += job.duration; });
+        }
+      });
+
       return dailyHours;
     }
 
@@ -914,11 +927,41 @@
     }
 
     function getEmployeeEntriesForDay(worker, dateStr) {
-      return timeEntries.filter(entry => doesEntryBelongToWorker(entry, worker) && entry.date === dateStr);
+      const workerMatchIds = getWorkerMatchIds(worker);
+
+      // Get timeEntries for this day
+      const dayEntries = timeEntries.filter(entry => doesEntryBelongToWorker(entry, worker) && entry.date === dateStr);
+
+      // Get jobCompletions for this day and convert to timeEntry format
+      const dayJobs = jobCompletions.filter(job => workerMatchIds.includes(job.employeeId) && job.date === dateStr);
+      const convertedJobs = dayJobs.map(job => ({
+        id: job.id,
+        employeeId: job.employeeId,
+        clientId: job.clientId,
+        date: job.date,
+        clockIn: job.startTime,
+        clockOut: job.endTime,
+        hoursWorked: job.duration,
+        clientName: job.clientName,
+        scheduleId: job.scheduleId,
+        fromJobCompletion: true  // Flag to identify this came from jobCompletions
+      }));
+
+      // Combine and sort by clock in time
+      return [...dayEntries, ...convertedJobs].sort((a, b) => {
+        const aTime = a.clockIn?.toDate ? a.clockIn.toDate() : new Date(a.clockIn);
+        const bTime = b.clockIn?.toDate ? b.clockIn.toDate() : new Date(b.clockIn);
+        return aTime - bTime;
+      });
     }
 
     function getClientNameForEntry(entry) {
-      // Try to get client name from jobCompletions first (most accurate source)
+      // If entry already has clientName (from jobCompletions), use it
+      if (entry.clientName) {
+        return entry.clientName;
+      }
+
+      // Otherwise, look up client by clientId
       if (entry.clientId) {
         const client = clients.find(c => c.id === entry.clientId);
         if (client) {
