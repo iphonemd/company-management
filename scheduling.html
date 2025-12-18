@@ -1047,7 +1047,7 @@
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">Select Clients to Add</label>
-        <input type="text" class="form-input" id="bulkClientSearch" placeholder="Search clients by name or address...">
+        <input type="text" class="form-input" id="bulkClientSearch" placeholder="Search by first name, last name, nickname, or address...">
       </div>
       <div class="form-group" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: var(--space-3);">
         <div id="bulkClientCheckboxes">
@@ -3513,9 +3513,9 @@ function formatDateStr(date) {
       const checkboxesContainer = document.getElementById('bulkClientCheckboxes');
       checkboxesContainer.innerHTML = availableClients
         .map(c => `
-          <label class="form-check" style="display: flex; align-items: center; margin-bottom: var(--space-2); cursor: pointer;">
+          <label class="form-check" style="display: flex; align-items: center; margin-bottom: var(--space-2); cursor: pointer;" data-nickname="${(c.nickName || '').toLowerCase()}" data-lastname="${(c.lastName || '').toLowerCase()}" data-firstname="${(c.firstName || '').toLowerCase()}" data-address="${(c.address?.street || '').toLowerCase()}">
             <input type="checkbox" class="form-check-input bulk-client-checkbox" value="${c.id}" style="cursor: pointer;">
-            <span class="form-check-label" style="cursor: pointer;">${c.lastName}, ${c.firstName}</span>
+            <span class="form-check-label" style="cursor: pointer;">${c.lastName}, ${c.firstName}${c.nickName ? ` (${c.nickName})` : ''}</span>
             <span class="text-gray-500" style="font-size: 0.85rem; margin-left: auto;">${c.address?.street || ''}</span>
           </label>
         `)
@@ -3546,8 +3546,19 @@ function formatDateStr(date) {
 
       checkboxes.forEach(checkbox => {
         const label = checkbox.closest('label');
-        const clientText = label.textContent.toLowerCase();
-        const isMatch = searchTerm === '' || clientText.includes(searchTerm);
+
+        // Search across multiple fields: firstName, lastName, nickname, and address
+        const firstName = label.dataset.firstname || '';
+        const lastName = label.dataset.lastname || '';
+        const nickname = label.dataset.nickname || '';
+        const address = label.dataset.address || '';
+
+        const isMatch = searchTerm === '' ||
+          firstName.includes(searchTerm) ||
+          lastName.includes(searchTerm) ||
+          nickname.includes(searchTerm) ||
+          address.includes(searchTerm);
+
         label.style.display = isMatch ? 'flex' : 'none';
       });
     }
