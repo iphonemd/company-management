@@ -385,10 +385,22 @@
       align-items: flex-start;
       gap: var(--space-4);
       transition: box-shadow var(--transition-fast);
+      cursor: move;
     }
-    
+
     .job-card:hover {
       box-shadow: var(--shadow-md);
+    }
+
+    .job-card.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+
+    .job-card.drag-over {
+      background: var(--primary-50);
+      border: 2px solid var(--primary-500);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
     }
     
     .job-card-time {
@@ -1017,9 +1029,51 @@
         <button type="button" class="btn btn-secondary btn-sm" id="distributeAndRouteBtn" title="Distribute & Route">
           <span>📍</span> <span class="btn-text">Distribute</span>
         </button>
+        <button type="button" class="btn btn-secondary btn-sm" id="bulkAddJobsBtn" title="Add Multiple Jobs">
+          <span>➕➕</span> <span class="btn-text">Bulk Add</span>
+        </button>
         <button type="button" class="btn btn-primary btn-sm" id="addJobForDayBtn" title="Add Job">
           <span>➕</span> <span class="btn-text">Add Job</span>
         </button>
+    </div>
+  </div>
+
+  <!-- Bulk Add Clients Modal -->
+  <div class="modal modal-lg" id="bulkAddModal">
+    <div class="modal-header">
+      <h3 class="modal-title">Add Multiple Clients</h3>
+      <button class="modal-close" id="closeBulkAddModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Select Clients to Add</label>
+        <p class="text-gray-500 text-sm mb-3">Hold Ctrl/Cmd to select multiple clients</p>
+        <select class="form-select" id="bulkClientSelect" multiple style="min-height: 300px;">
+          <!-- Options populated by JS -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assign to Team</label>
+        <select class="form-select" id="bulkTeamSelect">
+          <option value="">-- Unassigned --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estimated Duration</label>
+        <select class="form-select" id="bulkDuration">
+          <option value="1">1 hour</option>
+          <option value="1.5">1.5 hours</option>
+          <option value="2" selected>2 hours</option>
+          <option value="2.5">2.5 hours</option>
+          <option value="3">3 hours</option>
+          <option value="3.5">3.5 hours</option>
+          <option value="4">4 hours</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelBulkAddBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirmBulkAddBtn">Add Selected Clients</button>
     </div>
   </div>
 
@@ -1122,6 +1176,78 @@
     let activeTimeEntry = null; // Track if editing a schedule with active time entry
 
     // ============================================
+    // UTILITY FUNCTIONS FOR EXTRAS
+    // ============================================
+    /**
+     * Calculate which extras should be included for a schedule based on the client's extras and schedule date.
+     * Extras appear based on their frequency relative to previous completed schedules.
+     */
+    function calculateExtrasForDate(client, scheduleDate) {
+      const addOns = [];
+      if (!client?.areas) return addOns;
+
+      // Get all areas across all floors
+      const allFloors = ['basement', 'mainLevel', 'upstairs'];
+
+      allFloors.forEach(floorKey => {
+        const floor = client.areas[floorKey] || {};
+
+        // Check each area in this floor
+        for (const [areaId, areaConfig] of Object.entries(floor)) {
+          // Skip system fields
+          if (areaId === 'selected' || typeof areaConfig !== 'object') continue;
+
+          // Only include if it's an extra (not included in base)
+          if (areaConfig.selected && !areaConfig.includedInBase && areaConfig.extraPrice > 0) {
+            const frequency = areaConfig.extraFrequency || 'biweekly';
+
+            // Check if this extra should appear on this date
+            if (shouldExtraAppear(client, floorKey, areaId, frequency, scheduleDate)) {
+              addOns.push({
+                area: `${floorKey}-${areaId}`,
+                label: areaId,
+                frequency: frequency,
+                price: areaConfig.extraPrice
+              });
+            }
+          }
+        }
+      });
+
+      return addOns;
+    }
+
+    /**
+     * Determine if an extra service should appear on a given date based on its frequency.
+     * Looks at historical completed schedules to calculate the pattern.
+     */
+    function shouldExtraAppear(client, floorKey, areaId, frequency, scheduleDate) {
+      // For now, use a simple approach:
+      // Count how many visits have been completed for this client
+      // Then determine if this visit number matches the frequency pattern
+
+      const completedSchedules = historicalSchedules.filter(s =>
+        s.clientId === client.id &&
+        s.status === 'completed'
+      ).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      // Map frequency to visit interval
+      const frequencyMap = {
+        'weekly': 1,
+        'biweekly': 2,
+        'every3weeks': 3,
+        'monthly': 4 // Approximate: 4 biweekly visits per month
+      };
+
+      const interval = frequencyMap[frequency] || 2;
+      const visitNumber = completedSchedules.length + 1; // +1 for current visit
+
+      // Simple logic: show extra every N visits based on frequency
+      // Example: biweekly extra shows on visits 2, 4, 6, etc.
+      return visitNumber % interval === 0;
+    }
+
+    // ============================================
     // AUTHENTICATION CHECK
     // ============================================
     onAuthStateChanged(auth, async (user) => {
@@ -1136,7 +1262,7 @@
             window.location.href = 'index.html';
           }
         } catch (error) {
-          console.error('Error fetching admin:', error);
+          
           window.location.href = 'index.html';
         }
       } else {
@@ -1186,7 +1312,7 @@
           googleMapsApiKey = configDoc.data().apiKey;
         }
       } catch (e) {
-        console.warn('Could not load Google Maps API key:', e);
+        
       }
     }
 
@@ -1197,7 +1323,7 @@
           officeSettings = configDoc.data();
         }
       } catch (e) {
-        console.warn('Could not load office settings:', e);
+        
       }
     }
 
@@ -1209,7 +1335,7 @@
         snapshot.forEach(doc => clients.push({ id: doc.id, ...doc.data() }));
         populateClientSelect();
       } catch (error) {
-        console.error('Error loading clients:', error);
+        
       }
     }
 
@@ -1221,7 +1347,7 @@
         snapshot.forEach(doc => teams.push({ id: doc.id, ...doc.data() }));
         populateTeamSelect();
       } catch (error) {
-        console.error('Error loading teams:', error);
+        
       }
     }
 
@@ -1259,7 +1385,7 @@
         snapshot.forEach(doc => schedules.push({ id: doc.id, ...doc.data() }));
         
       } catch (error) {
-        console.error('Error loading schedules:', error);
+        
       }
     }
 
@@ -1279,7 +1405,7 @@
         historicalSchedules = [];
         snapshot.forEach(doc => historicalSchedules.push({ id: doc.id, ...doc.data() }));
       } catch (error) {
-        console.error('Error loading historical schedules:', error);
+        
       }
     }
 
@@ -1294,7 +1420,7 @@
         snapshot.forEach(doc => entries.push({ id: doc.id, ...doc.data() }));
         return entries.filter(e => !e.clockOut); // Return only open entries
       } catch (error) {
-        console.error('Error loading time entries:', error);
+        
         return [];
       }
     }
@@ -1430,7 +1556,7 @@
         // Use the schedule status as a chip class to color chips by status
         const statusClass = (['scheduled','in_progress','completed','cancelled','rescheduled'].includes(schedule.status) ? schedule.status : 'scheduled');
         
-        html += `<div class="job-chip ${statusClass}" draggable="true" data-schedule-id="${schedule.id}" onclick="event.stopPropagation(); viewSchedule('${schedule.id}')" title="${client?.firstName || ''} ${client?.lastName || ''} - Drag to move, Ctrl+Drag to copy">${clientName}</div>`;
+        html += `<div class="job-chip ${statusClass}" draggable="true" data-schedule-id="${schedule.id}" onclick="event.stopPropagation(); viewSchedule('${schedule.id}')" title="${client?.firstName || ''} ${client?.lastName || ''} - Drag to duplicate">${clientName}</div>`;
       });
       
       if (sorted.length > maxShow) {
@@ -1495,28 +1621,31 @@
     function renderDayView() {
       const container = document.getElementById('daySchedule');
       const dateStr = formatDateStr(currentDate);
-      
+
       let daySchedules = schedules.filter(s => s.date === dateStr);
       if (teamFilter) {
         daySchedules = daySchedules.filter(s => s.teamId === teamFilter);
       }
-      
+
       const sortedDaySchedules = [...daySchedules].sort((a, b) => Number(a.routeOrder || Infinity) - Number(b.routeOrder || Infinity));
       container.innerHTML = `
         <div class="day-section">
           <div class="day-section-title">Jobs (${sortedDaySchedules.length} jobs)</div>
-          ${sortedDaySchedules.length > 0 ? sortedDaySchedules.map(s => renderJobCard(s)).join('') : 
+          ${sortedDaySchedules.length > 0 ? sortedDaySchedules.map(s => renderJobCard(s)).join('') :
             `<div class="text-gray-500 text-center p-4">No jobs scheduled</div>`}
         </div>
       `;
+
+      // Initialize drag and drop for route reordering in day view
+      setTimeout(() => initRouteReordering(), 0);
     }
 
     function renderJobCard(schedule) {
       const client = clients.find(c => c.id === schedule.clientId);
       const team = teams.find(t => t.id === schedule.teamId);
-      
+
       if (!client) return '';
-      
+
       const statusClasses = {
         scheduled: 'scheduled',
         in_progress: 'in_progress',
@@ -1524,12 +1653,12 @@
         cancelled: 'cancelled',
         rescheduled: 'rescheduled'
       };
-      
+
       return `
-        <div class="job-card" onclick="viewSchedule('${schedule.id}')">
+        <div class="job-card" data-schedule-id="${schedule.id}" data-team-id="${schedule.teamId || ''}" onclick="event.stopPropagation(); viewSchedule('${schedule.id}')">
           <div class="job-card-content">
             <div class="flex items-center">
-              <span class="route-order ${schedule.routeOrder === 1 ? 'first' : ''}">${schedule.routeOrder ? schedule.routeOrder : ''}</span>
+              <span class="route-order ${schedule.routeOrder === 1 ? 'first' : ''}" style="cursor: grab;">${schedule.routeOrder ? schedule.routeOrder : ''}</span>
               <div class="job-card-client">${client.firstName} ${client.lastName}</div>
             </div>
             <div class="job-card-address">${client.address?.street || ''}, ${client.address?.city || ''}</div>
@@ -1670,8 +1799,10 @@
         }
         content.innerHTML = html;
       }
-      
+
       openModal('dayJobsModal');
+      // Initialize drag and drop for route reordering
+      setTimeout(() => initRouteReordering(), 0);
     };
 
     // ============================================
@@ -1711,9 +1842,9 @@
     // Desktop handlers
     function handleDragStart(e) {
       draggedScheduleId = this.dataset.scheduleId;
-      isDragCopy = e.ctrlKey || e.metaKey;
+      isDragCopy = true; // Always copy on drag
       this.classList.add('dragging');
-      e.dataTransfer.effectAllowed = isDragCopy ? 'copy' : 'move';
+      e.dataTransfer.effectAllowed = 'copy';
       e.dataTransfer.setData('text/plain', draggedScheduleId);
     }
 
@@ -1726,10 +1857,9 @@
 
     function handleDragOver(e) {
       e.preventDefault();
-      const isCopy = e.ctrlKey || e.metaKey;
-      e.dataTransfer.dropEffect = isCopy ? 'copy' : 'move';
+      e.dataTransfer.dropEffect = 'copy';
       this.classList.remove('drag-over', 'drag-over-copy');
-      this.classList.add(isCopy ? 'drag-over-copy' : 'drag-over');
+      this.classList.add('drag-over-copy');
     }
 
     function handleDragLeave(e) {
@@ -1739,13 +1869,12 @@
     function handleDrop(e) {
       e.preventDefault();
       this.classList.remove('drag-over', 'drag-over-copy');
-      
+
       const scheduleId = e.dataTransfer.getData('text/plain');
       const newDate = this.dataset.date;
-      const isCopy = e.ctrlKey || e.metaKey;
-      
+
       if (scheduleId && newDate) {
-        handleScheduleDrop(scheduleId, newDate, isCopy);
+        handleScheduleDrop(scheduleId, newDate, true); // Always copy
       }
     }
 
@@ -1889,10 +2018,113 @@
       document.body.style.overflow = '';
     }
 
+    // ============================================
+    // ROUTE REORDERING (Drag and Drop within day)
+    // ============================================
+    let draggedJobCardId = null;
+    let draggedJobCardTeamId = null;
+
+    function initRouteReordering() {
+      // Make job cards draggable for route reordering
+      document.querySelectorAll('.job-card[data-schedule-id]').forEach(card => {
+        card.draggable = true;
+        card.addEventListener('dragstart', handleJobCardDragStart);
+        card.addEventListener('dragend', handleJobCardDragEnd);
+      });
+
+      // Drop zones for reordering
+      document.querySelectorAll('.job-card[data-schedule-id]').forEach(card => {
+        card.addEventListener('dragover', handleJobCardDragOver);
+        card.addEventListener('drop', handleJobCardDrop);
+        card.addEventListener('dragleave', handleJobCardDragLeave);
+      });
+    }
+
+    function handleJobCardDragStart(e) {
+      draggedJobCardId = this.dataset.scheduleId;
+      draggedJobCardTeamId = this.dataset.teamId || '';
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', draggedJobCardId);
+    }
+
+    function handleJobCardDragEnd(e) {
+      this.classList.remove('dragging');
+      clearDropHighlights();
+      draggedJobCardId = null;
+      draggedJobCardTeamId = null;
+    }
+
+    function handleJobCardDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (this.dataset.scheduleId !== draggedJobCardId) {
+        this.classList.add('drag-over');
+      }
+    }
+
+    function handleJobCardDragLeave(e) {
+      this.classList.remove('drag-over');
+    }
+
+    async function handleJobCardDrop(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+
+      const targetScheduleId = this.dataset.scheduleId;
+      const targetTeamId = this.dataset.teamId || '';
+
+      if (draggedJobCardId === targetScheduleId) return;
+      if (draggedJobCardTeamId !== targetTeamId) return; // Can only reorder within same team
+
+      // Get all schedules for this team on this date
+      const draggedSchedule = schedules.find(s => s.id === draggedJobCardId);
+      const targetSchedule = schedules.find(s => s.id === targetScheduleId);
+
+      if (!draggedSchedule || !targetSchedule) return;
+
+      const dateStr = draggedSchedule.date;
+      const teamId = draggedJobCardTeamId || '';
+
+      const dayTeamSchedules = schedules
+        .filter(s => s.date === dateStr && (s.teamId || '') === teamId && s.status !== 'cancelled')
+        .sort((a, b) => Number(a.routeOrder || Infinity) - Number(b.routeOrder || Infinity));
+
+      const draggedIdx = dayTeamSchedules.findIndex(s => s.id === draggedJobCardId);
+      const targetIdx = dayTeamSchedules.findIndex(s => s.id === targetScheduleId);
+
+      if (draggedIdx === -1 || targetIdx === -1) return;
+
+      // Reorder: remove dragged, insert at target
+      const reordered = [...dayTeamSchedules];
+      const [removed] = reordered.splice(draggedIdx, 1);
+      reordered.splice(targetIdx, 0, removed);
+
+      // Update routeOrder for all affected schedules
+      try {
+        for (let i = 0; i < reordered.length; i++) {
+          const schedule = reordered[i];
+          if (schedule.routeOrder !== i + 1) {
+            await updateDoc(doc(db, 'schedules', schedule.id), {
+              routeOrder: i + 1,
+              updatedAt: Timestamp.now()
+            });
+          }
+        }
+
+        showToast('success', 'Route Updated', 'Job order updated');
+        await loadSchedules();
+        if (selectedDate === dateStr) showDayJobs(dateStr);
+      } catch (error) {
+        console.error('Error updating route order:', error);
+        showToast('error', 'Error', 'Failed to update route order');
+      }
+    }
+
     async function handleScheduleDrop(scheduleId, newDate, isCopy) {
       const schedule = schedules.find(s => s.id === scheduleId);
       if (!schedule) return;
-      
+
       // Don't do anything if dropping on the same date (for move)
       if (!isCopy && schedule.date === newDate) return;
       
@@ -1950,7 +2182,7 @@
         await loadSchedules();
         renderCalendar();
       } catch (error) {
-        console.error(`Error ${isCopy ? 'copying' : 'moving'} schedule:`, error);
+        
         showToast('error', 'Error', `Failed to ${isCopy ? 'copy' : 'move'} job`);
       }
     }
@@ -2109,15 +2341,17 @@
       
       // Set addons from saved schedule
       const savedAddOns = schedule.serviceDetails?.addOns || [];
-      document.querySelectorAll('.addon-checkbox').forEach(checkbox => {
-        const areaKey = checkbox.dataset.area;
-        // Support both old format (string array) and new format (object array)
-        const isChecked = savedAddOns.some(a => 
-          (typeof a === 'string' && a === areaKey) || 
-          (typeof a === 'object' && a.area === areaKey)
-        );
-        checkbox.checked = isChecked;
-      });
+      setTimeout(() => {
+        document.querySelectorAll('.addon-checkbox').forEach(checkbox => {
+          const areaKey = checkbox.dataset.area;
+          // Support both old format (string array) and new format (object array)
+          const isChecked = savedAddOns.some(a =>
+            (typeof a === 'string' && a === areaKey) ||
+            (typeof a === 'object' && a.area === areaKey)
+          );
+          checkbox.checked = isChecked;
+        });
+      }, 100);
       
       updateTotalPrice();
       openModal('scheduleModal');
@@ -2154,11 +2388,12 @@
       // Calculate total price from base + add-ons
       let totalPrice = client?.basePrice || 0;
       const addOns = [];
-      
+
       document.querySelectorAll('.addon-checkbox:checked').forEach(checkbox => {
         const areaKey = checkbox.dataset.area;
         const price = parseFloat(checkbox.dataset.price) || 0;
-        addOns.push({ area: areaKey, price: price });
+        const frequency = checkbox.dataset.frequency || 'monthly';
+        addOns.push({ area: areaKey, price: price, frequency: frequency });
         totalPrice += price;
       });
       
@@ -2196,7 +2431,7 @@ const scheduleData = {
         await loadSchedules();
         renderCalendar();
       } catch (error) {
-        console.error('Error saving schedule:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to save schedule');
       }
     }
@@ -2227,7 +2462,7 @@ const scheduleData = {
         await loadSchedules();
         renderCalendar();
       } catch (error) {
-        console.error('Error deleting schedule:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to delete schedule');
       }
     }
@@ -2273,7 +2508,7 @@ const scheduleData = {
         await loadSchedules();
         renderCalendar();
       } catch (error) {
-        console.error('Error deleting schedules:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to delete schedules');
       } finally {
         // Reset button states
@@ -2332,18 +2567,19 @@ const scheduleData = {
       const startDate = new Date(document.getElementById('autoStartDate').value);
       const endDate = new Date(document.getElementById('autoEndDate').value);
       const filter = document.getElementById('autoClientFilter').value;
-      
+
       if (isNaN(startDate) || isNaN(endDate)) {
         document.getElementById('estimatedJobs').textContent = '0';
         return;
       }
-      
+
+      // Include all clients with recurring schedules (regardless of active status)
       let eligibleClients = clients.filter(c => c.scheduleType !== 'oneTime');
-      
+
       // Simple estimation based on schedule frequency
       let totalJobs = 0;
       const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-      
+
       eligibleClients.forEach(client => {
         let interval = 7;
         switch (client.scheduleType) {
@@ -2355,7 +2591,7 @@ const scheduleData = {
         }
         totalJobs += Math.ceil(days / interval);
       });
-      
+
       document.getElementById('estimatedJobs').textContent = totalJobs;
     }
 
@@ -2399,15 +2635,12 @@ const scheduleData = {
         const snapshot = await getDocs(q);
         const allSchedules = [];
         snapshot.forEach(doc => allSchedules.push({ id: doc.id, ...doc.data() }));
-        // Filter clients to only those with recurring schedules and some history
+        // Filter clients to only those with recurring schedules and some history (regardless of active status)
         const eligibleClients = clients.filter(c => {
           if (!c.scheduleType || c.scheduleType === 'oneTime') return false;
-          
+
           // Check if client has any schedule history in the past 2 months
           const hasHistory = allSchedules.some(s => s.clientId === c.id);
-          if (!hasHistory) {
-            console.log(`Skipping ${c.firstName} ${c.lastName} - no schedule history`);
-          }
           return hasHistory;
         });
 
@@ -2506,22 +2739,20 @@ const scheduleData = {
         
         for (const [dateStr, daySchedules] of Object.entries(schedulesToCreate)) {
           if (daySchedules.length === 0) continue;
-          
-          // Sort clients by proximity
+
+          // Use geographic clustering for team distribution
           const dayClients = daySchedules.map(s => s.client).filter(c => c);
-          const sortedClients = sortClientsByProximity(dayClients);
-          
-          // Distribute among teams
-          const jobsPerTeam = Math.ceil(sortedClients.length / Math.max(activeTeams.length, 1));
+          const geoClusters = clusterClientsByGeography(dayClients, activeTeams.length);
+
+          // Assign clusters to teams and sort within clusters by proximity
           const teamAssignments = {};
           activeTeams.forEach(t => teamAssignments[t.id] = []);
-          
-          sortedClients.forEach((client, idx) => {
-            if (activeTeams.length > 0) {
-              const teamIdx = Math.floor(idx / jobsPerTeam);
-              const team = activeTeams[Math.min(teamIdx, activeTeams.length - 1)];
-              teamAssignments[team.id].push(client);
-            }
+
+          geoClusters.forEach((cluster, idx) => {
+            const teamId = activeTeams[Math.min(idx, activeTeams.length - 1)].id;
+            // Sort clients within cluster by proximity
+            const sortedCluster = sortClientsByProximity(cluster);
+            teamAssignments[teamId].push(...sortedCluster);
           });
           
           // Create schedules with team assignments and route order
@@ -2540,7 +2771,7 @@ const scheduleData = {
                   await addDoc(collection(db, 'schedules'), scheduleData);
                   created++;
                 } catch (error) {
-                  console.error('Error creating schedule:', error);
+                  
                 }
               }
             }
@@ -2556,7 +2787,7 @@ const scheduleData = {
                 await addDoc(collection(db, 'schedules'), scheduleData);
                 created++;
               } catch (error) {
-                console.error('Error creating schedule:', error);
+                
               }
             }
           }
@@ -2570,7 +2801,7 @@ const scheduleData = {
         renderCalendar();
         
       } catch (error) {
-        console.error('Error generating schedules:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to generate schedules');
       } finally {
         // Reset button state
@@ -2600,6 +2831,90 @@ const scheduleData = {
       }
       
       return daysSince >= (interval - 3);
+    }
+
+    // ============================================
+    // GEOGRAPHIC CLUSTERING
+    // ============================================
+    /**
+     * Group clients into geographic clusters using a simple k-means-like algorithm.
+     * This helps balance workloads by geography rather than just proximity.
+     */
+    function clusterClientsByGeography(clientList, numClusters = 3) {
+      if (clientList.length <= numClusters) return clientList.map(c => [c]);
+
+      // Filter clients with coordinates
+      const withCoords = clientList.filter(c => c.address?.coordinates);
+      const withoutCoords = clientList.filter(c => !c.address?.coordinates);
+
+      if (withCoords.length === 0) return [clientList];
+
+      // Simple k-means clustering
+      // 1. Initialize cluster centers with random clients
+      const centers = [];
+      const indices = [];
+      for (let i = 0; i < Math.min(numClusters, withCoords.length); i++) {
+        const randomIdx = Math.floor(Math.random() * withCoords.length);
+        if (!indices.includes(randomIdx)) {
+          indices.push(randomIdx);
+          centers.push(withCoords[randomIdx].address.coordinates);
+        }
+      }
+
+      // If we couldn't get enough random centers, use the first ones
+      while (centers.length < numClusters && centers.length < withCoords.length) {
+        const idx = centers.length;
+        if (idx < withCoords.length) {
+          centers.push(withCoords[idx].address.coordinates);
+        }
+      }
+
+      // 2. Assign clients to nearest cluster center (iterate a few times for convergence)
+      let clusters = Array(centers.length).fill(null).map(() => []);
+      for (let iteration = 0; iteration < 3; iteration++) {
+        clusters = Array(centers.length).fill(null).map(() => []);
+
+        withCoords.forEach(client => {
+          const coords = client.address.coordinates;
+          let nearestCenter = 0;
+          let nearestDist = Infinity;
+
+          centers.forEach((center, idx) => {
+            const dist = haversineDistance(coords, center);
+            if (dist < nearestDist) {
+              nearestDist = dist;
+              nearestCenter = idx;
+            }
+          });
+
+          clusters[nearestCenter].push(client);
+        });
+
+        // Update centers to be the centroid of each cluster
+        clusters.forEach((cluster, idx) => {
+          if (cluster.length > 0) {
+            let sumLat = 0, sumLng = 0;
+            cluster.forEach(c => {
+              sumLat += c.address.coordinates.lat;
+              sumLng += c.address.coordinates.lng;
+            });
+            centers[idx] = {
+              lat: sumLat / cluster.length,
+              lng: sumLng / cluster.length
+            };
+          }
+        });
+      }
+
+      // Remove empty clusters and add clients without coordinates to the last cluster
+      const result = clusters.filter(cluster => cluster.length > 0);
+      if (result.length > 0) {
+        result[result.length - 1] = [...result[result.length - 1], ...withoutCoords];
+      } else if (withoutCoords.length > 0) {
+        result.push(withoutCoords);
+      }
+
+      return result;
     }
 
     // ============================================
@@ -2743,26 +3058,30 @@ const scheduleData = {
     async function distributeAndRouteDay(dateStr) {
       let daySchedules = schedules.filter(s => s.date === dateStr && s.status !== 'cancelled');
       if (daySchedules.length === 0) { showToast('warning', 'No Jobs', 'No jobs to distribute'); return; }
-      
+
       const activeTeams = teams.filter(t => t.isActive !== false);
       if (activeTeams.length === 0) { showToast('error', 'No Teams', 'No active teams'); return; }
-      
+
       showToast('info', 'Processing', 'Distributing and optimizing routes...');
-      
+
       const scheduleClients = daySchedules.map(s => {
         const client = clients.find(c => c.id === s.clientId);
         return { schedule: s, client };
       }).filter(sc => sc.client);
-      
-      const sortedClients = sortClientsByProximity(scheduleClients.map(sc => sc.client));
-      const jobsPerTeam = Math.ceil(sortedClients.length / activeTeams.length);
+
+      // Use geographic clustering to group nearby clients
+      const clientsForClustering = scheduleClients.map(sc => sc.client);
+      const geoClusters = clusterClientsByGeography(clientsForClustering, activeTeams.length);
+
+      // Assign clusters to teams and sort within clusters by proximity
       const teamAssignments = {};
       activeTeams.forEach(t => teamAssignments[t.id] = []);
-      
-      sortedClients.forEach((client, idx) => {
-        const teamIdx = Math.floor(idx / jobsPerTeam);
-        const team = activeTeams[Math.min(teamIdx, activeTeams.length - 1)];
-        teamAssignments[team.id].push(client);
+
+      geoClusters.forEach((cluster, idx) => {
+        const teamId = activeTeams[Math.min(idx, activeTeams.length - 1)].id;
+        // Sort clients within cluster by proximity
+        const sortedCluster = sortClientsByProximity(cluster);
+        teamAssignments[teamId].push(...sortedCluster);
       });
       
       let updateCount = 0;
@@ -2777,7 +3096,7 @@ const scheduleData = {
                 teamId: teamId, routeOrder: i + 1, updatedAt: Timestamp.now()
               });
               updateCount++;
-            } catch (e) { console.error('Error updating schedule:', e); }
+            } catch (e) {  }
           }
         }
       }
@@ -2911,9 +3230,9 @@ const scheduleData = {
             await logAudit(auditAction, AuditModules.SETTINGS, 'officeSettings', 'Office Settings', changes);
           }
         } catch (auditErr) {
-          console.warn('Audit log failed:', auditErr);
+          
         }
-      } catch (e) { console.error('Error saving:', e); showToast('error', 'Error', 'Save failed'); }
+      } catch (e) {  showToast('error', 'Error', 'Save failed'); }
     }
 
     async function geocodeAddress(street, city, state, zip) {
@@ -2926,7 +3245,7 @@ const scheduleData = {
           return { lat: data.results[0].geometry.location.lat, lng: data.results[0].geometry.location.lng };
         }
         return null;
-      } catch (e) { console.error('Geocoding error:', e); return null; }
+      } catch (e) {  return null; }
     }
 
     // ============================================
@@ -3042,28 +3361,67 @@ function formatDateStr(date) {
         // Build add-ons from client's areas that are NOT included in base
         const areas = selectedClient.areas || {};
         const extraAreas = [];
-        
-        const floorLabels = { basement: '🏚️ Basement', mainLevel: '🏠 Main Level', upstairs: '⬆️ Upstairs' };
-        
+
+        const floorLabels = {
+          basement: '🏚️ Basement',
+          mainLevel: '🏠 Main Level',
+          upstairs: '⬆️ Upstairs'
+        };
+
+        const areaLabels = {
+          bathrooms: 'Bathrooms',
+          bedrooms: 'Bedrooms',
+          kitchen: 'Kitchen',
+          livingRoom: 'Living Room',
+          diningRoom: 'Dining Room',
+          laundryRoom: 'Laundry Room',
+          office: 'Office',
+          fridge: 'Fridge',
+          masterBath: 'Master Bath',
+          masterRoom: 'Master Room'
+        };
+
+        // Iterate through each floor and its areas
         for (const [floorKey, floorData] of Object.entries(areas)) {
-          if (floorData && !floorData.includedInBase && floorData.extraPrice > 0) {
-            extraAreas.push({
-              key: floorKey,
-              label: floorLabels[floorKey] || floorKey,
-              price: floorData.extraPrice || 0,
-              frequency: floorData.extraFrequency || 'monthly'
-            });
+          if (!floorData || typeof floorData !== 'object') continue;
+
+          // Iterate through each area within the floor
+          for (const [areaId, areaConfig] of Object.entries(floorData)) {
+            if (areaConfig && areaConfig.selected && !areaConfig.includedInBase && areaConfig.extraPrice > 0) {
+              const areaKey = `${floorKey}-${areaId}`;
+              const floorLabel = floorLabels[floorKey] || floorKey;
+              const areaLabel = areaLabels[areaId] || areaId;
+
+              extraAreas.push({
+                key: areaKey,
+                label: `${floorLabel} - ${areaLabel}`,
+                price: areaConfig.extraPrice || 0,
+                frequency: areaConfig.extraFrequency || 'monthly'
+              });
+            }
           }
         }
-        
+
         if (extraAreas.length > 0) {
           addonsSection.style.display = 'block';
           addonsContainer.innerHTML = extraAreas.map(area => `
             <label class="form-check">
-              <input type="checkbox" class="form-check-input addon-checkbox" data-area="${area.key}" data-price="${area.price}" onchange="updateTotalPrice()">
-              <span class="form-check-label">${area.label} <span class="text-gray-500">(+${formatCurrency(area.price)})</span></span>
+              <input type="checkbox" class="form-check-input addon-checkbox" data-area="${area.key}" data-price="${area.price}" data-frequency="${area.frequency}" onchange="updateTotalPrice()">
+              <span class="form-check-label">${area.label} <span class="text-gray-500">(${area.frequency}, +${formatCurrency(area.price)})</span></span>
             </label>
           `).join('');
+
+          // Auto-select extras that should appear on the schedule date
+          const scheduleDate = document.getElementById('scheduleDate').value;
+          if (scheduleDate && selectedClient) {
+            const calculatedAddOns = calculateExtrasForDate(selectedClient, scheduleDate);
+            calculatedAddOns.forEach(addon => {
+              const checkbox = addonsContainer.querySelector(`[data-area="${addon.area}"]`);
+              if (checkbox) {
+                checkbox.checked = true;
+              }
+            });
+          }
         } else {
           addonsSection.style.display = 'none';
           addonsContainer.innerHTML = '';
@@ -3100,6 +3458,100 @@ function formatDateStr(date) {
       const lang = i18n.getLanguage();
       document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN';
       i18n.updatePageTranslations();
+    }
+
+    // ============================================
+    // BULK ADD CLIENTS
+    // ============================================
+    async function openBulkAddModal() {
+      // Populate client select with all active clients
+      const clientSelect = document.getElementById('bulkClientSelect');
+      const dateStr = selectedDate;
+
+      // Get already scheduled clients for this day
+      const daySchedules = schedules.filter(s => s.date === dateStr);
+      const scheduledClientIds = new Set(daySchedules.map(s => s.clientId));
+
+      // Populate with non-scheduled clients
+      clientSelect.innerHTML = clients
+        .filter(c => !scheduledClientIds.has(c.id))
+        .map(c => `<option value="${c.id}">${c.lastName}, ${c.firstName} - ${c.address?.street || ''}</option>`)
+        .join('');
+
+      // Populate team select
+      const teamSelect = document.getElementById('bulkTeamSelect');
+      teamSelect.innerHTML = '<option value="">-- Unassigned --</option>' +
+        teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+
+      openModal('bulkAddModal');
+    }
+
+    async function confirmBulkAdd() {
+      const clientSelect = document.getElementById('bulkClientSelect');
+      const selectedClients = Array.from(clientSelect.selectedOptions).map(opt => opt.value);
+      const teamId = document.getElementById('bulkTeamSelect').value || '';
+      const duration = parseFloat(document.getElementById('bulkDuration').value) || 2;
+      const dateStr = selectedDate;
+
+      if (selectedClients.length === 0) {
+        showToast('warning', 'No Clients', 'Please select at least one client');
+        return;
+      }
+
+      // Show loading state
+      const confirmBtn = document.getElementById('confirmBulkAddBtn');
+      const originalText = confirmBtn.textContent;
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<span class="spinner"></span> Adding...';
+
+      try {
+        let added = 0;
+
+        for (const clientId of selectedClients) {
+          const client = clients.find(c => c.id === clientId);
+          if (!client) continue;
+
+          // Check for duplicate
+          const existing = schedules.find(s => s.clientId === clientId && s.date === dateStr);
+          if (existing) continue;
+
+          const scheduleData = {
+            clientId,
+            teamId,
+            date: dateStr,
+            serviceDetails: {
+              addOns: [],
+              totalPrice: client.basePrice || 0
+            },
+            estimatedDuration: duration,
+            status: 'scheduled',
+            notes: '',
+            routeOrder: 0,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now()
+          };
+
+          try {
+            await addDoc(collection(db, 'schedules'), scheduleData);
+            added++;
+          } catch (error) {
+            console.error('Error adding schedule:', error);
+          }
+        }
+
+        showToast('success', 'Success', `${added} clients added to ${dateStr}`);
+        closeModal('bulkAddModal');
+        await loadSchedules();
+        renderCalendar();
+        if (selectedDate === dateStr) showDayJobs(dateStr);
+
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('error', 'Error', 'Failed to add clients');
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = originalText;
+      }
     }
 
     // ============================================
@@ -3205,6 +3657,31 @@ function formatDateStr(date) {
       document.getElementById('saveScheduleBtn').addEventListener('click', saveSchedule);
       
       document.getElementById('scheduleClient').addEventListener('change', onClientChange);
+
+      // When schedule date changes, recalculate which extras should appear
+      document.getElementById('scheduleDate').addEventListener('change', () => {
+        if (selectedClient) {
+          const scheduleDate = document.getElementById('scheduleDate').value;
+          const addonsContainer = document.getElementById('addonsContainer');
+
+          // Clear all checkboxes first
+          addonsContainer.querySelectorAll('.addon-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+          });
+
+          // Auto-select extras that should appear on the new schedule date
+          const calculatedAddOns = calculateExtrasForDate(selectedClient, scheduleDate);
+          calculatedAddOns.forEach(addon => {
+            const checkbox = addonsContainer.querySelector(`[data-area="${addon.area}"]`);
+            if (checkbox) {
+              checkbox.checked = true;
+            }
+          });
+
+          updateTotalPrice();
+        }
+      });
+
       // Client combobox: filters the schedule client select dropdown and shows a list for selection
       (function() {
         const clientSearchEl = document.getElementById('scheduleClientSearch');
@@ -3306,6 +3783,10 @@ function formatDateStr(date) {
         closeModal('dayJobsModal');
         openAddScheduleModal(selectedDate);
       });
+      document.getElementById('bulkAddJobsBtn')?.addEventListener('click', () => {
+        closeModal('dayJobsModal');
+        openBulkAddModal();
+      });
       document.getElementById('distributeAndRouteBtn')?.addEventListener('click', () => {
         if (selectedDate) distributeAndRouteDay(selectedDate);
       });
@@ -3313,6 +3794,11 @@ function formatDateStr(date) {
       document.getElementById('previewAllRoutesBtn')?.addEventListener('click', () => {
         if (selectedDate) previewAllTeamRoutes(selectedDate);
       });
+
+      // Bulk Add Modal
+      document.getElementById('closeBulkAddModal').addEventListener('click', () => closeModal('bulkAddModal'));
+      document.getElementById('cancelBulkAddBtn').addEventListener('click', () => closeModal('bulkAddModal'));
+      document.getElementById('confirmBulkAddBtn').addEventListener('click', confirmBulkAdd);
 
       // Office Modal
       document.getElementById('editOfficeBtn')?.addEventListener('click', openOfficeModal);
