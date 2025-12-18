@@ -544,18 +544,12 @@
 
   <div class="modal" id="addEntryModal">
     <div class="modal-header">
-      <h3 class="modal-title">➕ <span id="addEntryModalTitle">Add Time Entry</span></h3>
+      <h3 class="modal-title">➕ <span id="addEntryModalTitle">Add Time Entry</span> - <span id="addEntryEmployeeDate" style="font-size: 0.9em; font-weight: normal;"></span></h3>
       <button class="modal-close" id="closeAddModal">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label" id="addEntryEmployeeLabel">Employee</label>
-        <select class="form-select" id="addEntryEmployee"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label" id="addEntryDateLabel">Date</label>
-        <input type="date" class="form-input" id="addEntryDate">
-      </div>
+      <input type="hidden" id="addEntryEmployee">
+      <input type="hidden" id="addEntryDate">
       <div class="form-group">
         <label class="form-label" id="addEntryClientLabel" data-i18n="selectClient">Select Client</label>
         <select class="form-select" id="addEntryClient">
@@ -1075,12 +1069,22 @@
     }
 
     window.addEntryForDay = function(workerId, dateStr) {
+      // Set hidden fields
       document.getElementById('addEntryEmployee').value = workerId;
       document.getElementById('addEntryDate').value = dateStr;
+
+      // Set form values
       document.getElementById('addEntryClockIn').value = '08:00';
       document.getElementById('addEntryClockOut').value = '17:00';
       document.getElementById('addEntryNotes').value = '';
       document.getElementById('addEntryClient').value = '';  // Clear client selection
+
+      // Display employee name and date in header
+      const worker = allWorkers.find(w => w.id === workerId);
+      const employeeName = worker ? (worker.firstName + ' ' + worker.lastName) : workerId;
+      const dateObj = new Date(dateStr + 'T00:00:00');
+      const dateDisplay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('addEntryEmployeeDate').textContent = employeeName + ' • ' + dateDisplay;
 
       // Populate client dropdown
       const clientSelect = document.getElementById('addEntryClient');
@@ -1109,8 +1113,18 @@
       const clientSelect = document.getElementById('addEntryClient');
       clientSelect.innerHTML = '<option value="">Select a client...</option>' + clients.map(c => '<option value="' + c.id + '">' + (c.firstName || '') + ' ' + (c.lastName || '') + '</option>').join('');
 
+      // Set hidden fields
       document.getElementById('addEntryEmployee').value = workerId;
       document.getElementById('addEntryDate').value = dateStr;
+
+      // Display employee name and date in header
+      const worker = allWorkers.find(w => w.id === workerId);
+      const employeeName = worker ? (worker.firstName + ' ' + worker.lastName) : workerId;
+      const dateObj = new Date(dateStr + 'T00:00:00');
+      const dateDisplay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('addEntryEmployeeDate').textContent = employeeName + ' • ' + dateDisplay;
+
+      // Set form values
       document.getElementById('addEntryClient').value = entry.clientId || '';  // Pre-select client if exists
       document.getElementById('addEntryClockIn').value = clockIn.toTimeString().slice(0, 5);
       if (clockOutTime) {
@@ -1256,7 +1270,7 @@
         delete modal.dataset.entryId;
         delete modal.dataset.fromJobCompletion;
         closeModal('addEntryModal');
-        await loadTimeEntries();  // This will reload both timeEntries and jobCompletions
+        await Promise.all([loadTimeEntries(), loadJobCompletions()]);  // Reload both collections
         renderPayrollTable();
         renderEmployeeCards();
       } catch (error) { showToast('error', i18n.t('error'), i18n.t('failedToSaveEntry') || 'Failed to save time entry'); }
