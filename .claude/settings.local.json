@@ -6,7 +6,8 @@
       "Bash(firebase functions:log:*)",
       "Bash(firebase deploy:*)",
       "Bash(node -c:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(grep:*)"
     ]
   }
 }

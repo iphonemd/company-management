@@ -22,6 +22,101 @@
     .sort-indicator { display: inline-block; margin-left: 4px; width: 14px; height: 14px; font-size: 11px; line-height: 14px; font-weight: bold; opacity: 0; }
     .sortable.asc .sort-indicator::after { content: '▲'; opacity: 1; }
     .sortable.desc .sort-indicator::after { content: '▼'; opacity: 1; }
+
+    /* Area row with inline controls */
+    .area-row-enhanced {
+      display: grid;
+      grid-template-columns: 1fr auto 100px 120px 120px;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--gray-100);
+      background: var(--gray-50);
+      border-radius: 6px;
+      margin-bottom: 0.25rem;
+    }
+    .area-row-enhanced:last-child { border-bottom: none; margin-bottom: 0; }
+
+    .area-section-header-with-button {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .check-all-btn {
+      background: none;
+      border: none;
+      color: var(--primary-600);
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    .check-all-btn:hover {
+      background: var(--primary-100);
+    }
+
+    .area-row-name {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+    }
+    .area-row-name input[type="checkbox"] {
+      cursor: pointer;
+    }
+
+    .area-row-include-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .area-row-include-toggle input[type="checkbox"] {
+      cursor: pointer;
+    }
+    .area-row-include-label {
+      font-size: 0.75rem;
+      color: var(--gray-600);
+      white-space: nowrap;
+    }
+
+    .area-row-frequency {
+      font-size: 0.85rem;
+    }
+    .area-row-frequency select {
+      width: 100%;
+    }
+
+    .area-row-charge {
+      font-size: 0.85rem;
+    }
+    .area-row-charge .input-group {
+      display: flex;
+      align-items: center;
+    }
+    .area-row-charge .input-group span {
+      padding: 0 0.5rem;
+      font-size: 0.85rem;
+    }
+    .area-row-charge .form-input {
+      font-size: 0.85rem;
+      padding: 0.5rem;
+    }
+
+    /* Hide frequency and charge by default (when not an extra) */
+    .area-row-frequency,
+    .area-row-charge {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* Show frequency and charge only when "extra" checkbox is checked */
+    .area-row-enhanced.is-extra .area-row-frequency,
+    .area-row-enhanced.is-extra .area-row-charge {
+      visibility: visible;
+      pointer-events: auto;
+    }
   </style>
 </head>
 <body>
@@ -284,146 +379,39 @@
                 <input type="number" class="form-input" id="clientBasePrice" step="0.01" min="0" placeholder="150.00">
               </div>
             </div>
-            <p class="text-sm text-gray-600 mb-0">Check "Include in Base" for areas covered by base price. Uncheck to make it an extra service with its own frequency and charge.</p>
+            <p class="text-sm text-gray-600 mb-0">Each area can be included in the base price or set as an extra service. Extras appear every N visits based on their frequency.</p>
           </div>
 
           <!-- Basement Section -->
           <div class="area-section">
-            <div class="area-section-header">
+            <div class="area-section-header area-section-header-with-button">
               <h4>🏚️ Basement</h4>
-              <div class="flex items-center gap-2">
-                <label class="toggle" style="margin: 0;">
-                  <input type="checkbox" class="toggle-input" id="basementIncluded" onchange="toggleFloorIncluded('basement')">
-                  <span class="toggle-slider"></span>
-                </label>
-                <span class="text-sm">Include in Base</span>
-              </div>
+              <button type="button" class="check-all-btn" onclick="toggleCheckAll('basementAreas')">Check All</button>
             </div>
             <div class="area-section-body">
-              <div id="basementAreas">
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="basementBathrooms"><span>Bathrooms</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="basementBedrooms"><span>Bedrooms</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="basementMasterBath"><span>Master Bath</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="basementMasterRoom"><span>Master Room</span></div></div>
-              </div>
-              <div id="basementExtra" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--gray-300);">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="extra-badge">EXTRA SERVICE</span>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="form-group mb-0">
-                    <label class="form-label text-sm">Frequency</label>
-                    <select class="form-select" id="basementExtraFreq">
-                      <option value="weekly">Weekly</option>
-                      <option value="biweekly">Every 2 Weeks</option>
-                      <option value="every3weeks">Every 3 Weeks</option>
-                      <option value="monthly" selected>Monthly</option>
-                      <option value="custom">Custom</option>
-                    </select>
-                  </div>
-                  <div class="form-group mb-0">
-                    <label class="form-label text-sm">Extra Charge</label>
-                    <div class="input-group">
-                      <span class="input-group-prepend">$</span>
-                      <input type="number" class="form-input" id="basementExtraPrice" step="0.01" min="0" placeholder="50.00">
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <div id="basementAreas"></div>
             </div>
           </div>
 
           <!-- Main Level Section -->
           <div class="area-section">
-            <div class="area-section-header">
+            <div class="area-section-header area-section-header-with-button">
               <h4>🏠 Main Level</h4>
-              <div class="flex items-center gap-2">
-                <label class="toggle" style="margin: 0;">
-                  <input type="checkbox" class="toggle-input" id="mainIncluded" checked onchange="toggleFloorIncluded('main')">
-                  <span class="toggle-slider"></span>
-                </label>
-                <span class="text-sm">Include in Base</span>
-              </div>
+              <button type="button" class="check-all-btn" onclick="toggleCheckAll('mainAreas')">Check All</button>
             </div>
             <div class="area-section-body">
-              <div id="mainAreas">
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainKitchen" checked><span>Kitchen</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainBathrooms" checked><span>Bathrooms</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainBedrooms"><span>Bedrooms</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainLivingRoom" checked><span>Living Room</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainDiningRoom"><span>Dining Room</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainLaundryRoom"><span>Laundry Room</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainOffice"><span>Office</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainFridge"><span>Fridge</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainMasterBath"><span>Master Bath</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="mainMasterRoom"><span>Master Room</span></div></div>
-              </div>
-              <div id="mainExtra" class="hidden" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--gray-300);">
-                <div class="flex items-center gap-2 mb-2"><span class="extra-badge">EXTRA SERVICE</span></div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="form-group mb-0">
-                    <label class="form-label text-sm">Frequency</label>
-                    <select class="form-select" id="mainExtraFreq">
-                      <option value="weekly">Weekly</option>
-                      <option value="biweekly" selected>Every 2 Weeks</option>
-                      <option value="every3weeks">Every 3 Weeks</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="custom">Custom</option>
-                    </select>
-                  </div>
-                  <div class="form-group mb-0">
-                    <label class="form-label text-sm">Extra Charge</label>
-                    <div class="input-group">
-                      <span class="input-group-prepend">$</span>
-                      <input type="number" class="form-input" id="mainExtraPrice" step="0.01" min="0" placeholder="0.00">
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <div id="mainAreas"></div>
             </div>
           </div>
 
           <!-- Upstairs Section -->
           <div class="area-section">
-            <div class="area-section-header">
+            <div class="area-section-header area-section-header-with-button">
               <h4>⬆️ Upstairs</h4>
-              <div class="flex items-center gap-2">
-                <label class="toggle" style="margin: 0;">
-                  <input type="checkbox" class="toggle-input" id="upstairsIncluded" checked onchange="toggleFloorIncluded('upstairs')">
-                  <span class="toggle-slider"></span>
-                </label>
-                <span class="text-sm">Include in Base</span>
-              </div>
+              <button type="button" class="check-all-btn" onclick="toggleCheckAll('upstairsAreas')">Check All</button>
             </div>
             <div class="area-section-body">
-              <div id="upstairsAreas">
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="upstairsBathrooms" checked><span>Bathrooms</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="upstairsBedrooms" checked><span>Bedrooms</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="upstairsMasterBath"><span>Master Bath</span></div></div>
-                <div class="area-row"><div class="area-name"><input type="checkbox" class="form-check-input" id="upstairsMasterRoom"><span>Master Room</span></div></div>
-              </div>
-              <div id="upstairsExtra" class="hidden" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--gray-300);">
-                <div class="flex items-center gap-2 mb-2"><span class="extra-badge">EXTRA SERVICE</span></div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="form-group mb-0">
-                    <label class="form-label text-sm">Frequency</label>
-                    <select class="form-select" id="upstairsExtraFreq">
-                      <option value="weekly">Weekly</option>
-                      <option value="biweekly" selected>Every 2 Weeks</option>
-                      <option value="every3weeks">Every 3 Weeks</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="custom">Custom</option>
-                    </select>
-                  </div>
-                  <div class="form-group mb-0">
-                    <label class="form-label text-sm">Extra Charge</label>
-                    <div class="input-group">
-                      <span class="input-group-prepend">$</span>
-                      <input type="number" class="form-input" id="upstairsExtraPrice" step="0.01" min="0" placeholder="40.00">
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <div id="upstairsAreas"></div>
             </div>
           </div>
         </div>
@@ -526,12 +514,99 @@
     let googleMapsApiKey = null;
     let sortColumn = null, sortDirection = 'asc';
 
-    window.toggleFloorIncluded = function(floor) {
-      const included = document.getElementById(`${floor}Included`).checked;
-      const extraSection = document.getElementById(`${floor}Extra`);
-      if (included) { extraSection.classList.add('hidden'); } 
-      else { extraSection.classList.remove('hidden'); }
+    // Area definitions for each floor
+    const areaDefinitions = {
+      basement: [
+        { id: 'bathrooms', label: 'Bathrooms' },
+        { id: 'bedrooms', label: 'Bedrooms' },
+        { id: 'kitchen', label: 'Kitchen' },
+        { id: 'livingRoom', label: 'Living Room' },
+        { id: 'diningRoom', label: 'Dining Room' },
+        { id: 'laundryRoom', label: 'Laundry Room' },
+        { id: 'office', label: 'Office' },
+        { id: 'fridge', label: 'Fridge' },
+        { id: 'masterBath', label: 'Master Bath' },
+        { id: 'masterRoom', label: 'Master Room' }
+      ],
+      main: [
+        { id: 'kitchen', label: 'Kitchen' },
+        { id: 'bathrooms', label: 'Bathrooms' },
+        { id: 'bedrooms', label: 'Bedrooms' },
+        { id: 'livingRoom', label: 'Living Room' },
+        { id: 'diningRoom', label: 'Dining Room' },
+        { id: 'laundryRoom', label: 'Laundry Room' },
+        { id: 'office', label: 'Office' },
+        { id: 'fridge', label: 'Fridge' },
+        { id: 'masterBath', label: 'Master Bath' },
+        { id: 'masterRoom', label: 'Master Room' }
+      ],
+      upstairs: [
+        { id: 'bathrooms', label: 'Bathrooms' },
+        { id: 'bedrooms', label: 'Bedrooms' },
+        { id: 'masterBath', label: 'Master Bath' },
+        { id: 'masterRoom', label: 'Master Room' }
+      ]
     };
+
+    // Render area rows for a floor
+    function renderAreaRows(floor) {
+      const container = document.getElementById(`${floor}Areas`);
+      const areas = areaDefinitions[floor] || [];
+
+      let html = '';
+      areas.forEach(area => {
+        const inputId = `${floor}${area.id.charAt(0).toUpperCase() + area.id.slice(1)}`;
+        html += `
+          <div class="area-row-enhanced" data-area-id="${area.id}" data-floor="${floor}">
+            <div class="area-row-name">
+              <input type="checkbox" class="form-check-input area-select-checkbox" id="${inputId}Selected" />
+              <span>${area.label}</span>
+            </div>
+            <div class="area-row-include-toggle">
+              <input type="checkbox" class="form-check-input area-extra-checkbox" id="${inputId}Included" />
+              <label class="area-row-include-label">Extra</label>
+            </div>
+            <div class="area-row-frequency">
+              <select class="form-select" id="${inputId}Freq">
+                <option value="weekly">Weekly</option>
+                <option value="biweekly" selected>Every 2 Weeks</option>
+                <option value="every3weeks">Every 3 Weeks</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div class="area-row-charge">
+              <div class="input-group">
+                <span class="input-group-prepend">$</span>
+                <input type="number" class="form-input" id="${inputId}Charge" step="0.01" min="0" placeholder="0.00" />
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+
+      // Add change listeners to toggle "Extra" state (show/hide frequency and price)
+      areas.forEach(area => {
+        const inputId = `${floor}${area.id.charAt(0).toUpperCase() + area.id.slice(1)}`;
+        const extraCheckbox = document.getElementById(`${inputId}Included`);
+        extraCheckbox?.addEventListener('change', function() {
+          const row = this.closest('.area-row-enhanced');
+          if (this.checked) {
+            row.classList.add('is-extra');
+          } else {
+            row.classList.remove('is-extra');
+          }
+        });
+      });
+    }
+
+    // Initialize area rows on page load
+    function initializeAreaRows() {
+      renderAreaRows('basement');
+      renderAreaRows('main');
+      renderAreaRows('upstairs');
+    }
 
     async function loadGoogleMapsApiKey() {
       try {
@@ -540,7 +615,7 @@
           googleMapsApiKey = configDoc.data().apiKey;
         }
       } catch (e) {
-        console.error('Error loading Google Maps API key:', e);
+        
       }
     }
 
@@ -566,7 +641,7 @@
           return null;
         }
       } catch (e) {
-        console.error('Geocoding error:', e);
+        
         return null;
       }
     }
@@ -582,7 +657,7 @@
             document.getElementById('userAvatar').textContent = getInitials(currentAdmin.name || 'Admin', '');
             document.getElementById('userRole').textContent = currentAdmin.role === 'admin' ? 'Administrator' : 'Manager';
           }
-        } catch (error) { console.error('Error loading admin:', error); }
+        } catch (error) {  }
         updateLanguage();
         setupEventListeners();
         await loadGoogleMapsApiKey();
@@ -595,7 +670,7 @@
         const snapshot = await getDocs(query(collection(db, 'clients'), orderBy('lastName', 'asc')));
         clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderClients();
-      } catch (error) { console.error('Error loading clients:', error); showToast('error', i18n.t('error'), 'Failed to load clients'); }
+      } catch (error) {  showToast('error', i18n.t('error'), 'Failed to load clients'); }
     }
 
     function renderClients() {
@@ -684,22 +759,82 @@
       document.getElementById('clientNickname').value = '';
       document.getElementById('clientIsActive').checked = true;
       document.getElementById('customDaysGroup').style.display = 'none';
-      document.getElementById('basementIncluded').checked = false;
-      document.getElementById('mainIncluded').checked = true;
-      document.getElementById('upstairsIncluded').checked = true;
-      document.getElementById('mainKitchen').checked = true;
-      document.getElementById('mainBathrooms').checked = true;
-      document.getElementById('mainLivingRoom').checked = true;
-      document.getElementById('upstairsBathrooms').checked = true;
-      document.getElementById('upstairsBedrooms').checked = true;
-      toggleFloorIncluded('basement');
-      toggleFloorIncluded('main');
-      toggleFloorIncluded('upstairs');
+
+      // Initialize area rows
+      initializeAreaRows();
+
+      // Set default selections for main level (selected but NOT marked as extras)
+      setTimeout(() => {
+        // Main level defaults to base price (selected but not as extras)
+        document.getElementById('mainBathroomsSelected').checked = true;
+        document.getElementById('mainKitchenSelected').checked = true;
+        document.getElementById('mainLivingRoomSelected').checked = true;
+
+        // Upstairs defaults to base price (selected but not as extras)
+        document.getElementById('upstairsBathroomsSelected').checked = true;
+        document.getElementById('upstairsBedroomsSelected').checked = true;
+      }, 0);
+
       document.querySelectorAll('#clientModal .tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('#clientModal .tab-content').forEach(c => c.classList.remove('active'));
       document.querySelector('#clientModal .tab[data-tab="basic"]').classList.add('active');
       document.getElementById('basicTab').classList.add('active');
       openModal('clientModal');
+    }
+
+    // Helper function to get area data from the UI
+    function getAreaDataFromUI(floor) {
+      const areas = areaDefinitions[floor] || [];
+      const floorData = {};
+
+      areas.forEach(area => {
+        const inputId = `${floor}${area.id.charAt(0).toUpperCase() + area.id.slice(1)}`;
+        const isSelected = document.getElementById(`${inputId}Selected`)?.checked || false;
+        const isExtra = document.getElementById(`${inputId}Included`)?.checked || false; // "Extra" checkbox
+        const frequency = document.getElementById(`${inputId}Freq`)?.value || 'biweekly';
+        const charge = parseFloat(document.getElementById(`${inputId}Charge`)?.value) || 0;
+
+        if (isSelected) {
+          floorData[area.id] = {
+            selected: true,
+            includedInBase: !isExtra, // Inverted: if it's NOT an extra, it's in base
+            extraFrequency: isExtra ? frequency : 'biweekly', // Only use custom frequency if it's an extra
+            extraPrice: isExtra ? charge : 0 // Only use custom price if it's an extra
+          };
+        }
+      });
+
+      return floorData;
+    }
+
+    // Helper function to set area data in the UI
+    function setAreaDataInUI(floor, floorData) {
+      const areas = areaDefinitions[floor] || [];
+
+      areas.forEach(area => {
+        const inputId = `${floor}${area.id.charAt(0).toUpperCase() + area.id.slice(1)}`;
+        const areaConfig = floorData[area.id] || {};
+
+        const selectedEl = document.getElementById(`${inputId}Selected`);
+        const extraCheckboxEl = document.getElementById(`${inputId}Included`);
+        const freqEl = document.getElementById(`${inputId}Freq`);
+        const chargeEl = document.getElementById(`${inputId}Charge`);
+
+        if (selectedEl) selectedEl.checked = areaConfig.selected || false;
+        if (extraCheckboxEl) {
+          // "Extra" checkbox is checked when it's NOT included in base
+          extraCheckboxEl.checked = !areaConfig.includedInBase || false;
+          // Update row class based on "Extra" checkbox state
+          const row = extraCheckboxEl.closest('.area-row-enhanced');
+          if (extraCheckboxEl.checked) {
+            row?.classList.add('is-extra');
+          } else {
+            row?.classList.remove('is-extra');
+          }
+        }
+        if (freqEl) freqEl.value = areaConfig.extraFrequency || 'biweekly';
+        if (chargeEl) chargeEl.value = areaConfig.extraPrice || '';
+      });
     }
 
     window.editClient = async function(id) {
@@ -727,40 +862,17 @@
       document.getElementById('clientNotes').value = client.notes || '';
       toggleCustomDays();
       document.getElementById('clientBasePrice').value = client.basePrice || '';
-      const areas = client.areas || {};
-      const basement = areas.basement || {};
-      document.getElementById('basementIncluded').checked = basement.includedInBase || false;
-      document.getElementById('basementBathrooms').checked = basement.bathrooms || false;
-      document.getElementById('basementBedrooms').checked = basement.bedrooms || false;
-      document.getElementById('basementMasterBath').checked = basement.masterBath || false;
-      document.getElementById('basementMasterRoom').checked = basement.masterRoom || false;
-      document.getElementById('basementExtraFreq').value = basement.extraFrequency || 'monthly';
-      document.getElementById('basementExtraPrice').value = basement.extraPrice || '';
-      toggleFloorIncluded('basement');
-      const main = areas.mainLevel || {};
-      document.getElementById('mainIncluded').checked = main.includedInBase !== false;
-      document.getElementById('mainKitchen').checked = main.kitchen !== false;
-      document.getElementById('mainBathrooms').checked = main.bathrooms !== false;
-      document.getElementById('mainBedrooms').checked = main.bedrooms || false;
-      document.getElementById('mainLivingRoom').checked = main.livingRoom !== false;
-      document.getElementById('mainDiningRoom').checked = main.diningRoom || false;
-      document.getElementById('mainLaundryRoom').checked = main.laundryRoom || false;
-      document.getElementById('mainOffice').checked = main.office || false;
-      document.getElementById('mainFridge').checked = main.fridge || false;
-      document.getElementById('mainMasterBath').checked = main.masterBath || false;
-      document.getElementById('mainMasterRoom').checked = main.masterRoom || false;
-      document.getElementById('mainExtraFreq').value = main.extraFrequency || 'biweekly';
-      document.getElementById('mainExtraPrice').value = main.extraPrice || '';
-      toggleFloorIncluded('main');
-      const upstairs = areas.upstairs || {};
-      document.getElementById('upstairsIncluded').checked = upstairs.includedInBase !== false;
-      document.getElementById('upstairsBathrooms').checked = upstairs.bathrooms !== false;
-      document.getElementById('upstairsBedrooms').checked = upstairs.bedrooms !== false;
-      document.getElementById('upstairsMasterBath').checked = upstairs.masterBath || false;
-      document.getElementById('upstairsMasterRoom').checked = upstairs.masterRoom || false;
-      document.getElementById('upstairsExtraFreq').value = upstairs.extraFrequency || 'biweekly';
-      document.getElementById('upstairsExtraPrice').value = upstairs.extraPrice || '';
-      toggleFloorIncluded('upstairs');
+
+      // Initialize area rows with existing data
+      initializeAreaRows();
+
+      setTimeout(() => {
+        const areas = client.areas || {};
+        setAreaDataInUI('basement', areas.basement || {});
+        setAreaDataInUI('main', areas.mainLevel || {});
+        setAreaDataInUI('upstairs', areas.upstairs || {});
+      }, 0);
+
       document.querySelectorAll('#clientModal .tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('#clientModal .tab-content').forEach(c => c.classList.remove('active'));
       document.querySelector('#clientModal .tab[data-tab="basic"]').classList.add('active');
@@ -778,18 +890,32 @@
       const areaLabels = { kitchen: 'Kitchen', bathrooms: 'Bathrooms', bedrooms: 'Bedrooms', livingRoom: 'Living Room', diningRoom: 'Dining Room', laundryRoom: 'Laundry Room', office: 'Office', fridge: 'Fridge', masterBath: 'Master Bath', masterRoom: 'Master Room' };
       
       const buildFloorDisplay = (floorData, floorName, emoji) => {
-        if (!floorData) return { base: '', extra: '' };
-        const includedAreas = [];
-        for (const [key, val] of Object.entries(floorData)) {
-          if (val === true && areaLabels[key]) includedAreas.push(areaLabels[key]);
+        if (!floorData || Object.keys(floorData).length === 0) return { base: '', extra: '' };
+
+        let baseAreasHtml = '';
+        let extraAreasHtml = '';
+
+        // Group areas by whether they're in base or extra
+        for (const [areaId, areaConfig] of Object.entries(floorData)) {
+          if (areaConfig && typeof areaConfig === 'object' && areaConfig.selected) {
+            const label = areaLabels[areaId] || areaId;
+
+            if (areaConfig.includedInBase) {
+              baseAreasHtml += `<div>${label}</div>`;
+            } else {
+              const freqLabel = getFrequencyLabel(areaConfig.extraFrequency || 'biweekly');
+              extraAreasHtml += `<div class="flex items-center justify-between p-2 border-b">
+                <span>${label}</span>
+                <span class="text-sm">${freqLabel} • +${formatCurrency(areaConfig.extraPrice || 0)}</span>
+              </div>`;
+            }
+          }
         }
-        if (floorData.includedInBase && includedAreas.length > 0) {
-          return { base: `<div class="mb-2"><strong>${emoji} ${floorName}:</strong> ${includedAreas.join(', ')}</div>`, extra: '' };
-        } else if (!floorData.includedInBase && (floorData.extraPrice || includedAreas.length > 0)) {
-          const freqLabel = getFrequencyLabel(floorData.extraFrequency || 'monthly');
-          return { base: '', extra: `<div class="flex items-center justify-between p-2 border-b"><span><strong>${emoji} ${floorName}</strong>${includedAreas.length ? ': ' + includedAreas.join(', ') : ''}</span><span class="text-sm">${freqLabel} • +${formatCurrency(floorData.extraPrice || 0)}</span></div>` };
-        }
-        return { base: '', extra: '' };
+
+        return {
+          base: baseAreasHtml ? `<div class="mb-2"><strong>${emoji} ${floorName}:</strong><div style="margin-top: 0.5rem;">${baseAreasHtml}</div></div>` : '',
+          extra: extraAreasHtml ? `<div><strong>${emoji} ${floorName} (Extras)</strong><div>${extraAreasHtml}</div></div>` : ''
+        };
       };
       
       const basementDisplay = buildFloorDisplay(areas.basement, 'Basement', '🏚️');
@@ -922,30 +1048,7 @@
         }
       }
 
-      // Validate extra prices (basement, main, upstairs) - only if provided
-      const basementPrice = document.getElementById('basementExtraPrice').value.trim();
-      if (basementPrice && basementPrice.length > 0) {
-        const price = parseFloat(basementPrice);
-        if (isNaN(price) || price < 0) {
-          return { valid: false, error: 'Basement extra price must be a positive number' };
-        }
-      }
-
-      const mainPrice = document.getElementById('mainExtraPrice').value.trim();
-      if (mainPrice && mainPrice.length > 0) {
-        const price = parseFloat(mainPrice);
-        if (isNaN(price) || price < 0) {
-          return { valid: false, error: 'Main level extra price must be a positive number' };
-        }
-      }
-
-      const upstairsPrice = document.getElementById('upstairsExtraPrice').value.trim();
-      if (upstairsPrice && upstairsPrice.length > 0) {
-        const price = parseFloat(upstairsPrice);
-        if (isNaN(price) || price < 0) {
-          return { valid: false, error: 'Upstairs extra price must be a positive number' };
-        }
-      }
+      // Per-area extra pricing is validated dynamically when configured
 
       return { valid: true };
     }
@@ -993,39 +1096,9 @@
         requiresInvoice: document.getElementById('clientRequiresInvoice').checked,
         basePrice: parseFloat(document.getElementById('clientBasePrice').value) || 0,
         areas: {
-          basement: {
-            includedInBase: document.getElementById('basementIncluded').checked,
-            bathrooms: document.getElementById('basementBathrooms').checked,
-            bedrooms: document.getElementById('basementBedrooms').checked,
-            masterBath: document.getElementById('basementMasterBath').checked,
-            masterRoom: document.getElementById('basementMasterRoom').checked,
-            extraFrequency: document.getElementById('basementExtraFreq').value,
-            extraPrice: parseFloat(document.getElementById('basementExtraPrice').value) || 0
-          },
-          mainLevel: {
-            includedInBase: document.getElementById('mainIncluded').checked,
-            kitchen: document.getElementById('mainKitchen').checked,
-            bathrooms: document.getElementById('mainBathrooms').checked,
-            bedrooms: document.getElementById('mainBedrooms').checked,
-            livingRoom: document.getElementById('mainLivingRoom').checked,
-            diningRoom: document.getElementById('mainDiningRoom').checked,
-            laundryRoom: document.getElementById('mainLaundryRoom').checked,
-            office: document.getElementById('mainOffice').checked,
-            fridge: document.getElementById('mainFridge').checked,
-            masterBath: document.getElementById('mainMasterBath').checked,
-            masterRoom: document.getElementById('mainMasterRoom').checked,
-            extraFrequency: document.getElementById('mainExtraFreq').value,
-            extraPrice: parseFloat(document.getElementById('mainExtraPrice').value) || 0
-          },
-          upstairs: {
-            includedInBase: document.getElementById('upstairsIncluded').checked,
-            bathrooms: document.getElementById('upstairsBathrooms').checked,
-            bedrooms: document.getElementById('upstairsBedrooms').checked,
-            masterBath: document.getElementById('upstairsMasterBath').checked,
-            masterRoom: document.getElementById('upstairsMasterRoom').checked,
-            extraFrequency: document.getElementById('upstairsExtraFreq').value,
-            extraPrice: parseFloat(document.getElementById('upstairsExtraPrice').value) || 0
-          }
+          basement: getAreaDataFromUI('basement'),
+          mainLevel: getAreaDataFromUI('main'),
+          upstairs: getAreaDataFromUI('upstairs')
         },
         notes: document.getElementById('clientNotes').value.trim(),
         isActive: document.getElementById('clientIsActive').checked,
@@ -1047,7 +1120,7 @@
         }
         closeModal('clientModal');
         await loadClients();
-      } catch (error) { console.error('Error saving client:', error); showToast('error', i18n.t('error'), 'Failed to save client'); }
+      } catch (error) {  showToast('error', i18n.t('error'), 'Failed to save client'); }
     }
 
     window.deleteClient = async function(id) {
@@ -1060,7 +1133,7 @@
         await logClientAction(AuditActions.DELETE, id, `${client.firstName} ${client.lastName}`);
         showToast('success', i18n.t('success'), i18n.t('clientDeleted'));
         await loadClients();
-      } catch (error) { console.error('Error deleting client:', error); showToast('error', i18n.t('error'), 'Failed to delete client'); }
+      } catch (error) {  showToast('error', i18n.t('error'), 'Failed to delete client'); }
     };
 
     function openImportModal() { currentImportStep = 1; importData = []; importHeaders = []; columnMappings = {}; showImportStep(1); openModal('importModal'); }
@@ -1092,7 +1165,7 @@
           importData = jsonData.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== ''));
           setupColumnMapping();
           showImportStep(2);
-        } catch (error) { console.error('Error reading file:', error); showToast('error', 'Error', 'Failed to read file'); }
+        } catch (error) {  showToast('error', 'Error', 'Failed to read file'); }
       };
       reader.readAsArrayBuffer(file);
     }
@@ -1212,7 +1285,7 @@ function setupColumnMapping() {
           await addDoc(collection(db, 'clients'), clientData);
           imported++;
         } catch (error) {
-          console.error('Error importing client:', error);
+          
           errors++;
         }
       }
@@ -1248,6 +1321,29 @@ function setupColumnMapping() {
     }
     function updateLanguage() { const lang = i18n.getLanguage(); document.getElementById('langLabel').textContent = lang === 'en' ? 'ES' : 'EN'; i18n.updatePageTranslations(); }
     function toggleCustomDays() { const scheduleType = document.getElementById('clientScheduleType').value; document.getElementById('customDaysGroup').style.display = scheduleType === 'custom' ? 'block' : 'none'; }
+
+    // Toggle check/uncheck all area selection checkboxes for a floor
+    window.toggleCheckAll = function(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const checkboxes = container.querySelectorAll('.area-select-checkbox');
+      if (checkboxes.length === 0) return;
+
+      // Check if all are already checked
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+      // Toggle all
+      checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+      });
+
+      // Update the button text
+      const btn = container.parentElement.parentElement.querySelector('.check-all-btn');
+      if (btn) {
+        btn.textContent = !allChecked ? 'Uncheck All' : 'Check All';
+      }
+    };
 
     function setupEventListeners() {
       document.getElementById('menuToggle').addEventListener('click', () => { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('active'); });
@@ -1352,36 +1448,6 @@ function setupColumnMapping() {
           const price = parseFloat(basePrice);
           if (isNaN(price) || price < 0) {
             showToast('warning', 'Validation', 'Base Price must be a positive number');
-          }
-        }
-      });
-
-      document.getElementById('basementExtraPrice').addEventListener('blur', () => {
-        const price = document.getElementById('basementExtraPrice').value.trim();
-        if (price) {
-          const numPrice = parseFloat(price);
-          if (isNaN(numPrice) || numPrice < 0) {
-            showToast('warning', 'Validation', 'Basement extra price must be a positive number');
-          }
-        }
-      });
-
-      document.getElementById('mainExtraPrice').addEventListener('blur', () => {
-        const price = document.getElementById('mainExtraPrice').value.trim();
-        if (price) {
-          const numPrice = parseFloat(price);
-          if (isNaN(numPrice) || numPrice < 0) {
-            showToast('warning', 'Validation', 'Main level extra price must be a positive number');
-          }
-        }
-      });
-
-      document.getElementById('upstairsExtraPrice').addEventListener('blur', () => {
-        const price = document.getElementById('upstairsExtraPrice').value.trim();
-        if (price) {
-          const numPrice = parseFloat(price);
-          if (isNaN(numPrice) || numPrice < 0) {
-            showToast('warning', 'Validation', 'Upstairs extra price must be a positive number');
           }
         }
       });

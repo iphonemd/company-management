@@ -963,12 +963,6 @@
               <div class="hours-today-value" id="hoursToday">0:00</div>
             </div>
           </div>
-          <div class="clock-btn-container" id="clockBtnContainer">
-            <button class="clock-btn clock-in" id="clockBtn">
-              <span class="clock-btn-icon">▶️</span>
-              <span data-i18n="clockIn">Registrar Entrada</span>
-            </button>
-          </div>
           <!-- Admin Team Controls -->
           <div class="admin-team-controls admin-only" id="adminTeamControls" style="display: none;">
             <div class="form-group">
@@ -1447,7 +1441,7 @@
             }
           }
         } catch (error) {
-          console.error('Auth error:', error);
+          
           window.location.href = 'index.html';
         }
       } else {
@@ -1501,9 +1495,7 @@
         if (configDoc.exists()) {
           officeSettings = configDoc.data();
         }
-      } catch (e) {
-        console.warn('Could not load office settings:', e);
-      }
+      } catch (e) {}
     }
     
     // Start monitoring for time warnings
@@ -1604,7 +1596,7 @@
             }
           }
         },
-        (err) => console.log('Office check error:', err.message),
+        (err) => {},
         { enableHighAccuracy: true, timeout: 10000 }
       );
     }
@@ -1654,7 +1646,7 @@
         // Desktop fallback: Google Maps directions
         window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, '_blank');
       } catch (e) {
-        console.warn('Failed to open native map link, using fallback', e);
+        
         window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, '_blank');
       }
     }
@@ -1714,7 +1706,7 @@
       // Refresh data and restore state when page becomes visible (iPhone wake/switch back)
       document.addEventListener('visibilitychange', async () => {
         if (document.visibilityState === 'visible') {
-          console.log('App became visible - refreshing data...');
+          
           // Reload schedules in case new ones were added
           await loadTodaySchedules();
           await loadTimeEntries();
@@ -1728,7 +1720,7 @@
       });
       
       window.addEventListener('focus', async () => {
-        console.log('App focused - refreshing data...');
+        
         await loadTodaySchedules();
         await loadTimeEntries();
         await restoreState();
@@ -1756,22 +1748,22 @@
       if (isClockedIn && currentJob) return;
       
       if (!('geolocation' in navigator)) {
-        console.log('Geolocation not supported');
+        
         return;
       }
       
       // Request location - this will prompt for permission on iOS PWA
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          console.log('Got location:', pos.coords.latitude, pos.coords.longitude);
+          
           checkNearbyClients(pos.coords.latitude, pos.coords.longitude);
         },
         (err) => {
-          console.log('Geolocation error:', err.message);
+          
           // On iOS PWA, show a helpful message if permission denied
           if (err.code === 1 && isMobile) {
             // Permission denied - user may need to enable in Settings
-            console.log('Location permission denied. User may need to enable in Settings > Privacy > Location Services');
+            
           }
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
@@ -1782,7 +1774,7 @@
       // Don't show prompt if already clocked in or working
       if (isClockedIn || currentJob) return;
       
-      console.log('Checking nearby clients from', todaySchedules.length, 'schedules');
+      
       
       for (const schedule of todaySchedules) {
         if (schedule.status !== 'scheduled') continue;
@@ -1793,7 +1785,6 @@
         // Try to match by coordinates if available
         if (client.address.coordinates) {
           const dist = haversine(userLat, userLng, client.address.coordinates.lat, client.address.coordinates.lng);
-          console.log(`Distance to ${client.firstName}: ${dist.toFixed(2)} km`);
           if (dist < 0.15) { // 150 meters
             showLocationPrompt(schedule, client);
             return;
@@ -1804,7 +1795,7 @@
         // For now, let's add a manual "I'm here" button as alternative
       }
       
-      console.log('No nearby clients found');
+      
     }
     
     function showLocationPrompt(schedule, client) {
@@ -1865,8 +1856,7 @@
         const snap = await getDocs(collection(db, 'clients'));
         clients = {}; // Clear old clients
         snap.forEach(d => { clients[d.id] = { id: d.id, ...d.data() }; });
-        console.log('Loaded clients:', Object.keys(clients).length);
-      } catch (e) { console.error('Load clients error:', e); }
+      } catch (e) {  }
     }
 
     async function loadAllTeams() {
@@ -1874,7 +1864,7 @@
         const snap = await getDocs(collection(db, 'teams'));
         allTeams = [];
         snap.forEach(d => allTeams.push({ id: d.id, ...d.data() }));
-      } catch (e) { console.error('Load teams error:', e); }
+      } catch (e) {  }
     }
 
     async function loadTodaySchedules() {
@@ -1901,8 +1891,7 @@
         todaySchedules = [];
         snap.forEach(d => todaySchedules.push({ id: d.id, ...d.data() }));
         document.getElementById('scheduleCount').textContent = `${todaySchedules.length} trabajos`;
-        console.log('Loaded schedules:', todaySchedules.length, 'Loaded clients:', Object.keys(clients).length);
-      } catch (e) { console.error('Load schedules error:', e); }
+      } catch (e) {  }
     }
 
     async function loadTimeEntries() {
@@ -1912,7 +1901,7 @@
         const snap = await getDocs(q);
         timeEntries = [];
         snap.forEach(d => timeEntries.push({ id: d.id, ...d.data() }));
-      } catch (e) { console.error('Load time entries error:', e); }
+      } catch (e) {  }
     }
 
     async function loadTeamInfo() {
@@ -1931,7 +1920,7 @@
             renderTeamMembers();
           }
         }
-      } catch (e) { console.error('Load team error:', e); }
+      } catch (e) {  }
     }
 
     function populateAdminTeamFilter() {
@@ -1972,22 +1961,28 @@
         headerDateEl.style.display = 'block';
       }
 
-      if (isClockedIn && clockInTime) updateHoursWorked();
+      updateHoursWorked();
     }
 
     function updateHoursWorked() {
-      const now = new Date();
-      let totalMs = 0;
-      timeEntries.forEach(e => {
-        if (e.clockOut) {
-          const cin = e.clockIn?.toDate ? e.clockIn.toDate() : new Date(e.clockIn);
-          const cout = e.clockOut?.toDate ? e.clockOut.toDate() : new Date(e.clockOut);
-          totalMs += cout - cin;
-        }
-      });
-      if (isClockedIn && clockInTime) totalMs += now - clockInTime;
-      const h = Math.floor(totalMs / 3600000);
-      const m = Math.floor((totalMs % 3600000) / 60000);
+      // Calculate hours from job completions today
+      const todayStr = getLocalDateString();
+      let totalHours = 0;
+
+      // Sum duration from all completed jobs today
+      if (todaySchedules) {
+        todaySchedules.forEach(schedule => {
+          if (schedule.status === 'completed' && schedule.actualStartTime && schedule.actualEndTime) {
+            const startTime = schedule.actualStartTime?.toDate ? schedule.actualStartTime.toDate() : new Date(schedule.actualStartTime);
+            const endTime = schedule.actualEndTime?.toDate ? schedule.actualEndTime.toDate() : new Date(schedule.actualEndTime);
+            const durationMs = endTime - startTime;
+            totalHours += durationMs / 3600000; // Convert to hours
+          }
+        });
+      }
+
+      const h = Math.floor(totalHours);
+      const m = Math.floor((totalHours - h) * 60);
       document.getElementById('hoursToday').textContent = `${h}:${String(m).padStart(2,'0')}`;
     }
 
@@ -2057,7 +2052,7 @@
 
         showToast('success', 'Éxito', 'Entrada registrada para el equipo');
       } catch (e) {
-        console.error('Clock in error:', e);
+        
         showToast('error', 'Error', 'No se pudo registrar entrada');
       }
 
@@ -2158,7 +2153,7 @@
         showDaySummary(employeeHours);
         
       } catch (e) {
-        console.error('Clock out error:', e);
+        
         showToast('error', 'Error', 'No se pudo registrar salida');
       }
       
@@ -2213,9 +2208,6 @@
     // JOB MANAGEMENT
     // ============================================
     function showStartJobModal(scheduleId) {
-      // Auto clock-in if not clocked in (removes need for separate clock-in button)
-      if (!isClockedIn) clockIn();
-      
       const schedule = todaySchedules.find(s => s.id === scheduleId);
       if (!schedule) return;
       
@@ -2247,16 +2239,56 @@
       
       document.getElementById('previewDuration').textContent = `${schedule.estimatedDuration || 2} horas`;
       document.getElementById('previewPrice').textContent = formatCurrency(schedule.serviceDetails?.totalPrice || 0);
-      
+
       const addOns = schedule.serviceDetails?.addOns || [];
       const addonsDiv = document.getElementById('previewAddons');
       if (addOns.length > 0) {
         addonsDiv.classList.remove('hidden');
-        const labels = { basement: '🚪 Sótano', mainLevel: '🏠 Nivel Principal', upstairs: '⬆️ Arriba' };
+        const floorLabels = {
+          basement: '🏚️ Sótano',
+          mainLevel: '🏠 Nivel Principal',
+          upstairs: '⬆️ Arriba'
+        };
+        const areaLabels = {
+          bathrooms: 'Baños',
+          bedrooms: 'Dormitorios',
+          kitchen: 'Cocina',
+          livingRoom: 'Sala',
+          diningRoom: 'Comedor',
+          laundryRoom: 'Lavandería',
+          office: 'Oficina',
+          fridge: 'Refrigerador',
+          masterBath: 'Baño Principal',
+          masterRoom: 'Dormitorio Principal'
+        };
+
         document.getElementById('previewAddonsList').innerHTML = addOns.map(a => {
-          const key = typeof a === 'object' ? a.area : a;
-          const price = typeof a === 'object' ? a.price : 0;
-          return `<span class="job-preview-addon">${labels[key] || key}${price ? ` (+${formatCurrency(price)})` : ''}</span>`;
+          let label = '';
+          let price = 0;
+          let frequency = '';
+
+          if (typeof a === 'object') {
+            // New format: { area: 'floor-areaId', price, frequency }
+            const areaKey = a.area;
+            price = a.price || 0;
+            frequency = a.frequency || 'monthly';
+
+            // Parse floor-areaId format
+            if (areaKey.includes('-')) {
+              const [floor, areaId] = areaKey.split('-');
+              const floorLabel = floorLabels[floor] || floor;
+              const areaLabel = areaLabels[areaId] || areaId;
+              label = `${floorLabel} - ${areaLabel}`;
+            } else {
+              // Fallback for old format
+              label = floorLabels[areaKey] || areaKey;
+            }
+          } else {
+            // Old format: just a string
+            label = floorLabels[a] || a;
+          }
+
+          return `<span class="job-preview-addon">${label}${price ? ` (+${formatCurrency(price)})` : ''}${frequency ? ` [${frequency}]` : ''}</span>`;
         }).join('');
       } else addonsDiv.classList.add('hidden');
       
@@ -2314,7 +2346,7 @@
         await saveState();
         updateStatusUI();
         renderSchedule();
-      } catch (e) { console.error('Stop job error:', e); }
+      } catch (e) {  }
     }
 
     async function startJob() {
@@ -2346,7 +2378,7 @@
         closeModal('startJobModal');
         showToast('success', 'Iniciado', `Trabajando en ${client.firstName} ${client.lastName}`);
       } catch (e) {
-        console.error('Start job error:', e);
+        
         showToast('error', 'Error', 'No se pudo iniciar');
         currentJob = null;
         jobStartTime = null;
@@ -2360,23 +2392,72 @@
 
     function showCompleteJobModal() {
       if (!currentJob) return;
-      
+
       const client = currentJob.client;
       const schedule = currentJob.schedule;
-      
+
       document.getElementById('completeJobClient').textContent = `${client.firstName} ${client.lastName}`;
       document.getElementById('completeJobAddress').textContent = client.address?.street || '';
-      
+
       const elapsed = Date.now() - jobStartTime.getTime();
       const h = Math.floor(elapsed / 3600000);
       const m = Math.floor((elapsed % 3600000) / 60000);
       const s = Math.floor((elapsed % 60000) / 1000);
       document.getElementById('completeJobTime').textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-      
+
       document.getElementById('paymentAmount').value = schedule.serviceDetails?.totalPrice || '';
       document.getElementById('paymentMethod').value = '';
       document.getElementById('paymentAmountGroup').classList.add('hidden');
-      
+
+      // Display completed addons
+      const addOns = schedule.serviceDetails?.addOns || [];
+      const completedAddonsGroup = document.getElementById('completedAddonsGroup');
+      if (addOns.length > 0) {
+        completedAddonsGroup.style.display = 'block';
+        const floorLabels = {
+          basement: '🏚️ Sótano',
+          mainLevel: '🏠 Nivel Principal',
+          upstairs: '⬆️ Arriba'
+        };
+        const areaLabels = {
+          bathrooms: 'Baños',
+          bedrooms: 'Dormitorios',
+          kitchen: 'Cocina',
+          livingRoom: 'Sala',
+          diningRoom: 'Comedor',
+          laundryRoom: 'Lavandería',
+          office: 'Oficina',
+          fridge: 'Refrigerador',
+          masterBath: 'Baño Principal',
+          masterRoom: 'Dormitorio Principal'
+        };
+
+        document.getElementById('completedAddonsList').innerHTML = addOns.map(a => {
+          let label = '';
+          let price = 0;
+
+          if (typeof a === 'object') {
+            const areaKey = a.area;
+            price = a.price || 0;
+
+            if (areaKey.includes('-')) {
+              const [floor, areaId] = areaKey.split('-');
+              const floorLabel = floorLabels[floor] || floor;
+              const areaLabel = areaLabels[areaId] || areaId;
+              label = `${floorLabel} - ${areaLabel}`;
+            } else {
+              label = floorLabels[areaKey] || areaKey;
+            }
+          } else {
+            label = floorLabels[a] || a;
+          }
+
+          return `<div class="form-check"><span>${label}${price ? ` (+${formatCurrency(price)})` : ''}</span></div>`;
+        }).join('');
+      } else {
+        completedAddonsGroup.style.display = 'none';
+      }
+
       openModal('completeJobModal');
     }
 
@@ -2438,31 +2519,24 @@
         selectedJobEmployees = [];
         
         closeModal('completeJobModal');
-        
+
         // Check if this was the last job
         const remainingJobs = todaySchedules.filter(s => s.status === 'scheduled' || s.status === 'in_progress');
-        if (remainingJobs.length === 0 && isClockedIn) {
+        if (remainingJobs.length === 0) {
           // All jobs done - offer directions to office first
           showToast('success', '¡Completado!', 'Último trabajo del día');
-          
+
           // Show route to office prompt if office is set
           if (officeSettings?.start?.street) {
             setTimeout(() => {
               showRoutePrompt(null, 'office');
             }, 500);
-          } else {
-            // No office set, just ask about clocking out
-            setTimeout(() => {
-              if (confirm('¡Todos los trabajos completados! ¿Desea registrar salida?')) {
-                clockOut();
-              }
-            }, 1000);
           }
         } else {
           showToast('success', '¡Completado!', 'Excelente trabajo');
         }
       } catch (e) {
-        console.error('Complete job error:', e);
+        
         showToast('error', 'Error', 'No se pudo completar');
       }
       
@@ -2513,7 +2587,7 @@
         showToast('info', 'Cancelado', 'El trabajo ha sido cancelado');
         
       } catch (e) {
-        console.error('Cancel job error:', e);
+        
         showToast('error', 'Error', 'No se pudo cancelar');
       }
       
@@ -2561,7 +2635,7 @@
         showToast('success', 'Actualizado', 'Estado cambiado');
         renderSchedule();
       } catch (e) {
-        console.error('Update status error:', e);
+        
         showToast('error', 'Error', 'No se pudo actualizar');
       }
     }
@@ -2580,11 +2654,8 @@
     }
 
     function setupAdminControls() {
-      // Show admin controls instead of regular clock button
-      const clockBtnContainer = document.getElementById('clockBtnContainer');
+      // Show admin team clock controls
       const adminControls = document.getElementById('adminTeamControls');
-
-      if (clockBtnContainer) clockBtnContainer.style.display = 'none';
       if (adminControls) adminControls.style.display = 'block';
 
       // Add event listeners for admin clock buttons
@@ -2634,7 +2705,7 @@
 
         showToast('success', 'Éxito', `Equipo ${team.name} registrado (${teamEmployees.size} miembros)`);
       } catch (e) {
-        console.error('Admin clock in error:', e);
+        
         showToast('error', 'Error', 'No se pudo registrar entrada');
       }
     }
@@ -2688,7 +2759,7 @@
 
         showToast('success', 'Éxito', `Equipo ${team.name} salida registrada`);
       } catch (e) {
-        console.error('Admin clock out error:', e);
+        
         showToast('error', 'Error', 'No se pudo registrar salida');
       }
     }
@@ -2706,35 +2777,22 @@
 
       const dot = document.getElementById('statusDot');
       const text = document.getElementById('statusText');
-      const btn = document.getElementById('clockBtn');
       const card = document.getElementById('currentJobCard');
 
       dot.className = 'status-dot';
       text.className = 'status-text';
 
-      if (!isClockedIn) {
-        dot.classList.add('clocked-out');
-        text.classList.add('clocked-out');
-        text.textContent = 'Sin Registrar';
-        btn.className = 'clock-btn clock-in';
-        btn.innerHTML = '<span class="clock-btn-icon">▶️</span><span>Registrar Entrada</span>';
-        card.classList.add('hidden');
-        document.getElementById('hoursToday').textContent = '0:00';
-      } else if (currentJob) {
+      if (currentJob) {
         dot.classList.add('on-job');
         text.classList.add('on-job');
         text.textContent = 'En Trabajo';
-        btn.className = 'clock-btn clock-out';
-        btn.innerHTML = '<span class="clock-btn-icon">⏹️</span><span>Registrar Salida</span>';
         card.classList.remove('hidden');
         document.getElementById('currentJobClient').textContent = `${currentJob.client.firstName} ${currentJob.client.lastName}`;
         document.getElementById('currentJobAddress').textContent = `${currentJob.client.address?.street || ''}, ${currentJob.client.address?.city || ''}`;
       } else {
         dot.classList.add('clocked-in');
         text.classList.add('clocked-in');
-        text.textContent = 'Registrado';
-        btn.className = 'clock-btn clock-out';
-        btn.innerHTML = '<span class="clock-btn-icon">⏹️</span><span>Registrar Salida</span>';
+        text.textContent = 'Listo';
         card.classList.add('hidden');
       }
     }
@@ -3011,7 +3069,7 @@
         sessionId: localStorage.getItem('currentSessionId')
       };
       localStorage.setItem('timeclockState', JSON.stringify(state));
-      try { await saveStateToDB(state); } catch (e) { console.error('Save DB error:', e); }
+      try { await saveStateToDB(state); } catch (e) {  }
     }
 
     async function restoreState() {
@@ -3056,7 +3114,7 @@
             }
           }
         }
-      } catch (e) { console.error('Restore state error:', e); }
+      } catch (e) {  }
     }
 
     // ============================================
@@ -3065,7 +3123,7 @@
     function addListenerSafe(id, type, handler) {
       const el = document.getElementById(id);
       if (!el) {
-        console.warn('Missing element for event listener:', id);
+        
         return;
       }
       el.addEventListener(type, handler);
@@ -3074,7 +3132,6 @@
     window.showAdminStatusModal = showAdminStatusModal;
 
     function setupEventListeners() {
-      addListenerSafe('clockBtn', 'click', () => isClockedIn ? clockOut() : clockIn());
       addListenerSafe('refreshBtn', 'click', async () => {
         try {
           await loadClients();
@@ -3085,7 +3142,7 @@
           updateStatusUI();
           showToast('success', 'Actualizado', 'Datos recargados');
         } catch (e) {
-          console.error('Refresh error:', e);
+          
           showToast('error', 'Error', 'No se pudo recargar');
         }
       });
@@ -3188,7 +3245,14 @@
         }
       });
       
-      document.getElementById('modalBackdrop')?.addEventListener('click', closeAllModals);
+      document.getElementById('modalBackdrop')?.addEventListener('click', (e) => {
+        // Prevent closing the completion modal by clicking backdrop
+        const completeModal = document.getElementById('completeJobModal');
+        if (completeModal && !completeModal.classList.contains('hidden')) {
+          return; // Don't close if completion modal is open
+        }
+        closeAllModals();
+      });
       
       // Location prompt
       document.getElementById('locationDismissBtn')?.addEventListener('click', () => {

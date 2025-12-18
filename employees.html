@@ -535,7 +535,7 @@
             window.location.href = 'index.html';
           }
         } catch (error) {
-          console.error('Error fetching admin:', error);
+          
           window.location.href = 'index.html';
         }
       } else {
@@ -589,7 +589,7 @@
         populateTeamLeaderSelect();
         populateTeamMembersList();
       } catch (error) {
-        console.error('Error loading employees:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to load employees');
       }
     }
@@ -609,7 +609,7 @@
         renderTeams();
         populateEmployeeTeamSelect();
       } catch (error) {
-        console.error('Error loading teams:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to load teams');
       }
     }
@@ -882,7 +882,7 @@
         try {
             // Get admin's current token
             const adminToken = await currentUser?.getIdToken(true);
-            console.log('Admin token obtained, calling Cloud Function...');
+            
 
             // Call Cloud Function to create auth account and sync Firestore
             const response = await fetch('https://us-central1-cleanpro-74d87.cloudfunctions.net/syncEmployeeAccount', {
@@ -908,7 +908,7 @@
             }
 
             const result = await response.json();
-            console.log('Account creation result:', result);
+            
 
             // Success Handling
             showToast(
@@ -921,7 +921,7 @@
             await loadEmployees(); // Refresh list to show the "Has Login" badge
 
         } catch (error) {
-            console.error("Creation error:", error);
+            
             showToast("error", "Error", error.message || "Failed to create account");
         } finally {
             // Reset UI
@@ -1132,7 +1132,7 @@
         await loadTeams(); // Reload teams to reflect any changes from employee load
 
       } catch (error) {
-        console.error('Error saving employee:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to save employee');
       }
     }
@@ -1170,7 +1170,7 @@
             const errorData = await response.json();
             throw new Error(errorData.error || `HTTP ${response.status}`);
           }
-          console.log('Employee account deleted via Cloud Function');
+          
         }
 
         // Delete the employee document
@@ -1179,7 +1179,7 @@
         showToast('success', i18n.t('success'), i18n.t('employeeDeleted'));
         await loadEmployees();
       } catch (error) {
-        console.error('Error deleting employee:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to delete employee');
       }
     };
@@ -1271,7 +1271,7 @@
         await loadEmployees();
         await loadTeams(); // Reload teams to reflect any changes from employee load
       } catch (error) {
-        console.error('Error saving team:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to save team');
       }
     }
@@ -1317,7 +1317,7 @@
         await loadTeams();
         await loadEmployees();
       } catch (error) {
-        console.error('Error deleting team:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to delete team');
       }
     };

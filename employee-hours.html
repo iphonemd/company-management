@@ -610,7 +610,7 @@
         const snapshot = await getDocs(collection(db, 'clients'));
         clients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         clients.sort((a, b) => (a.firstName || '').localeCompare(b.firstName || ''));
-      } catch (error) { console.error('Failed to load clients:', error); }
+      } catch (error) {  }
     }
 
     async function loadJobCompletions() {
@@ -620,7 +620,7 @@
         const endStr = getDateString(weekEnd);
         const snapshot = await getDocs(query(collection(db, 'jobCompletions'), where('date', '>=', startStr), where('date', '<=', endStr)));
         jobCompletions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      } catch (error) { console.error('Failed to load job completions:', error); }
+      } catch (error) {  }
     }
 
     function populateTeamFilter() {
@@ -978,7 +978,7 @@
         await loadTimeEntries();
         renderPayrollTable();
         renderEmployeeCards();
-      } catch (error) { console.error('Error saving client hours:', error); showToast('error', t('error', 'Error'), t('failedToSaveHours', 'Failed to save hours')); }
+      } catch (error) {  showToast('error', t('error', 'Error'), t('failedToSaveHours', 'Failed to save hours')); }
     }
 
     async function saveNewEntry() {

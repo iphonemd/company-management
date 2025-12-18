@@ -1087,7 +1087,7 @@
             window.location.href = 'index.html';
           }
         } catch (error) {
-          console.error('Error fetching admin:', error);
+          
           window.location.href = 'index.html';
         }
       } else {
@@ -1146,7 +1146,7 @@
               await updateDoc(doc(db, 'payments', payment.id), { status: 'overdue', updatedAt: Timestamp.now() });
               payment.status = 'overdue';
               updatedCount++;
-            } catch (error) { console.error('Error updating payment status:', error); }
+            } catch (error) {  }
           }
         }
       }
@@ -1166,7 +1166,7 @@
                 linkedPayment.status = 'overdue';
               }
               updatedCount++;
-            } catch (error) { console.error('Error updating invoice status:', error); }
+            } catch (error) {  }
           }
         }
       }
@@ -1234,7 +1234,7 @@
         });
         populateClientSelect();
       } catch (error) {
-        console.error('Error loading clients:', error);
+        
       }
     }
 
@@ -1260,7 +1260,7 @@
         const snapshot = await getDocs(q);
         completedSchedules = [];
         snapshot.forEach(doc => { completedSchedules.push({ id: doc.id, ...doc.data() }); });
-      } catch (error) { console.error('Error loading completed schedules:', error); }
+      } catch (error) {  }
     }
 
     async function loadPayments() {
@@ -1277,7 +1277,7 @@
           }
         });
       } catch (error) {
-        console.error('Error loading payments:', error);
+        
       }
     }
 
@@ -1295,7 +1295,7 @@
           }
         });
       } catch (error) {
-        console.error('Error loading expenses:', error);
+        
       }
     }
 
@@ -1309,7 +1309,7 @@
           invoices.push({ id: doc.id, ...doc.data() });
         });
       } catch (error) {
-        console.error('Error loading invoices:', error);
+        
       }
     }
 
@@ -1323,7 +1323,7 @@
           schedules.push({ id: doc.id, ...doc.data() });
         });
       } catch (error) {
-        console.error('Error loading schedules:', error);
+        
       }
     }
 
@@ -1358,7 +1358,7 @@
           };
         }
       } catch (error) {
-        console.error('Error loading company settings:', error);
+        
       }
     }
 
@@ -1410,7 +1410,7 @@
         renderInvoices();
         renderCompletedJobs();
       } catch (error) { 
-        console.error('Error:', error); 
+         
         showToast('error', 'Error', 'Failed to update'); 
       }
     };
@@ -1442,7 +1442,7 @@
         renderPayments();
         renderCompletedJobs();
       } catch (error) { 
-        console.error('Error:', error); 
+         
         showToast('error', 'Error', 'Failed to update'); 
       }
     };
@@ -1471,7 +1471,7 @@
         renderInvoices();
         renderPayments();
       } catch (error) { 
-        console.error('Error:', error); 
+         
         showToast('error', 'Error', 'Failed to update'); 
       }
     };
@@ -1585,7 +1585,7 @@
       } catch (error) {
         // User cancelled share or error occurred
         if (error.name !== 'AbortError') {
-          console.error('Error:', error);
+          
           showToast('error', 'Error', 'Failed to send invoice');
         }
       } finally {
@@ -1905,7 +1905,7 @@
         updateSummary();
         renderExpenses();
       } catch (error) {
-        console.error('Error saving expense:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to save expense');
       }
     }
@@ -1931,7 +1931,7 @@
         updateSummary();
         renderExpenses();
       } catch (error) {
-        console.error('Error deleting expense:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to delete expense');
       }
     };
@@ -1971,7 +1971,7 @@
         updateSummary();
         renderPayments();
       } catch (error) {
-        console.error('Error saving payment:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to record payment');
       }
     }
@@ -2138,7 +2138,7 @@
         renderInvoices();
         renderPayments();
       } catch (error) {
-        console.error('Error creating invoice:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to create invoice');
       }
     }
@@ -2275,7 +2275,7 @@
         await loadInvoices();
         renderInvoices();
       } catch (error) {
-        console.error('Error deleting invoice:', error);
+        
         showToast('error', i18n.t('error'), 'Failed to delete invoice');
       }
     }; 
@@ -2618,7 +2618,7 @@
         showToast('success', 'Success', 'Company settings saved');
         closeModal('companySettingsModal');
       } catch (error) {
-        console.error('Error saving settings:', error);
+        
         showToast('error', 'Error', 'Failed to save settings');
       }
     }

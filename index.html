@@ -162,7 +162,7 @@
           await auth.signOut();
           showError(i18n.t('loginError'));
         } catch (error) {
-          console.error('Error checking user status:', error);
+          
         }
       }
     });
@@ -251,7 +251,7 @@
         resetButton();
         
       } catch (error) {
-        console.error('Login error:', error);
+        
         
         let errorMessage = i18n.t('loginError');
         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -309,7 +309,7 @@
           changes: null
         });
       } catch (error) {
-        console.error('Error logging audit action:', error);
+        
       }
     }
 

@@ -924,7 +924,7 @@
             window.location.href = 'index.html';
           }
         } catch (error) {
-          console.error('Error fetching admin:', error);
+          
           window.location.href = 'index.html';
         }
       } else {
@@ -1007,7 +1007,7 @@
           loadCollectionData('timeEntries')
         ]);
       } catch (error) {
-        console.error('Error loading data:', error);
+        
         showToast('error', 'Data Load Error', 'Failed to load report data');
       }
     }
@@ -1053,7 +1053,7 @@
         // Show current report
         const reportElement = document.getElementById(currentReport + 'Report');
         if (!reportElement) {
-          console.error(`Report element not found: ${currentReport}Report`);
+          
           return;
         }
         reportElement.classList.remove('hidden');
@@ -1084,7 +1084,7 @@
             break;
         }
       } catch (error) {
-        console.error('Error rendering report:', error);
+        
         showToast('error', 'Render Error', 'Failed to render report');
       }
     }
@@ -2208,7 +2208,7 @@
       const getElement = (id) => {
         const el = document.getElementById(id);
         if (!el) {
-          console.warn(`Element not found: ${id}`);
+          
         }
         return el;
       };
@@ -2251,7 +2251,7 @@
             await signOut(auth);
             window.location.href = 'index.html';
           } catch (error) {
-            console.error('Logout error:', error);
+            
             showToast('error', 'Logout Error', 'Failed to logout');
           }
         });
