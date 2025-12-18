@@ -1710,13 +1710,8 @@
           const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
           const hours = (clockOut - clockIn) / (1000 * 60 * 60);
 
-          // Find employee by odoo ID to get their team
-          const emp = employees.find(e =>
-            e.odooEmployeeId === entry.odooEmployeeId ||
-            e.odooUserId === entry.odooEmployeeId ||
-            e.odooEmployeeId === entry.odooUserId ||
-            e.odooUserId === entry.odooUserId
-          );
+          // Find employee by document ID to get their team
+          const emp = employees.find(e => e.id === entry.employeeId);
 
           if (emp?.teamId) {
             teamHours[emp.teamId] = (teamHours[emp.teamId] || 0) + hours;
@@ -1766,12 +1761,11 @@
       const employeeHours = {};
 
       filteredTimeEntries.forEach(entry => {
-        if (entry.clockIn && entry.clockOut) {
+        if (entry.clockIn && entry.clockOut && entry.employeeId) {
           const clockIn = entry.clockIn?.toDate ? entry.clockIn.toDate() : new Date(entry.clockIn);
           const clockOut = entry.clockOut?.toDate ? entry.clockOut.toDate() : new Date(entry.clockOut);
           const hours = (clockOut - clockIn) / (1000 * 60 * 60);
-          const odooId = entry.odooEmployeeId || entry.odooUserId;
-          employeeHours[odooId] = (employeeHours[odooId] || 0) + hours;
+          employeeHours[entry.employeeId] = (employeeHours[entry.employeeId] || 0) + hours;
         }
       });
 
@@ -1788,7 +1782,7 @@
             teamSchedules[emp.teamId] = [];
           }
 
-          const empHours = employeeHours[emp.odooEmployeeId] || employeeHours[emp.odooUserId] || 0;
+          const empHours = employeeHours[emp.id] || 0;
           teamTotalHours[emp.teamId] += empHours;
         }
       });
@@ -1809,7 +1803,7 @@
         const empJobs = filteredSchedules.filter(
           s => s.teamId === emp.teamId && s.status === 'completed'
         ).length;
-        const empHours = employeeHours[emp.odooEmployeeId] || employeeHours[emp.odooUserId] || 0;
+        const empHours = employeeHours[emp.id] || 0;
 
         // Allocate revenue based on this employee's share of team hours
         let empRevenue = 0;

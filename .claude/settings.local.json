@@ -7,7 +7,11 @@
       "Bash(firebase deploy:*)",
       "Bash(node -c:*)",
       "Bash(curl:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nDocument Firebase Hosting deployment and API key security\n\n- Add Firebase deployment workflow to CLAUDE.md\n- Document API key management (.gitignore, template file)\n- Explain local setup and production deployment process\n- Add API key restriction information for security reference\n- Clarify that commits go to GitHub, deployments to Firebase\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

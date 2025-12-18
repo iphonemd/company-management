@@ -86,18 +86,30 @@
     }
 
     .schedule-nav-btn {
-      background: rgba(13,148,136,0.08);
-      border: 1px solid rgba(13,148,136,0.12);
-      color: var(--primary-600);
+      background: var(--primary-500);
+      border: none;
+      color: white;
       border-radius: var(--radius-lg);
-      padding: 6px 8px;
+      padding: 12px 16px;
       cursor: pointer;
-      font-size: var(--text-sm);
+      font-size: var(--text-base);
+      font-weight: 600;
       display: inline-flex;
       align-items: center;
-      gap: var(--space-1);
+      gap: var(--space-2);
+      transition: all var(--transition-fast);
+      min-height: 48px;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(13, 148, 136, 0.2);
     }
-    .schedule-nav-btn:hover { background: rgba(13,148,136,0.12); }
+    .schedule-nav-btn:hover {
+      background: var(--primary-600);
+      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+      transform: translateY(-2px);
+    }
+    .schedule-nav-btn:active {
+      transform: translateY(0);
+    }
     
     .timeclock-content {
       padding: 0 var(--space-4) var(--space-6);
@@ -343,7 +355,86 @@
       color: var(--gray-700);
       border: 1px solid var(--gray-300);
     }
-    
+
+    .job-details-toggle {
+      display: inline-block;
+      margin-left: var(--space-2);
+      font-size: var(--text-sm);
+      transition: transform var(--transition-fast);
+    }
+
+    .job-details-toggle.expanded {
+      transform: rotate(180deg);
+    }
+
+    .job-details-section {
+      margin-top: var(--space-3);
+      padding: var(--space-3) 0 0 0;
+    }
+
+    .job-details-divider {
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      margin-bottom: var(--space-3);
+    }
+
+    .job-detail-item {
+      margin-bottom: var(--space-3);
+    }
+
+    .job-detail-label {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--warning-700);
+      text-transform: uppercase;
+      margin-bottom: var(--space-1);
+    }
+
+    .job-detail-value {
+      font-size: var(--text-base);
+      color: var(--gray-700);
+      background: rgba(255, 255, 255, 0.5);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-lg);
+    }
+
+    .job-team-members {
+      display: grid;
+      gap: var(--space-2);
+    }
+
+    .job-team-member-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: var(--radius-lg);
+      font-size: var(--text-sm);
+    }
+
+    .job-team-member-status {
+      display: inline-flex;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+    }
+
+    .job-team-member-status.working {
+      background: var(--success-500);
+    }
+
+    .job-team-member-status.not-working {
+      background: var(--gray-400);
+    }
+
+    .job-team-member-name {
+      flex: 1;
+    }
+
     .schedule-card {
       background: white;
       border-radius: var(--radius-2xl);
@@ -991,11 +1082,38 @@
         
         <div class="current-job-card hidden" id="currentJobCard">
           <div class="current-job-header">
-            <div class="current-job-label">🏠 <span data-i18n="currentlyWorking">Trabajando</span></div>
+            <div class="current-job-label" id="jobLabelToggle" style="cursor: pointer; user-select: none;">
+              🏠 <span data-i18n="currentlyWorking">Trabajando</span>
+              <span class="job-details-toggle" id="jobDetailsToggle">▼</span>
+            </div>
             <div class="current-job-timer" id="jobTimer">0:00:00</div>
           </div>
           <div class="current-job-client" id="currentJobClient">-</div>
           <div class="current-job-address" id="currentJobAddress">-</div>
+
+          <!-- Expandable Details Section -->
+          <div class="job-details-section hidden" id="jobDetailsSection">
+            <div class="job-details-divider"></div>
+
+            <!-- Door Code -->
+            <div class="job-detail-item hidden" id="jobDoorCodeItem">
+              <div class="job-detail-label">🔑 Código de Puerta</div>
+              <div class="job-detail-value" id="jobDoorCode">-</div>
+            </div>
+
+            <!-- Extras/Add-ons -->
+            <div class="job-detail-item hidden" id="jobExtrasItem">
+              <div class="job-detail-label">➕ Servicios Adicionales</div>
+              <div class="job-detail-value" id="jobExtras">-</div>
+            </div>
+
+            <!-- Team Members -->
+            <div class="job-detail-item hidden" id="jobTeamItem">
+              <div class="job-detail-label">👥 Equipo</div>
+              <div class="job-team-members" id="workingTeamMembersList"></div>
+            </div>
+          </div>
+
           <div class="current-job-actions">
             <button class="job-action-btn" id="navigateJobBtn">🧭 Navegar</button>
             <button class="job-action-btn cancel" id="cancelJobBtn">❌ Cancelar</button>
@@ -2371,6 +2489,7 @@
           workingEmployees: selectedJobEmployees.map(e => e.id)
         });
         schedule.status = 'in_progress';
+        schedule.actualStartTime = jobStartTime;
         
         jobTimerInterval = setInterval(updateJobTimer, 1000);
         updateJobTimer();
@@ -2463,12 +2582,54 @@
 
     async function completeJob() {
       if (!currentJob) return;
-      
+
+      // Verify the job is still in_progress (handle multi-device scenario)
+      try {
+        const currentScheduleDoc = await getDoc(doc(db, 'schedules', currentJob.scheduleId));
+        if (!currentScheduleDoc.exists()) {
+          showToast('error', 'Error', 'El trabajo no existe');
+          closeModal('completeJobModal');
+          currentJob = null;
+          jobStartTime = null;
+          selectedJobEmployees = [];
+          updateStatusUI();
+          return;
+        }
+
+        const currentScheduleData = currentScheduleDoc.data();
+        if (currentScheduleData.status === 'completed') {
+          showToast('info', 'Trabajo Completado', 'Este trabajo ya fue completado en otro dispositivo');
+          closeModal('completeJobModal');
+          currentJob = null;
+          jobStartTime = null;
+          selectedJobEmployees = [];
+          await loadTodaySchedules();
+          renderSchedule();
+          updateStatusUI();
+          return;
+        }
+
+        if (currentScheduleData.status !== 'in_progress') {
+          showToast('warning', 'Aviso', `El estado del trabajo ha cambiado a: ${currentScheduleData.status}`);
+          closeModal('completeJobModal');
+          currentJob = null;
+          jobStartTime = null;
+          selectedJobEmployees = [];
+          await loadTodaySchedules();
+          renderSchedule();
+          updateStatusUI();
+          return;
+        }
+      } catch (e) {
+        showToast('error', 'Error', 'No se pudo verificar el estado del trabajo');
+        return;
+      }
+
       const endTime = new Date();
       const schedule = currentJob.schedule;
       const client = currentJob.client;
       const jobDuration = (endTime - jobStartTime) / 3600000;
-      
+
       try {
         // Update schedule
         await updateDoc(doc(db, 'schedules', currentJob.scheduleId), {
@@ -2478,6 +2639,7 @@
           completedEmployees: selectedJobEmployees.map(e => e.id)
         });
         schedule.status = 'completed';
+        schedule.actualEndTime = endTime;
         
         // Save job completion record (for tracking which clients were serviced, not for payroll)
         const todayStr = getLocalDateString();
@@ -2520,6 +2682,9 @@
         
         closeModal('completeJobModal');
 
+        // Reload schedules from Firestore to ensure hours are calculated correctly
+        await loadTodaySchedules();
+
         // Check if this was the last job
         const remainingJobs = todaySchedules.filter(s => s.status === 'scheduled' || s.status === 'in_progress');
         if (remainingJobs.length === 0) {
@@ -2536,10 +2701,10 @@
           showToast('success', '¡Completado!', 'Excelente trabajo');
         }
       } catch (e) {
-        
+
         showToast('error', 'Error', 'No se pudo completar');
       }
-      
+
       await saveState();
       updateStatusUI();
       renderSchedule();
@@ -2560,10 +2725,64 @@
     
     async function cancelJob() {
       if (!currentJob) return;
-      
+
+      // Verify the job is still in_progress (handle multi-device scenario)
+      try {
+        const currentScheduleDoc = await getDoc(doc(db, 'schedules', currentJob.scheduleId));
+        if (!currentScheduleDoc.exists()) {
+          showToast('error', 'Error', 'El trabajo no existe');
+          closeModal('cancelJobModal');
+          currentJob = null;
+          jobStartTime = null;
+          selectedJobEmployees = [];
+          updateStatusUI();
+          return;
+        }
+
+        const currentScheduleData = currentScheduleDoc.data();
+        if (currentScheduleData.status === 'cancelled') {
+          showToast('info', 'Trabajo Cancelado', 'Este trabajo ya fue cancelado en otro dispositivo');
+          closeModal('cancelJobModal');
+          currentJob = null;
+          jobStartTime = null;
+          selectedJobEmployees = [];
+          await loadTodaySchedules();
+          renderSchedule();
+          updateStatusUI();
+          return;
+        }
+
+        if (currentScheduleData.status === 'completed') {
+          showToast('warning', 'Aviso', 'El trabajo ya fue completado, no se puede cancelar');
+          closeModal('cancelJobModal');
+          currentJob = null;
+          jobStartTime = null;
+          selectedJobEmployees = [];
+          await loadTodaySchedules();
+          renderSchedule();
+          updateStatusUI();
+          return;
+        }
+
+        if (currentScheduleData.status !== 'in_progress') {
+          showToast('warning', 'Aviso', `El estado del trabajo ha cambiado a: ${currentScheduleData.status}`);
+          closeModal('cancelJobModal');
+          currentJob = null;
+          jobStartTime = null;
+          selectedJobEmployees = [];
+          await loadTodaySchedules();
+          renderSchedule();
+          updateStatusUI();
+          return;
+        }
+      } catch (e) {
+        showToast('error', 'Error', 'No se pudo verificar el estado del trabajo');
+        return;
+      }
+
       const cancelReason = document.getElementById('cancelReason').value;
       const cancelNotes = document.getElementById('cancelJobNotes').value;
-      
+
       try {
         await updateDoc(doc(db, 'schedules', currentJob.scheduleId), {
           status: 'cancelled',
@@ -2572,7 +2791,7 @@
           cancelNotes: cancelNotes,
           actualEndTime: Timestamp.now()
         });
-        
+
         currentJob.schedule.status = 'cancelled';
         
         if (jobTimerInterval) { clearInterval(jobTimerInterval); jobTimerInterval = null; }
@@ -2582,15 +2801,18 @@
         currentJob = null;
         jobStartTime = null;
         selectedJobEmployees = [];
-        
+
         closeModal('cancelJobModal');
         showToast('info', 'Cancelado', 'El trabajo ha sido cancelado');
-        
+
+        // Reload schedules from Firestore to ensure UI is in sync
+        await loadTodaySchedules();
+
       } catch (e) {
-        
+
         showToast('error', 'Error', 'No se pudo cancelar');
       }
-      
+
       await saveState();
       updateStatusUI();
       renderSchedule();
@@ -2789,11 +3011,90 @@
         card.classList.remove('hidden');
         document.getElementById('currentJobClient').textContent = `${currentJob.client.firstName} ${currentJob.client.lastName}`;
         document.getElementById('currentJobAddress').textContent = `${currentJob.client.address?.street || ''}, ${currentJob.client.address?.city || ''}`;
+        updateJobDetails();
       } else {
         dot.classList.add('clocked-in');
         text.classList.add('clocked-in');
         text.textContent = 'Listo';
         card.classList.add('hidden');
+      }
+    }
+
+    // Update job details (door code, extras, team members)
+    function updateJobDetails() {
+      if (!currentJob || !currentJob.client) return;
+
+      const client = currentJob.client;
+      const schedule = currentJob.schedule;
+
+      // Update door code
+      const doorCodeItem = document.getElementById('jobDoorCodeItem');
+      const jobDoorCode = document.getElementById('jobDoorCode');
+      if (client.houseCode) {
+        doorCodeItem.classList.remove('hidden');
+        jobDoorCode.textContent = client.houseCode;
+      } else {
+        doorCodeItem.classList.add('hidden');
+      }
+
+      // Update extras/add-ons
+      const extrasItem = document.getElementById('jobExtrasItem');
+      const jobExtras = document.getElementById('jobExtras');
+      if (schedule?.serviceDetails?.addOns && schedule.serviceDetails.addOns.length > 0) {
+        extrasItem.classList.remove('hidden');
+        jobExtras.textContent = schedule.serviceDetails.addOns.join(', ');
+      } else {
+        extrasItem.classList.add('hidden');
+      }
+
+      // Update team members
+      const teamItem = document.getElementById('jobTeamItem');
+      const workingTeamMembers = document.getElementById('workingTeamMembersList');
+      if (currentTeam && teamMembers.length > 0) {
+        teamItem.classList.remove('hidden');
+
+        // Get the list of selected team members for this job (from the modal)
+        const selectedMembers = new Set();
+        document.querySelectorAll('.employee-selection-item.selected, .employee-selection-item.disabled').forEach(el => {
+          selectedMembers.add(el.dataset.empId);
+        });
+
+        workingTeamMembers.innerHTML = teamMembers.map(member => {
+          const isWorking = selectedMembers.has(member.id);
+          const isLeader = currentTeam?.leaderId === member.id;
+          const statusClass = isWorking ? 'working' : 'not-working';
+          const statusText = isWorking ? '✓' : '✕';
+          const name = `${member.firstName} ${member.lastName}${isLeader ? ' (⭐ Líder)' : ''}`;
+
+          return `
+            <div class="job-team-member-item">
+              <div class="job-team-member-status ${statusClass}">${statusText}</div>
+              <div class="job-team-member-name">${name}</div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        teamItem.classList.add('hidden');
+      }
+    }
+
+    // Initialize job details toggle
+    function initJobDetailsToggle() {
+      const jobLabelToggle = document.getElementById('jobLabelToggle');
+      const jobDetailsSection = document.getElementById('jobDetailsSection');
+      const jobDetailsToggle = document.getElementById('jobDetailsToggle');
+
+      if (jobLabelToggle) {
+        jobLabelToggle.addEventListener('click', function() {
+          const isHidden = jobDetailsSection.classList.contains('hidden');
+          if (isHidden) {
+            jobDetailsSection.classList.remove('hidden');
+            jobDetailsToggle.classList.add('expanded');
+          } else {
+            jobDetailsSection.classList.add('hidden');
+            jobDetailsToggle.classList.remove('expanded');
+          }
+        });
       }
     }
 
@@ -2941,59 +3242,23 @@
       }).join('');
     }
     
-    // Sort schedules by proximity to office (route optimization)
+    // Sort schedules by route order as defined in scheduling.html
     function sortSchedulesByRoute(schedules) {
-      // If no office settings, sort by time slot
-      if (!officeSettings?.start?.coordinates) {
-        return [...schedules].sort((a, b) => {
-          if (a.timeSlot !== b.timeSlot) return a.timeSlot === 'morning' ? -1 : 1;
-          return 0;
-        });
-      }
-      
-      const scheduled = schedules.filter(s => s.status !== 'cancelled');
-      const cancelled = schedules.filter(s => s.status === 'cancelled');
-      
-      const withCoords = scheduled.filter(s => {
-        const client = clients[s.clientId];
-        return client?.address?.coordinates;
+      // Sort by routeOrder first, then by clientId for consistency
+      return [...schedules].sort((a, b) => {
+        // Group by status: scheduled/in_progress first, then cancelled
+        const aIsCancelled = a.status === 'cancelled' ? 1 : 0;
+        const bIsCancelled = b.status === 'cancelled' ? 1 : 0;
+        if (aIsCancelled !== bIsCancelled) return aIsCancelled - bIsCancelled;
+
+        // Within same status, sort by routeOrder
+        const aOrder = Number(a.routeOrder || Infinity);
+        const bOrder = Number(b.routeOrder || Infinity);
+        if (aOrder !== bOrder) return aOrder - bOrder;
+
+        // If no routeOrder, sort by clientId
+        return (a.clientId || '').localeCompare(b.clientId || '');
       });
-      const withoutCoords = scheduled.filter(s => {
-        const client = clients[s.clientId];
-        return !client?.address?.coordinates;
-      });
-      
-      if (withCoords.length <= 1) {
-        return [...withCoords, ...withoutCoords, ...cancelled];
-      }
-      
-      // Nearest neighbor algorithm
-      const sorted = [];
-      let currentPoint = officeSettings.start.coordinates;
-      const remaining = [...withCoords];
-      
-      while (remaining.length > 0) {
-        let nearestIdx = 0;
-        let nearestDist = Infinity;
-        
-        for (let i = 0; i < remaining.length; i++) {
-          const schedule = remaining[i];
-          const client = clients[schedule.clientId];
-          const clientCoords = client.address.coordinates;
-          const dist = haversine(currentPoint.lat, currentPoint.lng, clientCoords.lat, clientCoords.lng);
-          if (dist < nearestDist) {
-            nearestDist = dist;
-            nearestIdx = i;
-          }
-        }
-        
-        const nearest = remaining.splice(nearestIdx, 1)[0];
-        sorted.push(nearest);
-        const nearestClient = clients[nearest.clientId];
-        currentPoint = nearestClient.address.coordinates;
-      }
-      
-      return [...sorted, ...withoutCoords, ...cancelled];
     }
 
 
@@ -3080,7 +3345,7 @@
           if (saved) state = JSON.parse(saved);
         }
         if (!state) return;
-        
+
         const todayStr = getLocalDateString();
         if (state.clockInTime) {
           const savedDate = getLocalDateString(new Date(state.clockInTime));
@@ -3092,16 +3357,16 @@
             return;
           }
         }
-        
+
         isClockedIn = state.isClockedIn || false;
         clockInTime = state.clockInTime ? new Date(state.clockInTime) : null;
         selectedJobEmployees = state.selectedJobEmployees || [];
-        
+
         // Restore session ID
         if (state.sessionId) {
           localStorage.setItem('currentSessionId', state.sessionId);
         }
-        
+
         if (state.currentJob && state.jobStartTime) {
           const schedule = todaySchedules.find(s => s.id === state.currentJob.scheduleId);
           if (schedule && schedule.status === 'in_progress') {
@@ -3113,8 +3378,64 @@
               updateJobTimer();
             }
           }
+        } else {
+          // No local currentJob - check Firestore for in_progress schedule (device switch scenario)
+          await restoreCurrentJobFromFirestore(todayStr);
         }
       } catch (e) {  }
+    }
+
+    // Restore currentJob from Firestore for cross-device support
+    async function restoreCurrentJobFromFirestore(todayStr) {
+      try {
+        // Find any in_progress schedule for today for this team
+        if (!currentTeam?.id) return;
+
+        const inProgressSchedules = todaySchedules.filter(
+          s => s.status === 'in_progress' && s.teamId === currentTeam.id
+        );
+
+        if (inProgressSchedules.length === 0) return;
+
+        // Use the first in_progress schedule (should only be one)
+        const schedule = inProgressSchedules[0];
+        const client = clients[schedule.clientId];
+
+        if (!client) return;
+
+        // Reconstruct currentJob from Firestore data
+        const workingEmployees = schedule.workingEmployees || [];
+        const teamMembersForJob = teamMembers.filter(m => workingEmployees.includes(m.id));
+
+        currentJob = {
+          scheduleId: schedule.id,
+          schedule,
+          client,
+          teamMembers: teamMembersForJob.map(m => ({ id: m.id, name: `${m.firstName} ${m.lastName}` }))
+        };
+
+        selectedJobEmployees = currentJob.teamMembers;
+
+        // Restore job start time from Firestore
+        if (schedule.actualStartTime) {
+          const startTime = schedule.actualStartTime?.toDate ? schedule.actualStartTime.toDate() : new Date(schedule.actualStartTime);
+          jobStartTime = startTime;
+
+          // Start timer
+          if (!jobTimerInterval) {
+            jobTimerInterval = setInterval(updateJobTimer, 1000);
+            updateJobTimer();
+          }
+        }
+
+        // Also set isClockedIn to true if we found an in_progress job
+        isClockedIn = true;
+        if (clockInTime === null) {
+          clockInTime = new Date(); // Set a reference time
+        }
+      } catch (e) {
+
+      }
     }
 
     // ============================================
@@ -3263,6 +3584,9 @@
         document.getElementById('locationPrompt').classList.add('hidden');
         if (nearbySchedule) showStartJobModal(nearbySchedule.id);
       });
+
+      // Initialize job details toggle
+      initJobDetailsToggle();
     }
   </script>
 </body>

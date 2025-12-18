@@ -96,6 +96,72 @@ The API key is restricted to:
 - `invoices` - Invoice documents
 - `auditLog` - Activity audit trail
 - `users` - Employee user accounts (for timeclock access)
+- `jobCompletions` - Client work tracking (links employees to clients with duration)
+
+### Employee ID Strategy
+
+**CRITICAL: Always use employee document ID for all references. This is the only ID that exists on all employees.**
+
+**ID Fields:**
+- **`employee.id`** - Firestore document ID from `employees` collection. **ALWAYS EXISTS** for every employee.
+- **`employee.authUid`** - Firebase Authentication UID. **ONLY EXISTS** if employee has a login account created via Cloud Functions.
+- **Legacy fields** (`userId`, `odooEmployeeId`, `odooUserId`) - **DO NOT EXIST** in the current schema and should never be used.
+
+**When Creating timeEntries or jobCompletions:**
+```javascript
+// ✅ CORRECT: Always use employee document ID
+const timeEntry = {
+  employeeId: employee.id,  // Firestore document ID from employees collection
+  date: dateStr,
+  clockIn: Timestamp.fromDate(clockInTime),
+  clockOut: Timestamp.fromDate(clockOutTime),
+  hoursWorked: (clockOut - clockIn) / 3600000,
+  // ...
+};
+
+// ❌ WRONG: These fields don't exist
+const timeEntry = {
+  employeeId: employee.userId || employee.id,  // userId never exists
+  // or
+  employeeId: employee.authUid,  // authUid only exists for accounts, unreliable
+};
+```
+
+**When Matching Time Entries to Employees:**
+```javascript
+// ✅ CORRECT: Direct ID match
+const employee = employees.find(e => e.id === timeEntry.employeeId);
+
+// ❌ WRONG: These fields don't exist
+const employee = employees.find(e =>
+  e.odooEmployeeId === timeEntry.odooEmployeeId  // These fields don't exist!
+);
+```
+
+**Detailed Field Descriptions:**
+
+**`timeEntries` collection:**
+- `employeeId` - Employee document ID (from `employees` collection, **NOT** authUid)
+- `date` - String in YYYY-MM-DD format
+- `clockIn` - Timestamp when employee clocked in
+- `clockOut` - Timestamp when employee clocked out (null if still clocked in)
+- `hoursWorked` - Calculated number of hours (automatically calculated from clockIn/clockOut)
+- `clientId` - Optional reference to client document
+- `scheduleId` - Optional reference to schedule document
+- `sessionId` - Session identifier for team clock-in sessions (used to group related entries)
+- `manual` - Boolean indicating if entry was manually created by admin (true for manual, undefined/false for timeclock)
+
+**`jobCompletions` collection:**
+- `employeeId` - Employee document ID (from `employees` collection)
+- `employeeName` - Employee full name (denormalized for reporting efficiency)
+- `clientId` - Client document ID (from `clients` collection)
+- `clientName` - Client full name (denormalized for reporting efficiency)
+- `date` - String in YYYY-MM-DD format
+- `duration` - Number of hours worked on this specific client
+- `scheduleId` - Optional reference to schedule document
+- `startTime` - Timestamp when work started on this client
+- `endTime` - Timestamp when work ended on this client
+- `manual` - Boolean indicating if created manually by admin
 
 ### Authentication & Roles
 
