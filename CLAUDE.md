@@ -18,10 +18,43 @@ python -m http.server 8000
 # Option 2: Open index.html directly in browser
 ```
 
-**Firebase deployment:**
+**Production Deployment (Firebase Hosting):**
 ```bash
 firebase deploy --only hosting
 ```
+
+Live at: https://cleanpro-74d87.web.app
+
+## Firebase Configuration & Security
+
+### API Key Management
+
+⚠️ **IMPORTANT: API keys are kept OUT of the repository for security.**
+
+- `js/firebase-config.js` - **Local only** (in .gitignore, never committed)
+- `js/firebase-config.template.js` - Safe template reference (safe to commit)
+
+**When setting up locally or deploying:**
+1. Copy `firebase-config.template.js` to `firebase-config.js` if it doesn't exist
+2. Update only the `apiKey` field with your Firebase API key from GCP Console
+3. Keep all other config values unchanged
+4. **Never commit `firebase-config.js`** to GitHub - it's automatically ignored
+
+**Deployment workflow:**
+1. Commit code changes to GitHub (firebase-config.js will NOT be included due to .gitignore)
+2. Pull the latest code to your deployment machine
+3. Ensure `firebase-config.js` exists locally with the correct API key
+4. Run `firebase deploy --only hosting` to deploy to Firebase Hosting
+5. Firebase automatically uses your project credentials for the hosted version
+
+### API Key Restrictions (GCP Console)
+
+The API key is restricted to:
+- **APIs:** Identity Toolkit API, Cloud Firestore API
+- **Application restrictions:** HTTP referrers
+  - `https://cleanpro-74d87.web.app/*`
+  - `https://cleanpro-74d87.firebaseapp.com/*`
+  - `localhost:8000/*` (for local development)
 
 ## Architecture
 
