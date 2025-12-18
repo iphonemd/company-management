@@ -1064,8 +1064,7 @@
 
 
     function populateEmployeeDropdown() {
-      const empSelect = document.getElementById('addEntryEmployee');
-      empSelect.innerHTML = allWorkers.map(worker => '<option value="' + worker.id + '">' + worker.firstName + ' ' + worker.lastName + '</option>').join('');
+      // No longer needed - employee field is now hidden and set dynamically in addEntryForDay/editSingleEntry
     }
 
     window.addEntryForDay = function(workerId, dateStr) {
