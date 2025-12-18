@@ -150,18 +150,37 @@ const employee = employees.find(e =>
 - `scheduleId` - Optional reference to schedule document
 - `sessionId` - Session identifier for team clock-in sessions (used to group related entries)
 - `manual` - Boolean indicating if entry was manually created by admin (true for manual, undefined/false for timeclock)
+- **Usage**: Timeclock entries only (created by `timeclock.html`)
 
 **`jobCompletions` collection:**
 - `employeeId` - Employee document ID (from `employees` collection)
 - `employeeName` - Employee full name (denormalized for reporting efficiency)
-- `clientId` - Client document ID (from `clients` collection)
-- `clientName` - Client full name (denormalized for reporting efficiency)
+- `clientId` - Client document ID (from `clients` collection), can be null for unassigned work
+- `clientName` - Client full name (denormalized for reporting efficiency), can be null
 - `date` - String in YYYY-MM-DD format
 - `duration` - Number of hours worked on this specific client
 - `scheduleId` - Optional reference to schedule document
 - `startTime` - Timestamp when work started on this client
 - `endTime` - Timestamp when work ended on this client
-- `manual` - Boolean indicating if created manually by admin
+- `manual` - Boolean indicating if created manually by admin (true = manually added in employee-hours.html, false/undefined = job completion from schedule)
+- **Usage**: Job completions from scheduling system + manual entries added in `employee-hours.html`
+
+### Hours Tracking Strategy
+
+**Two-source approach for completeness:**
+- **timeEntries**: Timeclock entries from `timeclock.html` (existing data, for backward compatibility)
+- **jobCompletions**: Job-related hours (from scheduling system) + Manual hours added in `employee-hours.html`
+
+**When adding hours manually in employee-hours.html:**
+- New entries are created in `jobCompletions` collection with `manual: true`
+- Includes `employeeName` and `clientName` (denormalized for efficiency)
+- `clientId` can be null if work is unassigned
+- Uses `startTime`/`endTime`/`duration` fields (consistent with job completion entries)
+
+**Hours calculation in payroll:**
+- `getEmployeeHoursForWeek()` reads from BOTH collections
+- `getEmployeeEntriesForDay()` combines timeEntries and jobCompletions for display
+- Manual entries identified by `manual: true` flag if needed for filtering/analysis
 
 ### Authentication & Roles
 
