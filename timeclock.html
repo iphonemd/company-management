@@ -3271,31 +3271,45 @@
         extrasItem.classList.add('hidden');
       }
 
-      // Update team members
+      // Update team members - show from currentJob data or fall back to local team members
       const teamItem = document.getElementById('jobTeamItem');
       const workingTeamMembers = document.getElementById('workingTeamMembersList');
-      if (currentTeam && teamMembers.length > 0) {
+
+      // Get working employees from currentJob or selectedJobEmployees
+      const workingEmployeeList = currentJob?.teamMembers || selectedJobEmployees || [];
+
+      if (workingEmployeeList.length > 0) {
         teamItem.classList.remove('hidden');
 
-        // Get the list of working team members from currentJob (NOT from DOM which may not be reliable)
-        const workingEmployeeIds = new Set(
-          currentJob?.teamMembers?.map(m => m.id) || selectedJobEmployees.map(e => e.id) || []
-        );
+        // If we have local teamMembers, use them to show full details and leader status
+        if (currentTeam && teamMembers.length > 0) {
+          // Show all team members with working status
+          workingTeamMembers.innerHTML = teamMembers.map(member => {
+            const isWorking = workingEmployeeList.some(e => e.id === member.id);
+            const isLeader = currentTeam?.leaderId === member.id;
+            const statusClass = isWorking ? 'working' : 'not-working';
+            const statusText = isWorking ? '✓' : '✕';
+            const name = `${member.firstName} ${member.lastName}${isLeader ? ' (⭐ Líder)' : ''}`;
 
-        workingTeamMembers.innerHTML = teamMembers.map(member => {
-          const isWorking = workingEmployeeIds.has(member.id);
-          const isLeader = currentTeam?.leaderId === member.id;
-          const statusClass = isWorking ? 'working' : 'not-working';
-          const statusText = isWorking ? '✓' : '✕';
-          const name = `${member.firstName} ${member.lastName}${isLeader ? ' (⭐ Líder)' : ''}`;
-
-          return `
-            <div class="job-team-member-item">
-              <div class="job-team-member-status ${statusClass}">${statusText}</div>
-              <div class="job-team-member-name">${name}</div>
-            </div>
-          `;
-        }).join('');
+            return `
+              <div class="job-team-member-item">
+                <div class="job-team-member-status ${statusClass}">${statusText}</div>
+                <div class="job-team-member-name">${name}</div>
+              </div>
+            `;
+          }).join('');
+        } else {
+          // Fallback: show only the working employees from currentJob
+          workingTeamMembers.innerHTML = workingEmployeeList.map(emp => {
+            const name = emp.name || emp.id;
+            return `
+              <div class="job-team-member-item">
+                <div class="job-team-member-status working">✓</div>
+                <div class="job-team-member-name">${name}</div>
+              </div>
+            `;
+          }).join('');
+        }
       } else {
         teamItem.classList.add('hidden');
       }
@@ -3733,11 +3747,18 @@
           await loadAllTeams();
           await loadTodaySchedules();
           await loadTimeEntries();
+
+          // Check if there's an in-progress schedule and restore it
+          if (!currentJob) {
+            const todayStr = getLocalDateString();
+            await restoreCurrentJobFromFirestore(todayStr);
+          }
+
           renderSchedule();
           updateStatusUI();
           showToast('success', 'Actualizado', 'Datos recargados');
         } catch (e) {
-          
+
           showToast('error', 'Error', 'No se pudo recargar');
         }
       });
