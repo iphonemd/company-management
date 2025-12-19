@@ -2543,7 +2543,12 @@
     function showStartJobModal(scheduleId) {
       const schedule = todaySchedules.find(s => s.id === scheduleId);
       if (!schedule) return;
-      
+
+      // Debug logging
+      console.log('showStartJobModal called for:', scheduleId);
+      console.log('currentJob:', currentJob?.scheduleId);
+      console.log('selectedJobEmployees at modal open:', selectedJobEmployees);
+
       if (schedule.status === 'completed') { showToast('info', 'Info', 'Trabajo ya completado'); return; }
       if (schedule.status === 'cancelled') { showToast('info', 'Info', 'Trabajo cancelado'); return; }
       if (schedule.status === 'in_progress' && currentJob?.scheduleId !== scheduleId) {
@@ -3272,14 +3277,13 @@
       if (currentTeam && teamMembers.length > 0) {
         teamItem.classList.remove('hidden');
 
-        // Get the list of selected team members for this job (from the modal)
-        const selectedMembers = new Set();
-        document.querySelectorAll('.employee-selection-item.selected, .employee-selection-item.disabled').forEach(el => {
-          selectedMembers.add(el.dataset.empId);
-        });
+        // Get the list of working team members from currentJob (NOT from DOM which may not be reliable)
+        const workingEmployeeIds = new Set(
+          currentJob?.teamMembers?.map(m => m.id) || selectedJobEmployees.map(e => e.id) || []
+        );
 
         workingTeamMembers.innerHTML = teamMembers.map(member => {
-          const isWorking = selectedMembers.has(member.id);
+          const isWorking = workingEmployeeIds.has(member.id);
           const isLeader = currentTeam?.leaderId === member.id;
           const statusClass = isWorking ? 'working' : 'not-working';
           const statusText = isWorking ? '✓' : '✕';
