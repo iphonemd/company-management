@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- Background -->
+  <rect width="192" height="192" fill="#0d9488" rx="45"/>
+
+  <!-- Broom -->
+  <g transform="translate(96, 96)">
+    <!-- Handle -->
+    <rect x="-8" y="-60" width="16" height="90" fill="#8B4513" rx="8"/>
+
+    <!-- Bristles container -->
+    <ellipse cx="0" cy="35" rx="35" ry="20" fill="#D2B48C" opacity="0.9"/>
+
+    <!-- Individual bristles -->
+    <g stroke="#A0826D" stroke-width="2" opacity="0.8">
+      <line x1="-28" y1="25" x2="-32" y2="50"/>
+      <line x1="-20" y1="20" x2="-28" y2="48"/>
+      <line x1="-10" y1="18" x2="-15" y2="50"/>
+      <line x1="0" y1="16" x2="0" y2="52"/>
+      <line x1="10" y1="18" x2="15" y2="50"/>
+      <line x1="20" y1="20" x2="28" y2="48"/>
+      <line x1="28" y1="25" x2="32" y2="50"/>
+    </g>
+
+    <!-- Shine effect -->
+    <ellipse cx="-10" cy="30" rx="15" ry="8" fill="white" opacity="0.3"/>
+  </g>
+</svg>

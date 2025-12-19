@@ -14,9 +14,8 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache).catch(err => {
-          console.log('Cache addAll failed:', err);
+        return cache.addAll(urlsToCache).catch(() => {
+          // If cache fails, continue - network will be used
         });
       })
   );
@@ -78,7 +77,6 @@ self.addEventListener('sync', (event) => {
 
 async function syncTimeclockState() {
   // This would sync state with the server when back online
-  console.log('Background sync triggered');
 }
 
 // Keep service worker alive for timer
