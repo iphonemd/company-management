@@ -948,7 +948,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Subject</label>
-          <input type="text" class="form-input" id="sendInvoiceSubject" value="Invoice from CleanPro">
+          <input type="text" class="form-input" id="sendInvoiceSubject" value="Invoice from Mendez Cleaning">
         </div>
         <div class="form-group">
           <label class="form-label">Message</label>
@@ -1337,7 +1337,7 @@
         } else {
           // Defaults
           companyInfo = {
-            name: 'CleanPro',
+            name: 'Mendez Cleaning',
             tagline: 'Professional Cleaning Services',
             phone: '(555) 123-4567',
             email: '',
@@ -1491,7 +1491,7 @@
       let subject = invoiceEmailTemplate?.subject || 'Invoice {invoiceNumber} from {companyName}';
       subject = subject
         .replace('{invoiceNumber}', invoice.invoiceNumber)
-        .replace('{companyName}', companyInfo?.name || 'CleanPro');
+        .replace('{companyName}', companyInfo?.name || 'Mendez Cleaning');
 
       // Use template with placeholders for message
       let messageTemplate = invoiceEmailTemplate?.message || 'Please find attached your invoice. Payment is due within 7 days.';
@@ -2156,7 +2156,7 @@
         <div class="invoice-preview">
           <div class="invoice-header">
             <div>
-              <div class="invoice-logo">🧹 ${companyInfo?.name || 'CleanPro'}</div>
+              <div class="invoice-logo">🧹 ${companyInfo?.name || 'Mendez Cleaning'}</div>
               <div class="text-gray-500 mt-2">${companyInfo?.tagline || 'Professional Cleaning Services'}</div>
             </div>
             <div class="invoice-title">
@@ -2168,7 +2168,7 @@
           <div class="invoice-parties">
             <div>
               <div class="invoice-party-label">From</div>
-              <div class="invoice-party-name">${companyInfo?.name || 'CleanPro Services'}</div>
+              <div class="invoice-party-name">${companyInfo?.name || 'Mendez Cleaning Services'}</div>
               <div class="invoice-party-details">
                 ${companyInfo?.address || 'Your Business Address'}<br>
                 ${companyInfo?.city || 'City'}, ${companyInfo?.state || 'State'} ${companyInfo?.zip || 'ZIP'}<br>
@@ -2300,7 +2300,7 @@
       doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...primaryColor);
-      doc.text('🧹 ' + (companyInfo?.name || 'CleanPro'), 20, yPos);
+      doc.text('🧹 ' + (companyInfo?.name || 'Mendez Cleaning'), 20, yPos);
 
       // Tagline
       doc.setFontSize(9);
@@ -2331,7 +2331,7 @@
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...darkColor);
-      doc.text(companyInfo?.name || 'CleanPro Services', 20, yPos + 6);
+      doc.text(companyInfo?.name || 'Mendez Cleaning Services', 20, yPos + 6);
 
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
@@ -2505,7 +2505,7 @@
       doc.text('Thank you for your business!', 110, 282, { align: 'center' });
 
       doc.setFontSize(8);
-      doc.text(`${companyInfo?.name || 'CleanPro'} - ${companyInfo?.tagline || 'Professional Cleaning Services'}`, 110, 288, { align: 'center' });
+      doc.text(`${companyInfo?.name || 'Mendez Cleaning'} - ${companyInfo?.tagline || 'Professional Cleaning Services'}`, 110, 288, { align: 'center' });
 
       if (returnBase64) {
         return doc.output('datauristring').split(',')[1];
@@ -2573,7 +2573,7 @@
     // EVENT LISTENERS
     // ============================================
     function openCompanySettings() {
-      document.getElementById('settingsCompanyName').value = companyInfo?.name || 'CleanPro';
+      document.getElementById('settingsCompanyName').value = companyInfo?.name || 'Mendez Cleaning';
       document.getElementById('settingsTagline').value = companyInfo?.tagline || 'Professional Cleaning Services';
       document.getElementById('settingsPhone').value = companyInfo?.phone || '';
       document.getElementById('settingsEmail').value = companyInfo?.email || '';
