@@ -1643,9 +1643,9 @@
     let selectedScheduleId = null;
     let nearbySchedule = null;
     
-    // Track prompts to avoid repetition
-    let lastLongTimePrompt = 0;
-    let lastOfficePrompt = 0;
+    // Track prompts to avoid repetition (persist in localStorage to survive page reloads)
+    let lastLongTimePrompt = parseInt(localStorage.getItem('lastLongTimePrompt') || '0');
+    let lastOfficePrompt = parseInt(localStorage.getItem('lastOfficePrompt') || '0');
 
     // ============================================
     // IndexedDB for PERSISTENT state (survives app close/iPhone sleep)
@@ -1847,23 +1847,25 @@
         
         if (clockedInHours > 10 && (now - lastLongTimePrompt > 3600000)) { // Prompt once per hour
           lastLongTimePrompt = now;
+          localStorage.setItem('lastLongTimePrompt', lastLongTimePrompt);
           if (confirm(`Llevas ${Math.floor(clockedInHours)} horas registrado. ¿Deseas registrar salida?`)) {
             clockOut();
           }
         }
       }
-      
+
       // Check if current job is taking too long (>5 hours)
       if (currentJob && jobStartTime) {
         const jobMs = now - jobStartTime.getTime();
         const jobHours = jobMs / 3600000;
-        
+
         if (jobHours > 5) {
           const timerEl = document.getElementById('jobTimer');
           if (timerEl) timerEl.classList.add('warning');
-          
+
           if (now - lastLongTimePrompt > 3600000) { // Prompt once per hour
             lastLongTimePrompt = now;
+            localStorage.setItem('lastLongTimePrompt', lastLongTimePrompt);
             showToast('warning', 'Aviso', `El trabajo actual lleva más de ${Math.floor(jobHours)} horas. ¿Todo bien?`);
           }
         }
@@ -1891,6 +1893,7 @@
             const now = Date.now();
             if (now - lastOfficePrompt > 300000) { // Once every 5 minutes
               lastOfficePrompt = now;
+              localStorage.setItem('lastOfficePrompt', lastOfficePrompt);
               if (confirm('¡Todos los trabajos completados! Estás en la oficina. ¿Deseas registrar salida?')) {
                 clockOut();
               }
@@ -1939,6 +1942,7 @@
       // Don't show more than once every 5 minutes
       if (now - lastOfficePrompt < 300000) return;
       lastOfficePrompt = now;
+      localStorage.setItem('lastOfficePrompt', lastOfficePrompt);
       
       if (type === 'first') {
         document.getElementById('routePromptTitle').textContent = '🗺️ Iniciar Ruta';
