@@ -2629,24 +2629,28 @@
       const container = document.getElementById('jobTeamMembers');
       const currentUserId = currentAdmin?.id || currentEmployee?.id;
       const leaderId = currentTeam?.leaderId || currentUserId;
-      
+
+      // Get IDs of previously selected employees
+      const selectedIds = new Set(selectedJobEmployees.map(e => e.id));
+
       container.innerHTML = teamMembers.map(m => {
         const isLeader = m.id === leaderId;
+        const wasSelected = selectedIds.has(m.id) || isLeader; // Leader always selected
         const avatarColor = getAvatarColor(m.firstName + m.lastName);
         const initials = getInitials(m.firstName, m.lastName);
-        
+
         return `
-          <div class="employee-selection-item ${isLeader ? 'disabled' : 'selected'}" data-emp-id="${m.id}" data-emp-name="${m.firstName} ${m.lastName}" onclick="${isLeader ? '' : 'toggleEmployeeSelection(this)'}">
+          <div class="employee-selection-item ${wasSelected ? 'selected' : ''} ${isLeader ? 'disabled' : ''}" data-emp-id="${m.id}" data-emp-name="${m.firstName} ${m.lastName}" onclick="${isLeader ? '' : 'toggleEmployeeSelection(this)'}">
             <div class="employee-selection-avatar" style="background-color:${avatarColor}">${initials}</div>
             <div class="employee-selection-info">
               <div class="employee-selection-name">${m.firstName} ${m.lastName}</div>
               <div class="employee-selection-role">${isLeader ? '⭐ Líder del Equipo (requerido)' : 'Miembro'}</div>
             </div>
-            <div class="employee-selection-checkbox">✓</div>
+            <div class="employee-selection-checkbox">${wasSelected ? '✓' : ''}</div>
           </div>
         `;
       }).join('') || '<p class="text-gray-500">Sin miembros de equipo</p>';
-      
+
       openModal('startJobModal');
     }
     
@@ -3604,7 +3608,6 @@
     async function restoreCurrentJobFromFirestore(todayStr) {
       try {
         // Find any in_progress schedule for today
-        // Don't require team match - cross-device support means employee might be on different team or device
         let inProgressSchedules = todaySchedules.filter(s => s.status === 'in_progress');
 
         if (inProgressSchedules.length === 0) return;
@@ -3625,20 +3628,48 @@
 
         // Reconstruct currentJob from Firestore data
         const workingEmployees = schedule.workingEmployees || [];
-        // Get team members for this job - use all available team members if we have them
         let teamMembersForJob = [];
+
+        // Try to get employee data from current team members first
         if (teamMembers && teamMembers.length > 0) {
           teamMembersForJob = teamMembers.filter(m => workingEmployees.includes(m.id));
-        } else {
-          // Fallback: if we don't have team members loaded, create minimal objects from employee IDs
-          teamMembersForJob = workingEmployees.map(id => ({ id, firstName: '', lastName: '' }));
+        }
+
+        // For any missing employees (e.g., from other teams), fetch their data
+        const missingEmployeeIds = workingEmployees.filter(id =>
+          !teamMembersForJob.some(m => m.id === id)
+        );
+
+        if (missingEmployeeIds.length > 0) {
+          try {
+            // Fetch missing employees from Firestore
+            const missingEmployees = [];
+            for (const empId of missingEmployeeIds) {
+              const empDoc = await getDoc(doc(db, 'employees', empId));
+              if (empDoc.exists()) {
+                missingEmployees.push({ id: empDoc.id, ...empDoc.data() });
+              }
+            }
+            teamMembersForJob = [...teamMembersForJob, ...missingEmployees];
+          } catch (e) {
+            // If fetch fails, create minimal objects
+            const minimalEmployees = missingEmployeeIds.map(id => ({
+              id,
+              firstName: '',
+              lastName: ''
+            }));
+            teamMembersForJob = [...teamMembersForJob, ...minimalEmployees];
+          }
         }
 
         currentJob = {
           scheduleId: schedule.id,
           schedule,
           client,
-          teamMembers: teamMembersForJob.map(m => ({ id: m.id, name: `${m.firstName} ${m.lastName}`.trim() || m.id }))
+          teamMembers: teamMembersForJob.map(m => ({
+            id: m.id,
+            name: `${m.firstName || ''} ${m.lastName || ''}`.trim() || m.id
+          }))
         };
 
         selectedJobEmployees = currentJob.teamMembers;
@@ -3661,7 +3692,7 @@
           clockInTime = new Date(); // Set a reference time
         }
       } catch (e) {
-
+        // Silent fail - not critical if restoration doesn't work
       }
     }
 
