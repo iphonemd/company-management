@@ -1,6 +1,6 @@
 {
-  "name": "CleanPro Time Clock",
-  "short_name": "CleanPro",
+  "name": "Mendez Cleaning",
+  "short_name": "Mendez",
   "description": "Time tracking for cleaning teams",
   "start_url": "./timeclock.html",
   "scope": "./",
