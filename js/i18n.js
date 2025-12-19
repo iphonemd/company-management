@@ -53,6 +53,7 @@ const translations = {
     forgotPassword: "Forgot password?",
 
     // Navigation
+    app: "App",
     dashboard: "Dashboard",
     employees: "Employees",
     clients: "Clients",
@@ -490,6 +491,7 @@ const translations = {
     forgotPassword: "¿Olvidaste tu contraseña?",
 
     // Navigation
+    app: "App",
     dashboard: "Panel Principal",
     employees: "Empleados",
     clients: "Clientes",

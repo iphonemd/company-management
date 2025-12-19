@@ -3240,12 +3240,12 @@
         document.getElementById('currentJobAddress').textContent = `${currentJob.client.address?.street || ''}, ${currentJob.client.address?.city || ''}`;
         updateJobDetails();
 
-        // Expand job details on mobile/PWA so team members are visible without clicking
+        // Keep job details section hidden when starting a job
         const jobDetailsSection = document.getElementById('jobDetailsSection');
         const jobDetailsToggle = document.getElementById('jobDetailsToggle');
-        if (jobDetailsSection && jobDetailsSection.classList.contains('hidden')) {
-          jobDetailsSection.classList.remove('hidden');
-          if (jobDetailsToggle) jobDetailsToggle.classList.add('expanded');
+        if (jobDetailsSection && !jobDetailsSection.classList.contains('hidden')) {
+          jobDetailsSection.classList.add('hidden');
+          if (jobDetailsToggle) jobDetailsToggle.classList.remove('expanded');
         }
       } else {
         dot.classList.add('clocked-in');
