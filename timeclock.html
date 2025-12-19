@@ -1021,9 +1021,216 @@
       .bottom-nav { display: none; }
       .timeclock-content { padding-bottom: var(--space-6); }
     }
+
+    /* ============================================
+       LOADING SCREEN
+       ============================================ */
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 1;
+      transition: opacity 0.5s ease-out;
+    }
+
+    .loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-content {
+      text-align: center;
+      position: relative;
+      width: 200px;
+      height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Animated rings container */
+    .loader {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      margin-bottom: 40px;
+    }
+
+    /* Animated concentric circles */
+    .ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      border: 3px solid;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .ring:nth-child(1) {
+      width: 150px;
+      height: 150px;
+      border-color: rgba(255, 255, 255, 0.5);
+      animation: expandRing 2.5s ease-out infinite;
+    }
+
+    .ring:nth-child(2) {
+      width: 100px;
+      height: 100px;
+      border-color: rgba(255, 255, 255, 0.4);
+      animation: expandRing 2.5s ease-out infinite;
+      animation-delay: 0.4s;
+    }
+
+    .ring:nth-child(3) {
+      width: 50px;
+      height: 50px;
+      border-color: rgba(255, 255, 255, 0.3);
+      animation: expandRing 2.5s ease-out infinite;
+      animation-delay: 0.8s;
+    }
+
+    @keyframes expandRing {
+      0% {
+        width: 0;
+        height: 0;
+        opacity: 1;
+      }
+      80% {
+        opacity: 0.3;
+      }
+      100% {
+        width: 150px;
+        height: 150px;
+        opacity: 0;
+      }
+    }
+
+    /* Center icon */
+    .loader-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 4rem;
+      z-index: 10;
+      animation: iconPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes iconPulse {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.15);
+      }
+    }
+
+    /* Loading text */
+    .loading-text {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      font-family: 'Outfit', sans-serif;
+      letter-spacing: 1px;
+      animation: textFade 2s ease-in-out infinite;
+    }
+
+    @keyframes textFade {
+      0%, 100% {
+        opacity: 0.6;
+        transform: translateX(-50%) translateY(0);
+      }
+      50% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-5px);
+      }
+    }
+
+    /* Floating particles */
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+    }
+
+    .particle:nth-child(1) {
+      top: 20%;
+      left: 10%;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .particle:nth-child(2) {
+      top: 15%;
+      right: 15%;
+      animation: float 4.5s ease-in-out infinite;
+      animation-delay: 0.5s;
+    }
+
+    .particle:nth-child(3) {
+      bottom: 20%;
+      left: 5%;
+      animation: float 5s ease-in-out infinite;
+      animation-delay: 1s;
+    }
+
+    .particle:nth-child(4) {
+      bottom: 15%;
+      right: 10%;
+      animation: float 4.3s ease-in-out infinite;
+      animation-delay: 1.5s;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0) translateX(0);
+        opacity: 0.3;
+      }
+      50% {
+        transform: translateY(-30px) translateX(10px);
+        opacity: 0.8;
+      }
+    }
   </style>
 </head>
 <body>
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-content">
+      <!-- Floating particles -->
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+
+      <!-- Main loader -->
+      <div class="loader">
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <div class="loader-icon">🧹</div>
+      </div>
+
+      <!-- Loading text -->
+      <div class="loading-text">CleanPro</div>
+    </div>
+  </div>
+
   <div class="timeclock-layout" id="mainLayout">
     <div class="timeclock-main">
       <header class="timeclock-header">
@@ -1601,9 +1808,17 @@
       // PWA & Geolocation
       initPWA();
       initGeolocation();
-      
+
       // Check if at office on app open (for route prompt)
       checkOfficeArrival();
+
+      // Hide loading screen
+      setTimeout(() => {
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+          loadingScreen.classList.add('hidden');
+        }
+      }, 500);
     }
     
     // Load office settings for route optimization
@@ -3388,14 +3603,19 @@
     // Restore currentJob from Firestore for cross-device support
     async function restoreCurrentJobFromFirestore(todayStr) {
       try {
-        // Find any in_progress schedule for today for this team
-        if (!currentTeam?.id) return;
-
-        const inProgressSchedules = todaySchedules.filter(
-          s => s.status === 'in_progress' && s.teamId === currentTeam.id
-        );
+        // Find any in_progress schedule for today
+        // Don't require team match - cross-device support means employee might be on different team or device
+        let inProgressSchedules = todaySchedules.filter(s => s.status === 'in_progress');
 
         if (inProgressSchedules.length === 0) return;
+
+        // If employee is on a team, prioritize their team's schedules
+        if (currentTeam?.id) {
+          const teamSchedules = inProgressSchedules.filter(s => s.teamId === currentTeam.id);
+          if (teamSchedules.length > 0) {
+            inProgressSchedules = teamSchedules;
+          }
+        }
 
         // Use the first in_progress schedule (should only be one)
         const schedule = inProgressSchedules[0];
@@ -3405,13 +3625,20 @@
 
         // Reconstruct currentJob from Firestore data
         const workingEmployees = schedule.workingEmployees || [];
-        const teamMembersForJob = teamMembers.filter(m => workingEmployees.includes(m.id));
+        // Get team members for this job - use all available team members if we have them
+        let teamMembersForJob = [];
+        if (teamMembers && teamMembers.length > 0) {
+          teamMembersForJob = teamMembers.filter(m => workingEmployees.includes(m.id));
+        } else {
+          // Fallback: if we don't have team members loaded, create minimal objects from employee IDs
+          teamMembersForJob = workingEmployees.map(id => ({ id, firstName: '', lastName: '' }));
+        }
 
         currentJob = {
           scheduleId: schedule.id,
           schedule,
           client,
-          teamMembers: teamMembersForJob.map(m => ({ id: m.id, name: `${m.firstName} ${m.lastName}` }))
+          teamMembers: teamMembersForJob.map(m => ({ id: m.id, name: `${m.firstName} ${m.lastName}`.trim() || m.id }))
         };
 
         selectedJobEmployees = currentJob.teamMembers;
