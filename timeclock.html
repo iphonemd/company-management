@@ -2548,11 +2548,6 @@
       const schedule = todaySchedules.find(s => s.id === scheduleId);
       if (!schedule) return;
 
-      // Debug logging
-      console.log('showStartJobModal called for:', scheduleId);
-      console.log('currentJob:', currentJob?.scheduleId);
-      console.log('selectedJobEmployees at modal open:', selectedJobEmployees);
-
       if (schedule.status === 'completed') { showToast('info', 'Info', 'Trabajo ya completado'); return; }
       if (schedule.status === 'cancelled') { showToast('info', 'Info', 'Trabajo cancelado'); return; }
       if (schedule.status === 'in_progress' && currentJob?.scheduleId !== scheduleId) {
@@ -2644,7 +2639,9 @@
 
       container.innerHTML = teamMembers.map(m => {
         const isLeader = m.id === leaderId;
-        const wasSelected = selectedIds.has(m.id) || isLeader; // Leader always selected
+        // Select all team members by default if no previous selection (new job)
+        // Otherwise respect previous selections (resuming job)
+        const wasSelected = (selectedIds.size === 0 || selectedIds.has(m.id)) || isLeader;
         const avatarColor = getAvatarColor(m.firstName + m.lastName);
         const initials = getInitials(m.firstName, m.lastName);
 
