@@ -3581,8 +3581,6 @@
           }
         }
 
-        isClockedIn = state.isClockedIn || false;
-        clockInTime = state.clockInTime ? new Date(state.clockInTime) : null;
         selectedJobEmployees = state.selectedJobEmployees || [];
 
         // Restore session ID
@@ -3590,20 +3588,34 @@
           localStorage.setItem('currentSessionId', state.sessionId);
         }
 
+        // Only restore clock in times if we can validate the currentJob exists in current database
+        let validatedState = false;
         if (state.currentJob && state.jobStartTime) {
           const schedule = todaySchedules.find(s => s.id === state.currentJob.scheduleId);
           if (schedule && schedule.status === 'in_progress') {
             const client = clients[schedule.clientId];
             currentJob = { scheduleId: state.currentJob.scheduleId, schedule, client, teamMembers: selectedJobEmployees };
             jobStartTime = new Date(state.jobStartTime);
+            isClockedIn = state.isClockedIn || false;
+            clockInTime = state.clockInTime ? new Date(state.clockInTime) : null;
+            validatedState = true;
+
             if (!jobTimerInterval) {
               jobTimerInterval = setInterval(updateJobTimer, 1000);
               updateJobTimer();
             }
           }
-        } else {
+        }
+
+        if (!validatedState) {
           // No local currentJob - check Firestore for in_progress schedule (device switch scenario)
           await restoreCurrentJobFromFirestore(todayStr);
+        }
+
+        // Only restore general clock in if no currentJob was restored from state
+        if (!currentJob) {
+          isClockedIn = state.isClockedIn || false;
+          clockInTime = state.clockInTime ? new Date(state.clockInTime) : null;
         }
       } catch (e) {  }
     }
