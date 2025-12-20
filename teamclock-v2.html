@@ -268,29 +268,19 @@
       right: 0;
       bottom: 0;
       width: 100%;
-      opacity: 0;
-      transform: translateX(100%);
       overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
-      transition: opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
       padding-bottom: 60px;
       pointer-events: none;
-      will-change: opacity, transform;
-      z-index: 1;
+      z-index: 0;
+      display: none;
     }
 
     .tab-content.active {
-      opacity: 1;
-      transform: translateX(0);
       pointer-events: auto;
-      z-index: 2;
-    }
-
-    .tab-content.prev {
-      opacity: 0;
-      transform: translateX(-100%);
-      z-index: 0;
+      z-index: 1;
+      display: block;
     }
 
     /* Loading State */
@@ -1396,17 +1386,14 @@
         if (item.dataset.tab === tabName) item.classList.add('active');
       });
 
-      // Update tab visibility - simply change classes
+      // Update tab visibility
       const tabs = ['current-job', 'schedule', 'hours', 'team'];
       const currentIndex = tabs.indexOf(tabName);
 
       document.querySelectorAll('.tab-content').forEach((tab, index) => {
-        tab.classList.remove('active', 'prev');
-
+        tab.classList.remove('active');
         if (index === currentIndex) {
           tab.classList.add('active');
-        } else {
-          tab.classList.add('prev');
         }
       });
     }
@@ -2465,10 +2452,7 @@
 
     function initializeTimeSlider(employeeId, clientId, date) {
       const sliderContainer = document.getElementById('timeSliderContainer');
-      if (!sliderContainer) {
-        console.error('[SLIDER] Container not found');
-        return;
-      }
+      if (!sliderContainer) return;
 
       const startHandle = document.getElementById('startHandle');
       const endHandle = document.getElementById('endHandle');
@@ -2481,13 +2465,7 @@
 
       const sliderWidth = sliderContainer.offsetWidth - 24;
 
-      // Validate that slider has proper width
-      console.log('[SLIDER] Container width:', sliderContainer.offsetWidth, 'Calculated slider width:', sliderWidth);
-
-      if (!startHandle || !endHandle || !sliderFill) {
-        console.error('[SLIDER] Missing slider elements:', { startHandle: !!startHandle, endHandle: !!endHandle, sliderFill: !!sliderFill });
-        return;
-      }
+      if (!startHandle || !endHandle || !sliderFill) return;
 
       // Time range: 5 AM (300) to 8 PM (1020) = 720 minutes
       const MIN_MINUTES = 300;
@@ -2519,14 +2497,10 @@
           const endMin = parseInt(document.getElementById('editEndMinutes').value);
           const hours = (endMin - startMin) / 60;
 
-          console.log('[SLIDER UPDATE] Start:', startMin, 'End:', endMin, 'Hours:', hours.toFixed(1));
-
           if (displayHours) displayHours.textContent = Math.max(0, hours).toFixed(1);
 
           const startPercent = minutesToPercent(startMin);
           const endPercent = minutesToPercent(endMin);
-
-          console.log('[SLIDER UPDATE] Percentages - Start:', startPercent.toFixed(1), '% End:', endPercent.toFixed(1), '%');
 
           if (startHandle) startHandle.style.left = `calc(${startPercent}% - 12px)`;
           if (endHandle) endHandle.style.left = `calc(${endPercent}% - 12px)`;
@@ -2535,7 +2509,6 @@
           if (sliderFill) {
             sliderFill.style.left = `${startPercent}%`;
             sliderFill.style.width = `${fillPercent}%`;
-            console.log('[SLIDER UPDATE] Fill updated - left:', startPercent.toFixed(1), '% width:', fillPercent.toFixed(1), '%');
           }
 
           if (startTimeLabel) {
@@ -2646,6 +2619,100 @@
         });
       }
 
+      function makeFillDraggable(fill) {
+        let isDragging = false;
+        let startX = 0;
+
+        fill.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          startX = e.clientX;
+          fill.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+
+          const deltaX = e.clientX - startX;
+          const percent = deltaX / sliderWidth;
+          const deltaMinutes = percent * RANGE_MINUTES;
+
+          const startMin = parseInt(document.getElementById('editStartMinutes').value);
+          const endMin = parseInt(document.getElementById('editEndMinutes').value);
+          const duration = endMin - startMin;
+
+          let newStart = startMin + deltaMinutes;
+          newStart = snapToInterval(newStart);
+
+          let newEnd = newStart + duration;
+
+          if (newStart < MIN_MINUTES) {
+            newStart = MIN_MINUTES;
+            newEnd = newStart + duration;
+          }
+          if (newEnd > MAX_MINUTES) {
+            newEnd = MAX_MINUTES;
+            newStart = newEnd - duration;
+          }
+
+          document.getElementById('editStartMinutes').value = newStart;
+          document.getElementById('editEndMinutes').value = newEnd;
+
+          startX = e.clientX;
+          updateDisplay();
+        });
+
+        document.addEventListener('mouseup', () => {
+          isDragging = false;
+          fill.style.cursor = 'grab';
+        });
+      }
+
+      function makeFilllTouchable(fill) {
+        let isTouching = false;
+        let startX = 0;
+
+        fill.addEventListener('touchstart', (e) => {
+          isTouching = true;
+          startX = e.touches[0].clientX;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+          if (!isTouching) return;
+
+          const deltaX = e.touches[0].clientX - startX;
+          const percent = deltaX / sliderWidth;
+          const deltaMinutes = percent * RANGE_MINUTES;
+
+          const startMin = parseInt(document.getElementById('editStartMinutes').value);
+          const endMin = parseInt(document.getElementById('editEndMinutes').value);
+          const duration = endMin - startMin;
+
+          let newStart = startMin + deltaMinutes;
+          newStart = snapToInterval(newStart);
+
+          let newEnd = newStart + duration;
+
+          if (newStart < MIN_MINUTES) {
+            newStart = MIN_MINUTES;
+            newEnd = newStart + duration;
+          }
+          if (newEnd > MAX_MINUTES) {
+            newEnd = MAX_MINUTES;
+            newStart = newEnd - duration;
+          }
+
+          document.getElementById('editStartMinutes').value = newStart;
+          document.getElementById('editEndMinutes').value = newEnd;
+
+          startX = e.touches[0].clientX;
+          updateDisplay();
+        });
+
+        document.addEventListener('touchend', () => {
+          isTouching = false;
+        });
+      }
+
       if (startTimeInput) {
         startTimeInput.addEventListener('change', () => {
           const [hours, minutes] = startTimeInput.value.split(':').map(Number);
@@ -2676,10 +2743,14 @@
       makeHandleDraggable(endHandle);
       makeHandleTouchable(startHandle);
       makeHandleTouchable(endHandle);
+      makeFillDraggable(sliderFill);
+      makeFilllTouchable(sliderFill);
 
-      console.log('[SLIDER] Initialization complete, calling updateDisplay...');
+      // Make fill draggable
+      sliderFill.style.cursor = 'grab';
+      sliderFill.style.userSelect = 'none';
+
       updateDisplay();
-      console.log('[SLIDER] Slider ready for interaction');
     }
 
     window.saveEditedHours = async function(employeeId, clientId, date) {
