@@ -1640,6 +1640,9 @@
       const workingEmpIds = schedule.workingEmployees || [];
       const workingEmps = workingEmpIds.map(id => window.APP_STATE.employees[id]).filter(e => e);
 
+      // Get team leader ID to highlight them
+      const teamLeaderId = window.APP_STATE.currentTeam?.leaderId;
+
       container.innerHTML = `
         <div class="card" style="background: linear-gradient(135deg, var(--primary-50) 0%, var(--warning-50) 100%); border: 2px solid var(--primary-500); position: relative;">
           <div style="position: absolute; top: 12px; right: 12px; font-size: 28px;">⚡</div>
@@ -1701,12 +1704,15 @@
             <div style="margin-bottom: 16px;">
               <div style="font-size: 12px; color: var(--gray-700); font-weight: 600; margin-bottom: 8px;">👥 Empleados trabajando</div>
               <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                ${workingEmps.map(emp => `
-                  <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 12px; border-radius: 20px; border: 1px solid var(--gray-200);">
-                    <div class="avatar" style="width: 32px; height: 32px; background: ${getAvatarColor(emp.firstName)}">${emp.firstName[0]}</div>
-                    <span style="font-size: 14px; font-weight: 600;">${emp.firstName}</span>
-                  </div>
-                `).join('')}
+                ${workingEmps.map(emp => {
+                  const isTeamLeader = emp.id === teamLeaderId;
+                  return `
+                    <div style="display: flex; align-items: center; gap: 8px; background: ${isTeamLeader ? 'var(--primary-100)' : 'white'}; padding: 8px 12px; border-radius: 20px; border: ${isTeamLeader ? '2px solid var(--primary-500)' : '1px solid var(--gray-200)'}; ${isTeamLeader ? 'box-shadow: 0 2px 8px rgba(13, 148, 136, 0.2);' : ''}">
+                      <div class="avatar" style="width: 32px; height: 32px; background: ${getAvatarColor(emp.firstName)}">${emp.firstName[0]}</div>
+                      <span style="font-size: 14px; font-weight: 600;">${emp.firstName}${isTeamLeader ? ' 👑' : ''}</span>
+                    </div>
+                  `;
+                }).join('')}
               </div>
             </div>
           ` : ''}
@@ -1739,25 +1745,46 @@
         return;
       }
 
+      // If already in progress, show the active job card instead of starting again
+      if (schedule.status === 'in_progress') {
+        // Load the in-progress job into APP_STATE
+        window.APP_STATE.currentJob = {
+          id: schedule.id,
+          clientId: schedule.clientId,
+          workingEmployees: schedule.workingEmployees || [],
+          serviceDetails: schedule.serviceDetails
+        };
+        // Try to restore the start time from actualStartTime
+        if (schedule.actualStartTime) {
+          window.APP_STATE.jobStartTime = schedule.actualStartTime.toDate ? schedule.actualStartTime.toDate() : new Date(schedule.actualStartTime);
+        } else {
+          window.APP_STATE.jobStartTime = new Date();
+        }
+        await saveCurrentJobState();
+        startJobTimer();
+        window.closeModal(); // Close any open modal first
+        renderCurrentJobTab();
+        updateHeaderStatus();
+        window.switchTab('current-job');
+        return;
+      }
+
       // Show employee selection modal
       const employees = window.APP_STATE.teamMembers;
 
-      // Get team leader from teams collection using teamLeaderId
+      // Get team leader from teams collection using leaderId (not teamLeaderId)
       const currentTeam = window.APP_STATE.currentTeam;
-      let teamLeaderEmployeeId = currentTeam?.teamLeaderId;
+      let teamLeaderEmployeeId = currentTeam?.leaderId;  // Use leaderId from teams collection
       let teamLeader = teamLeaderEmployeeId ? employees.find(e => e.id === teamLeaderEmployeeId) : null;
 
-      // Fallback: find by role if teamLeaderId is not set or employee not found
-      if (!teamLeader) {
-        teamLeader = employees.find(e => e.role === 'team_leader');
-        if (teamLeader) {
-          teamLeaderEmployeeId = teamLeader.id;
-        }
+      // If team leader not found in employees, log warning but don't use fallback
+      if (!teamLeader && teamLeaderEmployeeId) {
+        console.warn('Team leader ID not found in team members:', teamLeaderEmployeeId);
       }
 
       const modalContent = `
         <h3 style="margin-top: 0; margin-bottom: 16px;">Seleccionar empleados para trabajar</h3>
-        ${teamLeader ? `<p style="font-size: 12px; color: var(--primary-600); margin-bottom: 12px; font-weight: 600;">👉 El líder del equipo (${teamLeader.firstName}) siempre está trabajando</p>` : ''}
+        ${teamLeader ? `<p style="font-size: 14px; color: var(--primary-700); margin-bottom: 16px; font-weight: 700; background: var(--primary-50); padding: 12px; border-radius: 8px; border-left: 4px solid var(--primary-600);">👑 El líder del equipo <strong>${teamLeader.firstName} ${teamLeader.lastName}</strong> siempre está trabajando</p>` : ''}
         <div id="employeeCheckboxes" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
           ${employees.map(emp => {
             const isTeamLeader = emp.id === teamLeaderEmployeeId;
@@ -1883,6 +1910,21 @@
       const schedule = window.APP_STATE.currentJob;
       const client = window.APP_STATE.clients[schedule.clientId];
 
+      // Calculate the daily price including extras
+      let dailyPrice = 0;
+      if (client) {
+        // Get base price from client document
+        dailyPrice = client.basePrice || 0;
+
+        // Add extras pricing if available
+        if (schedule.serviceDetails?.addOns && schedule.serviceDetails.addOns.length > 0) {
+          const extrasPrice = schedule.serviceDetails.addOns.reduce((total, addon) => {
+            return total + (addon.price || 0);
+          }, 0);
+          dailyPrice += extrasPrice;
+        }
+      }
+
       // Show payment/notes modal
       const modalContent = `
         <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -1896,8 +1938,8 @@
           </div>
 
           <div id="amountContainer" style="display: block;">
-            <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--gray-900);">Monto Recibido</label>
-            <input type="number" id="amountReceived" placeholder="0.00" step="0.01" min="0" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+            <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--gray-900);">Monto Recibido ${dailyPrice > 0 ? `(Sugerido: $${dailyPrice.toFixed(2)})` : ''}</label>
+            <input type="number" id="amountReceived" placeholder="0.00" step="0.01" min="0" value="${dailyPrice}" style="width: 100%; padding: 10px; border: ${dailyPrice > 0 ? '2px solid var(--primary-500)' : '1px solid var(--gray-300)'}; border-radius: 8px; font-size: 14px; box-sizing: border-box; font-weight: ${dailyPrice > 0 ? '600' : 'normal'};">
           </div>
 
           <div>
@@ -2559,10 +2601,10 @@
 
       window.openModal('Editar Horas', modalContent);
 
-      // Initialize slider after modal is rendered
+      // Initialize slider after modal is fully rendered (increase delay for better results)
       setTimeout(() => {
         initializeTimeSlider(employeeId, clientId, jobs[0].date);
-      }, 100);
+      }, 350);
     };
 
     function initializeTimeSlider(employeeId, clientId, date) {
@@ -2671,8 +2713,10 @@
       function onMouseMove(e) {
         if (!dragState.isDragging || !dragState.handle) return;
 
-        const deltaX = e.clientX - dragState.startX;
-        const percent = deltaX / sliderWidth;
+        // Calculate delta in viewport coordinates
+        const deltaX = e.clientX - dragState.startClientX;
+        const currentSliderWidth = sliderContainer.offsetWidth;
+        const percent = deltaX / currentSliderWidth;
         const deltaMinutes = percent * RANGE_MINUTES;
 
         const startMinEl = document.getElementById('editStartMinutes');
@@ -2697,7 +2741,8 @@
         newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
         document.getElementById(fieldId).value = newMinutes;
 
-        dragState.startX = e.clientX;
+        // Update start position for next movement
+        dragState.startClientX = e.clientX;
         updateDisplay();
       }
 
@@ -2715,7 +2760,8 @@
         handle.addEventListener('mousedown', (e) => {
           dragState.isDragging = true;
           dragState.handle = handle;
-          dragState.startX = e.clientX;
+          // Store viewport X position (absolute screen coordinate)
+          dragState.startClientX = e.clientX;
           handle.style.cursor = 'grabbing';
           e.preventDefault();
         });
@@ -2723,7 +2769,8 @@
         handle.addEventListener('touchstart', (e) => {
           dragState.isDragging = true;
           dragState.handle = handle;
-          dragState.startX = e.touches[0].clientX;
+          // Store viewport X position (absolute screen coordinate)
+          dragState.startClientX = e.touches[0].clientX;
           e.preventDefault();
         });
       }
@@ -2733,7 +2780,8 @@
         fill.addEventListener('mousedown', (e) => {
           dragState.isDragging = true;
           dragState.handle = { id: 'fill' };
-          dragState.startX = e.clientX;
+          // Store viewport X position (absolute screen coordinate)
+          dragState.startClientX = e.clientX;
           fill.style.cursor = 'grabbing';
           e.preventDefault();
         });
@@ -2741,7 +2789,8 @@
         fill.addEventListener('touchstart', (e) => {
           dragState.isDragging = true;
           dragState.handle = { id: 'fill' };
-          dragState.startX = e.touches[0].clientX;
+          // Store viewport X position (absolute screen coordinate)
+          dragState.startClientX = e.touches[0].clientX;
           e.preventDefault();
         });
       }
@@ -2750,8 +2799,11 @@
       function onFillMove(e) {
         if (!dragState.isDragging || dragState.handle?.id !== 'fill') return;
 
-        const deltaX = (e.clientX !== undefined ? e.clientX : e.touches[0].clientX) - dragState.startX;
-        const percent = deltaX / sliderWidth;
+        // Calculate delta in viewport coordinates
+        const currentClientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
+        const deltaX = currentClientX - dragState.startClientX;
+        const currentSliderWidth = sliderContainer.offsetWidth;
+        const percent = deltaX / currentSliderWidth;
         const deltaMinutes = percent * RANGE_MINUTES;
 
         const startMin = parseInt(document.getElementById('editStartMinutes').value);
@@ -2775,20 +2827,21 @@
         document.getElementById('editStartMinutes').value = newStart;
         document.getElementById('editEndMinutes').value = newEnd;
 
-        dragState.startX = (e.clientX !== undefined ? e.clientX : e.touches[0].clientX);
+        // Update start position for next movement
+        dragState.startClientX = currentClientX;
         updateDisplay();
       }
 
-      // Global move/up handlers
-      document.addEventListener('mousemove', (e) => {
+      // Create named handlers so we can remove them later
+      const handleMouseMove = (e) => {
         if (dragState.handle?.id === 'fill') {
           onFillMove(e);
         } else {
           onMouseMove(e);
         }
-      });
+      };
 
-      document.addEventListener('touchmove', (e) => {
+      const handleTouchMove = (e) => {
         if (dragState.isTouching && dragState.handle) {
           if (dragState.handle.id === 'fill') {
             onFillMove(e);
@@ -2796,12 +2849,28 @@
             onMouseMove({ clientX: e.touches[0].clientX });
           }
         }
-      });
+      };
 
-      document.addEventListener('mouseup', onMouseUp);
-      document.addEventListener('touchend', () => {
-        onMouseUp();
-      });
+      const handleMouseUp = () => onMouseUp();
+      const handleTouchEnd = () => onMouseUp();
+
+      // Remove any old listeners first (in case modal was opened before)
+      document.removeEventListener('mousemove', window._editSliderMouseMove);
+      document.removeEventListener('touchmove', window._editSliderTouchMove);
+      document.removeEventListener('mouseup', window._editSliderMouseUp);
+      document.removeEventListener('touchend', window._editSliderTouchEnd);
+
+      // Store references globally so we can remove them later
+      window._editSliderMouseMove = handleMouseMove;
+      window._editSliderTouchMove = handleTouchMove;
+      window._editSliderMouseUp = handleMouseUp;
+      window._editSliderTouchEnd = handleTouchEnd;
+
+      // Add the new listeners
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchend', handleTouchEnd);
 
       // Time input listeners with live sync
       if (startTimeInput) {
@@ -2839,7 +2908,8 @@
       setupHandleDrag(endHandle);
       setupFillDrag(sliderFill);
 
-      // Make fill draggable
+      // Initialize display to position handles based on current input values
+      updateDisplay();
       sliderFill.style.cursor = 'grab';
       sliderFill.style.userSelect = 'none';
 
@@ -2947,8 +3017,10 @@
       function onMouseMove(e) {
         if (!dragState.isDragging || !dragState.handle) return;
 
-        const deltaX = e.clientX - dragState.startX;
-        const percent = deltaX / sliderWidth;
+        // Calculate delta in viewport coordinates
+        const deltaX = e.clientX - dragState.startClientX;
+        const currentSliderWidth = sliderContainer.offsetWidth;
+        const percent = deltaX / currentSliderWidth;
         const deltaMinutes = percent * RANGE_MINUTES;
 
         const isStart = dragState.handle === startHandle;
@@ -2969,7 +3041,8 @@
         newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
         document.getElementById(fieldId).value = newMinutes;
 
-        dragState.startX = e.clientX;
+        // Update start position for next movement
+        dragState.startClientX = e.clientX;
         updateDisplay();
       }
 
@@ -2987,8 +3060,10 @@
       function onFillMove(e) {
         if (!dragState.isDragging || dragState.handle !== 'fill') return;
 
-        const deltaX = e.clientX - dragState.startX;
-        const percent = deltaX / sliderWidth;
+        // Calculate delta in viewport coordinates
+        const deltaX = e.clientX - dragState.startClientX;
+        const currentSliderWidth = sliderContainer.offsetWidth;
+        const percent = deltaX / currentSliderWidth;
         const deltaMinutes = percent * RANGE_MINUTES;
 
         const startMin = parseInt(document.getElementById(startMinutesId).value);
@@ -3012,7 +3087,8 @@
         document.getElementById(startMinutesId).value = newStart;
         document.getElementById(endMinutesId).value = newEnd;
 
-        dragState.startX = e.clientX;
+        // Update start position for next movement
+        dragState.startClientX = e.clientX;
         updateDisplay();
       }
 
@@ -3020,7 +3096,7 @@
         handle.addEventListener('mousedown', (e) => {
           dragState.isDragging = true;
           dragState.handle = handle;
-          dragState.startX = e.clientX;
+          dragState.startClientX = e.clientX;
           handle.style.cursor = 'grabbing';
           e.preventDefault();
         });
@@ -3028,7 +3104,7 @@
         handle.addEventListener('touchstart', (e) => {
           dragState.isDragging = true;
           dragState.handle = handle;
-          dragState.startX = e.touches[0].clientX;
+          dragState.startClientX = e.touches[0].clientX;
           e.preventDefault();
         });
       }
@@ -3037,7 +3113,7 @@
         fill.addEventListener('mousedown', (e) => {
           dragState.isDragging = true;
           dragState.handle = 'fill';
-          dragState.startX = e.clientX;
+          dragState.startClientX = e.clientX;
           fill.style.cursor = 'grabbing';
           e.preventDefault();
         });
@@ -3045,25 +3121,26 @@
         fill.addEventListener('touchstart', (e) => {
           dragState.isDragging = true;
           dragState.handle = 'fill';
-          dragState.startX = e.touches[0].clientX;
+          dragState.startClientX = e.touches[0].clientX;
           e.preventDefault();
         });
       }
 
-      document.addEventListener('mousemove', (e) => {
+      // Create named handlers so we can remove them later
+      const handleMouseMove = (e) => {
         if (dragState.handle === 'fill') {
           onFillMove(e);
         } else {
           onMouseMove(e);
         }
-      });
+      };
 
-      document.addEventListener('mouseup', () => {
+      const handleMouseUp = () => {
         onMouseUp();
         if (sliderFill) sliderFill.style.cursor = 'grab';
-      });
+      };
 
-      document.addEventListener('touchmove', (e) => {
+      const handleTouchMove = (e) => {
         if (dragState.isDragging && dragState.handle) {
           if (dragState.handle === 'fill') {
             onFillMove({ clientX: e.touches[0].clientX });
@@ -3071,15 +3148,36 @@
             onMouseMove({ clientX: e.touches[0].clientX });
           }
         }
-      });
+      };
 
-      document.addEventListener('touchend', onMouseUp);
+      const handleTouchEnd = () => onMouseUp();
+
+      // Remove any old listeners first (in case modal was opened before)
+      document.removeEventListener('mousemove', window._genericSliderMouseMove);
+      document.removeEventListener('mouseup', window._genericSliderMouseUp);
+      document.removeEventListener('touchmove', window._genericSliderTouchMove);
+      document.removeEventListener('touchend', window._genericSliderTouchEnd);
+
+      // Store references globally so we can remove them later
+      window._genericSliderMouseMove = handleMouseMove;
+      window._genericSliderMouseUp = handleMouseUp;
+      window._genericSliderTouchMove = handleTouchMove;
+      window._genericSliderTouchEnd = handleTouchEnd;
+
+      // Add the new listeners
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleTouchEnd);
 
       setupHandleDrag(startHandle);
       setupHandleDrag(endHandle);
       setupFillDrag(sliderFill);
       sliderFill.style.cursor = 'grab';
       sliderFill.style.userSelect = 'none';
+
+      // Initialize display to position handles based on current input values
+      updateDisplay();
 
       // Time input listeners with live sync
       const startTimeInputId = prefix + 'StartTimeInput';
@@ -3779,8 +3877,10 @@
         return;
       }
 
-      const leader = window.APP_STATE.teamMembers.find(m => m.role === 'team_leader');
-      const members = window.APP_STATE.teamMembers.filter(m => m.role !== 'team_leader');
+      // Find team leader using leaderId from current team
+      const teamLeaderId = window.APP_STATE.currentTeam?.leaderId;
+      const leader = teamLeaderId ? window.APP_STATE.teamMembers.find(m => m.id === teamLeaderId) : null;
+      const members = window.APP_STATE.teamMembers.filter(m => !teamLeaderId || m.id !== teamLeaderId);
 
       const { monday, sunday } = getCurrentWeekRange();
       const weekStart = formatDate(monday).split(' ')[0];
