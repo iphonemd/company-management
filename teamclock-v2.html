@@ -2466,7 +2466,7 @@
     function initializeTimeSlider(employeeId, clientId, date) {
       const sliderContainer = document.getElementById('timeSliderContainer');
       if (!sliderContainer) {
-        console.error('Slider container not found');
+        console.error('[SLIDER] Container not found');
         return;
       }
 
@@ -2480,6 +2480,14 @@
       const endTimeInput = document.getElementById('endTimeInput');
 
       const sliderWidth = sliderContainer.offsetWidth - 24;
+
+      // Validate that slider has proper width
+      console.log('[SLIDER] Container width:', sliderContainer.offsetWidth, 'Calculated slider width:', sliderWidth);
+
+      if (!startHandle || !endHandle || !sliderFill) {
+        console.error('[SLIDER] Missing slider elements:', { startHandle: !!startHandle, endHandle: !!endHandle, sliderFill: !!sliderFill });
+        return;
+      }
 
       // Time range: 5 AM (300) to 8 PM (1020) = 720 minutes
       const MIN_MINUTES = 300;
@@ -2511,10 +2519,14 @@
           const endMin = parseInt(document.getElementById('editEndMinutes').value);
           const hours = (endMin - startMin) / 60;
 
+          console.log('[SLIDER UPDATE] Start:', startMin, 'End:', endMin, 'Hours:', hours.toFixed(1));
+
           if (displayHours) displayHours.textContent = Math.max(0, hours).toFixed(1);
 
           const startPercent = minutesToPercent(startMin);
           const endPercent = minutesToPercent(endMin);
+
+          console.log('[SLIDER UPDATE] Percentages - Start:', startPercent.toFixed(1), '% End:', endPercent.toFixed(1), '%');
 
           if (startHandle) startHandle.style.left = `calc(${startPercent}% - 12px)`;
           if (endHandle) endHandle.style.left = `calc(${endPercent}% - 12px)`;
@@ -2523,6 +2535,7 @@
           if (sliderFill) {
             sliderFill.style.left = `${startPercent}%`;
             sliderFill.style.width = `${fillPercent}%`;
+            console.log('[SLIDER UPDATE] Fill updated - left:', startPercent.toFixed(1), '% width:', fillPercent.toFixed(1), '%');
           }
 
           if (startTimeLabel) {
@@ -2664,7 +2677,9 @@
       makeHandleTouchable(startHandle);
       makeHandleTouchable(endHandle);
 
+      console.log('[SLIDER] Initialization complete, calling updateDisplay...');
       updateDisplay();
+      console.log('[SLIDER] Slider ready for interaction');
     }
 
     window.saveEditedHours = async function(employeeId, clientId, date) {
