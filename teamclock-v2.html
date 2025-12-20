@@ -1223,7 +1223,6 @@
         const snap = await getDocs(jobCompletionsQuery);
 
         const hoursByEmployee = {};
-        console.log('loadWeekHours - teamMembers:', window.APP_STATE.teamMembers);
         window.APP_STATE.teamMembers.forEach(emp => {
           hoursByEmployee[emp.id] = {
             employee: emp,
@@ -1255,7 +1254,6 @@
         });
 
         window.APP_STATE.hoursByEmployee = hoursByEmployee;
-        console.log('loadWeekHours - hoursByEmployee populated:', Object.keys(hoursByEmployee).length, 'employees', hoursByEmployee);
       } catch (error) {
         console.error('Error loading week hours:', error);
       }
@@ -2056,8 +2054,6 @@
           const client = window.APP_STATE.clients[schedule.clientId];
           if (!client) return '';
 
-          console.log(`Schedule ${index + 1} - ${client.firstName} ${client.lastName}:`, { client });
-
           const isCompleted = schedule.status === 'completed';
           const isActive = schedule.status === 'in_progress';
           const isCancelled = schedule.status === 'cancelled';
@@ -2271,9 +2267,7 @@
 
     window.showEmployeeHoursDetail = function(employeeId) {
       const empData = window.APP_STATE.hoursByEmployee[employeeId];
-      console.log('showEmployeeHoursDetail:', { employeeId, empData });
       if (!empData) {
-        console.warn('No employee data found for:', employeeId);
         return;
       }
 
@@ -2339,11 +2333,8 @@
       const client = window.APP_STATE.clients[clientId];
       const jobs = empData.byClient[clientId] || [];
 
-      console.log('editClientHours:', { employeeId, clientId, empData, jobs, client });
-
       if (jobs.length === 0) {
         showToast('No hay horas para este cliente', 'warning');
-        console.warn('No jobs found for employee/client:', { employeeId, clientId });
         return;
       }
 
