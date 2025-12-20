@@ -263,31 +263,34 @@
 
     .tab-content {
       position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       width: 100%;
-      height: 100%;
-      left: 100%;
       opacity: 0;
-      transform: translateX(100px) scale(0.95);
+      transform: translateX(100%);
       overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
-      transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      transition: opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
       padding-bottom: 60px;
       pointer-events: none;
-      will-change: left, opacity, transform;
+      will-change: opacity, transform;
+      z-index: 1;
     }
 
     .tab-content.active {
-      left: 0;
       opacity: 1;
-      transform: translateX(0) scale(1);
+      transform: translateX(0);
       pointer-events: auto;
+      z-index: 2;
     }
 
     .tab-content.prev {
-      left: -100%;
       opacity: 0;
-      transform: translateX(-100px) scale(0.95);
+      transform: translateX(-100%);
+      z-index: 0;
     }
 
     /* Loading State */
@@ -1387,62 +1390,24 @@
     // ============================================
 
     function switchTab(tabName) {
-      console.log('[TAB] Switching to tab:', tabName);
-
       // Update active nav item
       document.querySelectorAll('.bottom-nav-item').forEach(item => {
         item.classList.remove('active');
         if (item.dataset.tab === tabName) item.classList.add('active');
       });
 
-      // Update tab visibility with proper transition timing
+      // Update tab visibility - simply change classes
       const tabs = ['current-job', 'schedule', 'hours', 'team'];
       const currentIndex = tabs.indexOf(tabName);
-      console.log('[TAB] Current index:', currentIndex);
 
-      // Remove all active/prev classes to reset to base state
-      document.querySelectorAll('.tab-content').forEach((tab, idx) => {
+      document.querySelectorAll('.tab-content').forEach((tab, index) => {
         tab.classList.remove('active', 'prev');
-        console.log(`[TAB] Removed classes from tab ${idx}`);
-      });
 
-      // Force reflow to apply the base state
-      void document.body.offsetHeight;
-      console.log('[TAB] Reflow 1 forced - base state applied');
-
-      // Use requestAnimationFrame to ensure the browser processes the reset
-      // before applying the new state (this guarantees animation will trigger)
-      requestAnimationFrame(() => {
-        console.log('[TAB] RAF callback: applying new classes');
-
-        document.querySelectorAll('.tab-content').forEach((tab, index) => {
-          if (index === currentIndex) {
-            tab.classList.add('active');
-            console.log(`[TAB] Applied 'active' to tab ${index}`);
-          } else {
-            tab.classList.add('prev');
-            console.log(`[TAB] Applied 'prev' to tab ${index}`);
-          }
-        });
-
-        // Force another reflow to ensure classes are applied
-        void document.body.offsetHeight;
-        console.log('[TAB] Reflow 2 forced - new state applied');
-
-        // Check computed styles after animation starts
-        setTimeout(() => {
-          const activeTab = document.querySelector('.tab-content.active');
-          if (activeTab) {
-            const styles = window.getComputedStyle(activeTab);
-            console.log('[TAB] Active tab computed styles after animation started:', {
-              left: styles.left,
-              opacity: styles.opacity,
-              transform: styles.transform,
-              transition: styles.transition,
-              pointerEvents: styles.pointerEvents
-            });
-          }
-        }, 10);
+        if (index === currentIndex) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.add('prev');
+        }
       });
     }
 
