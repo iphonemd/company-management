@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isEmployee() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isActive == true;
+    }
+
+    function isAuthorized() {
+      return isAdmin() || isEmployee();
+    }
+
+    function getUserTeamId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId;
+    }
+
+    // 1. Authentication Profiles
+    match /admins/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAdmin(); // For Cloud Functions
+      allow write: if isAdmin();
+    }
+
+    // 2. Operational Data (Read Only for Employees)
+    match /config/{docId} {
+      allow read: if isAuthorized();
+      allow write: if isAdmin();
+    }
+
+    match /clients/{docId} {
+      allow read: if isAuthorized();
+      allow write: if isAdmin();
+    }
+
+    match /employees/{docId} {
+      allow read: if isAuthorized();
+      allow write: if isAdmin();
+    }
+
+    match /teams/{docId} {
+      allow read: if isAuthorized();
+      allow write: if isAdmin();
+    }
+
+    // 3. Operational Data (Read & Write for Employees)
+    match /schedules/{docId} {
+      allow read: if isAuthorized();
+      allow update: if isAuthorized();
+      allow create, delete: if isAdmin();
+    }
+
+    match /timeEntries/{docId} {
+      allow read: if isAuthorized();
+      allow create, update: if isAuthorized();
+      allow delete: if isAdmin();
+    }
+
+    match /jobCompletions/{docId} {
+      allow read: if isAdmin() || (
+        isEmployee() &&
+        resource.data.teamId == getUserTeamId()
+      );
+      allow create: if isAuthorized();
+      allow update: if isAdmin() || (
+        isEmployee() &&
+        resource.data.teamId == getUserTeamId()
+      );
+      allow delete: if isAdmin() || (
+        isEmployee() &&
+        resource.data.teamId == getUserTeamId()
+      );
+    }
+
+    match /payments/{docId} {
+      allow read: if isAdmin();
+      allow create: if isAuthorized();
+      allow update, delete: if isAdmin();
+    }
+
+    match /auditLog/{docId} {
+      allow read: if isAdmin();
+      allow create: if isAuthorized();
+      allow update, delete: if isAdmin();
+    }
+
+    // 4. Admin Only Data
+    match /expenses/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /invoices/{docId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
