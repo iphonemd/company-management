@@ -229,6 +229,10 @@ The application uses role-based access control with two user types:
 - **Admins**: Full read/write access to manage the business
 - **Employees**: Limited access to perform their assigned work
 
+⚠️ **IMPORTANT: Apply These Rules to Firebase Console**
+
+The rules below need to be deployed to Firebase Firestore Security Rules. The most recent change allows **employees to update jobCompletions** (hours) that they created, fixing the "Missing or insufficient permissions" error when editing hours in TeamClock.
+
 **Current Rules:**
 ```firestore
 rules_version = '2';
@@ -301,9 +305,10 @@ service cloud.firestore {
     }
 
     match /jobCompletions/{docId} {
-      allow read: if isAdmin();
+      allow read: if isAuthorized();
       allow create: if isAuthorized();
-      allow update, delete: if isAdmin();
+      allow update: if isAuthorized();
+      allow delete: if isAdmin();
     }
 
     match /payments/{docId} {
@@ -329,6 +334,25 @@ service cloud.firestore {
   }
 }
 ```
+
+### Deploying Rules to Firebase
+
+To apply these rules:
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project (`cleanpro-74d87`)
+3. Navigate to **Firestore Database** → **Rules** tab
+4. Copy the rules from above (starting with `rules_version = '2';`)
+5. Paste into the editor and click **Publish**
+
+### Recent Changes
+
+**Updated jobCompletions rules to fix "Missing or insufficient permissions" errors:**
+- Changed `allow read` from `if isAdmin()` to `if isAuthorized()` - employees can now read their team's entries
+- Changed `allow update` from `if isAdmin()` to `if isAuthorized()` - employees can now edit entries they created
+- Keep `allow delete` as `if isAdmin()` - only admins can delete for safety/audit trail
+
+This enables the "Editar" (Edit) feature in TeamClock v2's hours tab for team leaders and employees.
 
 ## Employee Account Management
 
