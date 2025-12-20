@@ -1038,14 +1038,25 @@
       const savedPromptDate = localStorage.getItem('teamclock_morningPromptDate');
       if (savedPromptDate === todayStr) return;
 
-      // Check if we have schedules for today
+      // CONDITION 1: Check if it's morning (6 AM - 12 PM)
+      const now = new Date();
+      const hour = now.getHours();
+      if (hour < 6 || hour >= 12) return; // Not morning
+
       const schedules = window.APP_STATE.todaySchedules || [];
       if (schedules.length === 0) return;
 
-      // Find the first non-cancelled job
-      const firstJob = schedules.find(s => s.status === 'scheduled');
-      if (!firstJob) return;
+      // CONDITION 2: Explicitly check for first client by routeOrder
+      const scheduledJobs = schedules.filter(s => s.status === 'scheduled');
+      if (scheduledJobs.length === 0) return;
 
+      const firstJob = scheduledJobs
+        .sort((a, b) => (a.routeOrder || Infinity) - (b.routeOrder || Infinity))[0];
+
+      // Must be route #1
+      if (!firstJob || !firstJob.routeOrder || firstJob.routeOrder !== 1) return;
+
+      // Mark as shown for today
       localStorage.setItem('teamclock_morningPromptDate', todayStr);
 
       const client = window.APP_STATE.clients[firstJob.clientId];
@@ -1381,10 +1392,12 @@
         try {
           const scheduleDoc = await getDoc(doc(db, 'schedules', savedState.currentJob.scheduleId));
           if (scheduleDoc.exists() && scheduleDoc.data().status === 'in_progress') {
+            const fullScheduleData = scheduleDoc.data();
             window.APP_STATE.currentJob = {
               id: savedState.currentJob.scheduleId,
               clientId: savedState.currentJob.clientId,
-              workingEmployees: savedState.currentJob.workingEmployees
+              workingEmployees: savedState.currentJob.workingEmployees,
+              serviceDetails: fullScheduleData.serviceDetails
             };
             window.APP_STATE.jobStartTime = new Date(savedState.currentJob.startTime);
             startJobTimer();
@@ -1656,10 +1669,10 @@
             ` : ''}
 
             ${schedule.serviceDetails?.addOns && schedule.serviceDetails.addOns.length > 0 ? `
-              <div style="background: linear-gradient(135deg, var(--success-50) 0%, var(--success-100) 100%); border: 2px solid var(--success-400); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);">
-                <div style="font-size: 13px; color: var(--success-800); font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                  <span style="font-size: 18px; animation: pulse 2s infinite;">✨</span>
-                  <span>EXTRAS ESTA VEZ</span>
+              <div style="background: linear-gradient(135deg, var(--success-50) 0%, var(--success-100) 100%); border: 3px solid var(--success-500); border-radius: 12px; padding: 18px; margin-bottom: 12px; box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);">
+                <div style="font-size: 14px; color: var(--success-800); font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 22px; animation: pulse 2s infinite;">✨</span>
+                  <span>⚠️ EXTRAS ESTA VEZ - NO OLVIDAR</span>
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                   ${schedule.serviceDetails.addOns.map(addon => {
@@ -1731,8 +1744,16 @@
 
       // Get team leader from teams collection using teamLeaderId
       const currentTeam = window.APP_STATE.currentTeam;
-      const teamLeaderEmployeeId = currentTeam?.teamLeaderId;
-      const teamLeader = teamLeaderEmployeeId ? employees.find(e => e.id === teamLeaderEmployeeId) : null;
+      let teamLeaderEmployeeId = currentTeam?.teamLeaderId;
+      let teamLeader = teamLeaderEmployeeId ? employees.find(e => e.id === teamLeaderEmployeeId) : null;
+
+      // Fallback: find by role if teamLeaderId is not set or employee not found
+      if (!teamLeader) {
+        teamLeader = employees.find(e => e.role === 'team_leader');
+        if (teamLeader) {
+          teamLeaderEmployeeId = teamLeader.id;
+        }
+      }
 
       const modalContent = `
         <h3 style="margin-top: 0; margin-bottom: 16px;">Seleccionar empleados para trabajar</h3>
@@ -1783,7 +1804,8 @@
         window.APP_STATE.currentJob = {
           id: scheduleId,
           clientId: schedule.clientId,
-          workingEmployees: selectedEmployeeIds
+          workingEmployees: selectedEmployeeIds,
+          serviceDetails: schedule.serviceDetails
         };
         window.APP_STATE.jobStartTime = new Date();
 
@@ -2199,23 +2221,41 @@
     window.openRouteInMaps = function() {
       const sortedSchedules = window.APP_STATE.todaySchedules
         .filter(s => s.status !== 'cancelled' && s.status !== 'completed')
-        .sort((a, b) => (a.routeOrder || 0) - (b.routeOrder || 0));
+        .sort((a, b) => (a.routeOrder || Infinity) - (b.routeOrder || Infinity));
 
       if (sortedSchedules.length === 0) {
         showToast('No hay trabajos activos para mostrar ruta', 'warning');
         return;
       }
 
-      const addresses = sortedSchedules
+      // Collect client addresses
+      const clientAddresses = sortedSchedules
         .map(s => {
           const client = window.APP_STATE.clients[s.clientId];
-          return client?.address?.street ? encodeURIComponent(client.address.street) : null;
+          return client?.address?.street || null;
         })
         .filter(a => a);
 
-      if (addresses.length === 0) {
+      if (clientAddresses.length === 0) {
         showToast('No hay direcciones disponibles', 'warning');
         return;
+      }
+
+      // Get office coordinates from settings
+      const officeSettings = window.APP_STATE.officeSettings;
+      const officeStart = officeSettings?.start?.street || null;
+      const officeEnd = officeSettings?.end?.street || officeSettings?.start?.street || null;
+
+      // Build route: Office → Client #1 → Client #2 → ... → Office
+      const addresses = [];
+      if (officeStart) addresses.push(encodeURIComponent(officeStart)); // Start at office
+      addresses.push(...clientAddresses.map(a => encodeURIComponent(a))); // All clients
+      if (officeEnd && addresses.length > 1) {
+        // Only add office end if it's different from last client or office is set
+        const lastClient = clientAddresses[clientAddresses.length - 1];
+        if (officeEnd !== lastClient) {
+          addresses.push(encodeURIComponent(officeEnd)); // End at office
+        }
       }
 
       // Try Apple Maps first with multiple destinations
@@ -2223,7 +2263,7 @@
         const appleUrl = `maps://maps.apple.com/?q=${addresses[0]}`;
         window.location.href = appleUrl;
       } else {
-        // Apple Maps with directions (daddr for first destination, saddr for starting point)
+        // Apple Maps with directions
         const waypointString = addresses.join('&daddr=');
         const appleUrl = `maps://maps.apple.com/?daddr=${waypointString}`;
         window.location.href = appleUrl;
@@ -2538,7 +2578,7 @@
       const startTimeInput = document.getElementById('startTimeInput');
       const endTimeInput = document.getElementById('endTimeInput');
 
-      const sliderWidth = sliderContainer.offsetWidth - 24;
+      const sliderWidth = sliderContainer.offsetWidth;
 
       if (!startHandle || !endHandle || !sliderFill) return;
 
@@ -2820,7 +2860,7 @@
       const startMinutesId = prefix + 'StartMinutes';
       const endMinutesId = prefix + 'EndMinutes';
 
-      const sliderWidth = sliderContainer.offsetWidth - 24;
+      const sliderWidth = sliderContainer.offsetWidth;
 
       if (!startHandle || !endHandle || !sliderFill) return;
 
