@@ -1,0 +1,2919 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0d9488">
+  <meta name="description" content="TeamClock - Rastreo de tiempo para equipos de limpieza">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TeamClock">
+  <meta name="apple-touch-icon" href="icon.svg">
+  <meta name="msapplication-TileColor" content="#0d9488">
+  <meta name="format-detection" content="telephone=no">
+
+  <title>TeamClock - Mendez Cleaning</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+
+  <style>
+    /* ============================================
+       TEAMCLOCK V2 - CUSTOM STYLES
+       ============================================ */
+
+    :root {
+      --primary-50: #e6f7f7;
+      --primary-100: #ccefef;
+      --primary-200: #99dfdf;
+      --primary-300: #66cfcf;
+      --primary-400: #33bfbf;
+      --primary-500: #0d9488;
+      --primary-600: #0b7a70;
+      --primary-700: #086058;
+      --primary-800: #064640;
+      --primary-900: #032c28;
+
+      --secondary-500: #f97316;
+      --secondary-600: #ea580c;
+
+      --success-500: #10b981;
+      --success-100: #ecfdf5;
+      --success-600: #059669;
+
+      --warning-500: #f59e0b;
+      --warning-100: #fef3c7;
+      --warning-600: #d97706;
+
+      --danger-500: #ef4444;
+      --danger-100: #fee2e2;
+      --danger-600: #dc2626;
+
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+      --transition-fast: 0.15s ease-in-out;
+      --transition-base: 0.3s ease-in-out;
+
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-2xl: 20px;
+
+      --text-xs: 12px;
+      --text-sm: 14px;
+      --text-base: 16px;
+      --text-lg: 18px;
+      --text-xl: 20px;
+      --text-2xl: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--gray-50);
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    input, textarea, select {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    /* Main Layout */
+    .teamclock-app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100%;
+      background: var(--gray-50);
+    }
+
+    /* Header */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 900;
+      background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+      color: white;
+      padding: 12px 16px;
+      padding-top: calc(12px + max(0px, env(safe-area-inset-top)));
+      box-shadow: var(--shadow-md);
+      flex-shrink: 0;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .header-time-date {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .header-time {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: 'Outfit', monospace;
+      line-height: 1;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .header-date {
+      font-size: var(--text-xs);
+      opacity: 0.9;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .header-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-lg);
+      font-size: 18px;
+      cursor: pointer;
+      transition: background var(--transition-fast);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-btn:active {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .header-status {
+      font-size: var(--text-sm);
+      opacity: 0.95;
+      padding: 0 8px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      border-radius: 20px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.working {
+      background: var(--success-500);
+    }
+
+    .status-dot.idle {
+      background: var(--gray-400);
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.1); }
+    }
+
+    /* Team Selector (Admin Only) */
+    .admin-team-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .admin-team-selector label {
+      font-size: var(--text-sm);
+      opacity: 0.9;
+    }
+
+    .admin-team-selector select {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 6px 10px;
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M4.5 6.5l3.5 4 3.5-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 6px center;
+      background-size: 16px;
+    }
+
+    .admin-team-selector select option {
+      background: white;
+      color: var(--gray-900);
+    }
+
+    /* Tab Content Area */
+    .tab-content-area {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      position: relative;
+    }
+
+    .tab-content {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 100%;
+      opacity: 0;
+      transform: translateX(100px) scale(0.95);
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      padding-bottom: 60px;
+      pointer-events: none;
+      will-change: left, opacity, transform;
+    }
+
+    .tab-content.active {
+      left: 0;
+      opacity: 1;
+      transform: translateX(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .tab-content.prev {
+      left: -100%;
+      opacity: 0;
+      transform: translateX(-100px) scale(0.95);
+    }
+
+    /* Loading State */
+    .tab-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-size: var(--text-lg);
+      color: var(--gray-500);
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: white;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-end;
+      padding-bottom: max(0px, env(safe-area-inset-bottom));
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .bottom-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 10px 8px;
+      min-height: 50px;
+      color: var(--gray-500);
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 12px;
+      font-weight: 500;
+      transition: color var(--transition-fast);
+      font-family: 'DM Sans', sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .bottom-nav-item.active {
+      color: var(--primary-500);
+    }
+
+    .bottom-nav-icon {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .bottom-nav-label {
+      font-size: 11px;
+      text-transform: capitalize;
+    }
+
+    /* Common Button Styles */
+    .btn {
+      border: none;
+      border-radius: var(--radius-lg);
+      padding: 12px 16px;
+      font-size: var(--text-base);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: 'DM Sans', sans-serif;
+      min-height: 44px;
+    }
+
+    .btn-primary {
+      background: var(--primary-500);
+      color: white;
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn-primary:active {
+      background: var(--primary-600);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--gray-200);
+      color: var(--gray-900);
+    }
+
+    .btn-secondary:active {
+      background: var(--gray-300);
+    }
+
+    .btn-danger {
+      background: var(--danger-500);
+      color: white;
+    }
+
+    .btn-danger:active {
+      background: var(--danger-600);
+    }
+
+    .btn-success {
+      background: var(--success-500);
+      color: white;
+    }
+
+    .btn-success:active {
+      background: var(--success-600);
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      display: none;
+      align-items: flex-end;
+      opacity: 0;
+      transition: opacity 0.3s ease-out;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-overlay.closing {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+      padding: 24px;
+      padding-bottom: calc(24px + max(0px, env(safe-area-inset-bottom)));
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    .modal-content.closing {
+      animation: slideDown 0.3s ease-in forwards;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(100%);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideDown {
+      from {
+        transform: translateY(0);
+      }
+      to {
+        transform: translateY(100%);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+      }
+    }
+
+    /* Card Styles */
+    .card {
+      background: white;
+      border-radius: var(--radius-xl);
+      padding: var(--space-4);
+      box-shadow: var(--shadow-md);
+      margin-bottom: var(--space-3);
+    }
+
+    .card-title {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      margin-bottom: var(--space-2);
+    }
+
+    .card-subtitle {
+      font-size: var(--text-sm);
+      color: var(--gray-600);
+      margin-bottom: var(--space-3);
+    }
+
+    /* Avatar */
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      font-size: var(--text-sm);
+      flex-shrink: 0;
+    }
+
+    /* Responsive Padding */
+    .container {
+      padding: 16px;
+      padding-bottom: 76px;
+    }
+
+    /* Utility Classes */
+    .hidden {
+      display: none;
+    }
+
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .flex-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gap-2 {
+      gap: 8px;
+    }
+
+    .gap-3 {
+      gap: 12px;
+    }
+
+    .gap-4 {
+      gap: 16px;
+    }
+
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+    .mt-4 { margin-top: 16px; }
+
+    .mb-2 { margin-bottom: 8px; }
+    .mb-3 { margin-bottom: 12px; }
+    .mb-4 { margin-bottom: 16px; }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .text-sm {
+      font-size: var(--text-sm);
+    }
+
+    .text-xs {
+      font-size: var(--text-xs);
+    }
+
+    .text-gray {
+      color: var(--gray-600);
+    }
+
+    .font-bold {
+      font-weight: 700;
+    }
+
+    .font-semibold {
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="teamclock-app">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-top">
+        <div class="header-time-date">
+          <div class="header-time" id="headerTime">00:00</div>
+          <div class="header-date" id="headerDate">Hoy</div>
+        </div>
+        <div id="headerStatus" class="header-status" style="display: none;">
+          <span class="status-dot idle"></span>
+          <span id="statusText">Inactivo</span>
+        </div>
+        <div class="header-actions">
+          <button class="header-btn" id="refreshBtn" title="Actualizar" onclick="location.reload()">🔄</button>
+          <button class="header-btn" id="logoutBtn" title="Cerrar Sesión" onclick="logout()">🚪</button>
+        </div>
+      </div>
+
+      <!-- Admin Team Selector -->
+      <div id="adminTeamSelector" class="admin-team-selector" style="display: none;">
+        <label for="teamSelect">Equipo:</label>
+        <select id="teamSelect">
+          <option value="">Todos</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- Tab Content Area -->
+    <div class="tab-content-area">
+      <!-- Tab 1: Current Job -->
+      <div id="tab-current-job" class="tab-content active">
+        <div class="container">
+          <div id="currentJobContent"></div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Today's Schedule -->
+      <div id="tab-schedule" class="tab-content prev">
+        <div class="container">
+          <div id="scheduleContent"></div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Hours -->
+      <div id="tab-hours" class="tab-content prev">
+        <div class="container">
+          <div id="hoursContent"></div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Team Info -->
+      <div id="tab-team" class="tab-content prev">
+        <div class="container">
+          <div id="teamContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="bottom-nav-item active" data-tab="current-job" onclick="switchTab('current-job')">
+        <div class="bottom-nav-icon">⏱️</div>
+        <div class="bottom-nav-label">Trabajo</div>
+      </button>
+      <button class="bottom-nav-item" data-tab="schedule" onclick="switchTab('schedule')">
+        <div class="bottom-nav-icon">📅</div>
+        <div class="bottom-nav-label">Horario</div>
+      </button>
+      <button class="bottom-nav-item" data-tab="hours" onclick="switchTab('hours')">
+        <div class="bottom-nav-icon">⏳</div>
+        <div class="bottom-nav-label">Horas</div>
+      </button>
+      <button class="bottom-nav-item" data-tab="team" onclick="switchTab('team')">
+        <div class="bottom-nav-icon">👥</div>
+        <div class="bottom-nav-label">Equipo</div>
+      </button>
+    </nav>
+
+    <!-- Modal Overlay -->
+    <div id="modalOverlay" class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal-content" id="modalContent" onclick="event.stopPropagation()"></div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module">
+    // ============================================
+    // FIREBASE & IMPORTS
+    // ============================================
+    import {
+      db,
+      auth,
+      collection,
+      doc,
+      getDoc,
+      getDocs,
+      query,
+      where,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      Timestamp,
+      signOut,
+      onAuthStateChanged
+    } from './js/firebase-config.js';
+
+    import { i18n } from './js/i18n.js';
+    import {
+      showToast,
+      formatDate,
+      formatTime,
+      formatCurrency
+    } from './js/utils.js';
+
+    // ============================================
+    // GLOBAL STATE
+    // ============================================
+    window.APP_STATE = {
+      user: null,
+      currentTeam: null,
+      currentEmployee: null,
+      isAdmin: false,
+      isTeamLeader: false,
+      selectedTeamId: null,
+      teamMembers: [],
+      allTeams: [],
+      todaySchedules: [],
+      clients: {},
+      employees: {},
+      currentJob: null,
+      jobStartTime: null,
+      jobTimerInterval: null,
+      hoursByEmployee: {},
+      teamEmployeeIds: [],
+      isSyncing: false
+    };
+
+    // ============================================
+    // UTILITY FUNCTIONS
+    // ============================================
+
+    function getLocalDateString(date = new Date()) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function getSpanishDayName(date = new Date()) {
+      const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      return days[date.getDay()];
+    }
+
+    function getAvatarColor(name) {
+      const colors = [
+        '#0d9488', '#f97316', '#8b5cf6', '#ec4899',
+        '#10b981', '#3b82f6', '#f59e0b', '#ef4444'
+      ];
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
+    }
+
+    function msToHoursMinutes(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    // ============================================
+    // INDEXEDDB SETUP
+    // ============================================
+
+    let idb = null;
+
+    async function initIndexedDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('TeamClockDB', 1);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          idb = request.result;
+          resolve(idb);
+        };
+
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('state')) {
+            db.createObjectStore('state', { keyPath: 'id' });
+          }
+        };
+      });
+    }
+
+    async function saveStateToDB(state) {
+      if (!idb) return;
+      return new Promise((resolve, reject) => {
+        const tx = idb.transaction(['state'], 'readwrite');
+        const store = tx.objectStore('state');
+        store.put({ id: 'current', ...state, savedAt: Date.now() });
+        tx.onerror = () => reject(tx.error);
+        tx.oncomplete = () => resolve();
+      });
+    }
+
+    async function loadStateFromDB() {
+      if (!idb) return null;
+      return new Promise((resolve, reject) => {
+        const tx = idb.transaction(['state'], 'readonly');
+        const store = tx.objectStore('state');
+        const request = store.get('current');
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+      });
+    }
+
+    async function clearDBState() {
+      if (!idb) return;
+      return new Promise((resolve, reject) => {
+        const tx = idb.transaction(['state'], 'readwrite');
+        const store = tx.objectStore('state');
+        store.delete('current');
+        tx.onerror = () => reject(tx.error);
+        tx.oncomplete = () => resolve();
+      });
+    }
+
+    // ============================================
+    // AUTHENTICATION
+    // ============================================
+
+    async function initializeUser(user) {
+      try {
+        // Check if admin
+        const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+        if (adminDoc.exists()) {
+          window.APP_STATE.isAdmin = true;
+          window.APP_STATE.currentEmployee = { id: user.uid, ...adminDoc.data() };
+          document.body.classList.add('is-admin');
+          renderAdminTeamSelector();
+          return;
+        }
+
+        // Check if employee
+        const empQuery = query(
+          collection(db, 'employees'),
+          where('email', '==', user.email)
+        );
+        const empSnap = await getDocs(empQuery);
+
+        if (!empSnap.empty) {
+          const empData = empSnap.docs[0].data();
+          window.APP_STATE.currentEmployee = { id: empSnap.docs[0].id, ...empData };
+
+          // Load team
+          if (empData.teamId) {
+            const teamDoc = await getDoc(doc(db, 'teams', empData.teamId));
+            if (teamDoc.exists()) {
+              window.APP_STATE.currentTeam = { id: teamDoc.id, ...teamDoc.data() };
+              window.APP_STATE.isTeamLeader = empData.role === 'team_leader';
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing user:', error);
+        showToast('Error al inicializar sesión', 'error');
+      }
+    }
+
+    window.logout = async function() {
+      if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) return;
+      try {
+        // Clear all local data
+        localStorage.clear();
+        await clearDBState();
+
+        // Sign out from Firebase
+        await signOut(auth);
+
+        // Redirect to login
+        window.location.href = 'index.html';
+      } catch (error) {
+        console.error('Error logging out:', error);
+        showToast('Error al cerrar sesión', 'error');
+      }
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        window.APP_STATE.user = user;
+        await initIndexedDB();
+        await initializeUser(user);
+
+        // Force Spanish language
+        i18n.setLanguage('es');
+
+        // Update header clock
+        updateHeaderClock();
+        setInterval(updateHeaderClock, 1000);
+
+        // Restore session and load data
+        await restoreSession();
+        await loadAllData();
+
+        // Setup auto-sync on visibility change
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Setup refresh button
+        document.getElementById('refreshBtn').addEventListener('click', async () => {
+          await loadAllData();
+          showToast('Datos actualizados', 'success');
+        });
+
+        // Setup team selector
+        if (window.APP_STATE.isAdmin) {
+          document.getElementById('teamSelect').addEventListener('change', (e) => {
+            window.APP_STATE.selectedTeamId = e.target.value;
+            localStorage.setItem('teamclock_selectedTeam', e.target.value);
+            loadAllData();
+          });
+        }
+
+        // Render UI
+        renderAllTabs();
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // ============================================
+    // HEADER UPDATES
+    // ============================================
+
+    function updateHeaderClock() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const day = getSpanishDayName(now);
+
+      document.getElementById('headerTime').textContent = `${hours}:${minutes}`;
+      document.getElementById('headerDate').textContent = day;
+    }
+
+    function updateHeaderStatus() {
+      const statusEl = document.getElementById('headerStatus');
+      if (window.APP_STATE.currentJob) {
+        const client = window.APP_STATE.clients[window.APP_STATE.currentJob.clientId];
+        if (client) {
+          document.getElementById('statusText').textContent = `${client.firstName} ${client.lastName}`;
+          document.querySelector('.status-dot').classList.remove('idle');
+          document.querySelector('.status-dot').classList.add('working');
+          statusEl.style.display = 'flex';
+        }
+      } else {
+        statusEl.style.display = 'none';
+      }
+    }
+
+    function renderAdminTeamSelector() {
+      const selector = document.getElementById('adminTeamSelector');
+      const select = document.getElementById('teamSelect');
+
+      if (!window.APP_STATE.isAdmin) return;
+
+      selector.style.display = 'flex';
+
+      // Load all teams
+      loadAllTeams().then(() => {
+        select.innerHTML = '<option value="">Todos los equipos</option>' +
+          window.APP_STATE.allTeams.map(team =>
+            `<option value="${team.id}">${team.name}</option>`
+          ).join('');
+
+        const saved = localStorage.getItem('teamclock_selectedTeam');
+        if (saved) select.value = saved;
+      });
+    }
+
+    // ============================================
+    // DATA LOADING
+    // ============================================
+
+    async function loadAllTeams() {
+      try {
+        const snap = await getDocs(collection(db, 'teams'));
+        window.APP_STATE.allTeams = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (error) {
+        console.error('Error loading teams:', error);
+      }
+    }
+
+    async function loadEmployees() {
+      try {
+        const snap = await getDocs(collection(db, 'employees'));
+        window.APP_STATE.employees = {};
+        snap.docs.forEach(doc => {
+          window.APP_STATE.employees[doc.id] = { id: doc.id, ...doc.data() };
+        });
+      } catch (error) {
+        console.error('Error loading employees:', error);
+      }
+    }
+
+    async function loadClients() {
+      try {
+        const snap = await getDocs(collection(db, 'clients'));
+        window.APP_STATE.clients = {};
+        snap.docs.forEach(doc => {
+          window.APP_STATE.clients[doc.id] = { id: doc.id, ...doc.data() };
+        });
+      } catch (error) {
+        console.error('Error loading clients:', error);
+      }
+    }
+
+    async function loadOfficeSettings() {
+      try {
+        const docSnap = await getDoc(doc(db, 'config', 'officeSettings'));
+        if (docSnap.exists()) {
+          window.APP_STATE.officeSettings = docSnap.data();
+        }
+      } catch (error) {
+        console.error('Error loading office settings:', error);
+      }
+    }
+
+    function checkMorningNavigationPrompt() {
+      // Only check if no job is currently in progress
+      if (window.APP_STATE.currentJob) return;
+
+      // Only show once per session
+      if (window.APP_STATE.morningPromptShown) return;
+
+      // Check if we have schedules for today
+      const schedules = window.APP_STATE.todaySchedules || [];
+      if (schedules.length === 0) return;
+
+      // Find the first non-cancelled job
+      const firstJob = schedules.find(s => s.status === 'scheduled');
+      if (!firstJob) return;
+
+      window.APP_STATE.morningPromptShown = true;
+
+      const client = window.APP_STATE.clients[firstJob.clientId];
+      if (!client) return;
+
+      const modalContent = `
+        <p style="margin: 0 0 16px 0; color: var(--gray-700);">¿Deseas navegar al primer cliente?</p>
+        <div style="background: var(--gray-100); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;">
+          <strong>${client.firstName} ${client.lastName}</strong><br>
+          ${client.address?.street || 'Sin dirección'}
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button onclick="window.closeModal();" style="flex: 1; padding: 12px; background: var(--gray-200); color: var(--gray-900); border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Ahora no</button>
+          <button onclick="window.navigateToClientFromPrompt('${firstJob.clientId}');" style="flex: 1; padding: 12px; background: var(--primary-500); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Navegar 🧭</button>
+        </div>
+      `;
+      openModal('Primer Cliente', modalContent);
+    }
+
+    window.navigateToClientFromPrompt = function(clientId) {
+      const client = window.APP_STATE.clients[clientId];
+      if (!client) return;
+
+      const address = encodeURIComponent(client.address?.street || client.firstName + ' ' + client.lastName);
+      const url = `maps://maps.apple.com/?q=${address}`;
+      window.location.href = url;
+
+      // Fallback to Google Maps after a short delay
+      setTimeout(() => {
+        window.open(`https://maps.google.com/?q=${address}`, '_blank');
+      }, 500);
+
+      window.closeModal();
+    };
+
+    function checkEndOfDayNavigationPrompt() {
+      // Check if there are any remaining jobs scheduled for today
+      const schedules = window.APP_STATE.todaySchedules || [];
+      const remainingJobs = schedules.filter(s => s.status === 'scheduled' || s.status === 'in_progress');
+
+      if (remainingJobs.length > 0) return; // Still have jobs to do
+
+      // Check if office settings exist
+      if (!window.APP_STATE.officeSettings) return;
+
+      const officeSettings = window.APP_STATE.officeSettings;
+      if (!officeSettings.address) return;
+
+      const modalContent = `
+        <p style="margin: 0 0 16px 0; color: var(--gray-700);">¿Deseas navegar a la oficina para finalizar el día?</p>
+        <div style="background: var(--gray-100); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;">
+          <strong>Oficina</strong><br>
+          ${officeSettings.address}
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button onclick="window.closeModal();" style="flex: 1; padding: 12px; background: var(--gray-200); color: var(--gray-900); border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Ahora no</button>
+          <button onclick="window.navigateToOfficeFromPrompt();" style="flex: 1; padding: 12px; background: var(--primary-500); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Navegar 🏢</button>
+        </div>
+      `;
+      openModal('Fin de Día', modalContent);
+    }
+
+    window.navigateToOfficeFromPrompt = function() {
+      const officeSettings = window.APP_STATE.officeSettings;
+      if (!officeSettings) return;
+
+      const address = encodeURIComponent(officeSettings.address);
+      const url = `maps://maps.apple.com/?q=${address}`;
+      window.location.href = url;
+
+      // Fallback to Google Maps after a short delay
+      setTimeout(() => {
+        window.open(`https://maps.google.com/?q=${address}`, '_blank');
+      }, 500);
+
+      window.closeModal();
+    };
+
+    async function loadTeamMembers() {
+      try {
+        if (!window.APP_STATE.currentTeam && !window.APP_STATE.isAdmin) return;
+
+        let teamIds = [];
+        if (window.APP_STATE.isAdmin && window.APP_STATE.selectedTeamId) {
+          teamIds = [window.APP_STATE.selectedTeamId];
+        } else if (window.APP_STATE.currentTeam) {
+          teamIds = [window.APP_STATE.currentTeam.id];
+        }
+
+        if (teamIds.length === 0) {
+          window.APP_STATE.teamMembers = [];
+          return;
+        }
+
+        const snap = await getDocs(
+          query(
+            collection(db, 'employees'),
+            where('teamId', 'in', teamIds)
+          )
+        );
+
+        window.APP_STATE.teamMembers = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })).sort((a, b) => {
+          if (a.role === 'team_leader') return -1;
+          if (b.role === 'team_leader') return 1;
+          return a.firstName.localeCompare(b.firstName);
+        });
+
+        window.APP_STATE.teamEmployeeIds = window.APP_STATE.teamMembers.map(m => m.id);
+      } catch (error) {
+        console.error('Error loading team members:', error);
+      }
+    }
+
+    async function loadTodaySchedules() {
+      try {
+        const todayStr = getLocalDateString();
+        let schedulesQuery;
+
+        if (window.APP_STATE.isAdmin && window.APP_STATE.selectedTeamId) {
+          schedulesQuery = query(
+            collection(db, 'schedules'),
+            where('date', '==', todayStr),
+            where('teamId', '==', window.APP_STATE.selectedTeamId)
+          );
+        } else if (window.APP_STATE.isAdmin && !window.APP_STATE.selectedTeamId) {
+          schedulesQuery = query(
+            collection(db, 'schedules'),
+            where('date', '==', todayStr)
+          );
+        } else if (window.APP_STATE.currentTeam) {
+          schedulesQuery = query(
+            collection(db, 'schedules'),
+            where('date', '==', todayStr),
+            where('teamId', '==', window.APP_STATE.currentTeam.id)
+          );
+        } else {
+          window.APP_STATE.todaySchedules = [];
+          return;
+        }
+
+        const snap = await getDocs(schedulesQuery);
+        window.APP_STATE.todaySchedules = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })).sort((a, b) => {
+          // Cancelled to bottom
+          if (a.status === 'cancelled' && b.status !== 'cancelled') return 1;
+          if (b.status === 'cancelled' && a.status !== 'cancelled') return -1;
+          // Then by routeOrder
+          return (a.routeOrder || Infinity) - (b.routeOrder || Infinity);
+        });
+      } catch (error) {
+        console.error('Error loading schedules:', error);
+      }
+    }
+
+    async function loadWeekHours() {
+      try {
+        const { monday, sunday } = getCurrentWeekRange();
+
+        const daysInWeek = [];
+        for (let d = new Date(monday); d <= sunday; d.setDate(d.getDate() + 1)) {
+          daysInWeek.push(getLocalDateString(d));
+        }
+
+        if (window.APP_STATE.teamEmployeeIds.length === 0) {
+          window.APP_STATE.hoursByEmployee = {};
+          return;
+        }
+
+        // Build query with teamId filter for security rules compliance
+        let jobCompletionsQuery;
+        if (window.APP_STATE.isAdmin && window.APP_STATE.selectedTeamId) {
+          // Admin viewing specific team
+          jobCompletionsQuery = query(
+            collection(db, 'jobCompletions'),
+            where('date', 'in', daysInWeek),
+            where('teamId', '==', window.APP_STATE.selectedTeamId),
+            where('employeeId', 'in', window.APP_STATE.teamEmployeeIds)
+          );
+        } else if (window.APP_STATE.currentTeam) {
+          // Team leader viewing own team
+          jobCompletionsQuery = query(
+            collection(db, 'jobCompletions'),
+            where('date', 'in', daysInWeek),
+            where('teamId', '==', window.APP_STATE.currentTeam.id),
+            where('employeeId', 'in', window.APP_STATE.teamEmployeeIds)
+          );
+        } else {
+          window.APP_STATE.hoursByEmployee = {};
+          return;
+        }
+
+        const snap = await getDocs(jobCompletionsQuery);
+
+        const hoursByEmployee = {};
+        console.log('loadWeekHours - teamMembers:', window.APP_STATE.teamMembers);
+        window.APP_STATE.teamMembers.forEach(emp => {
+          hoursByEmployee[emp.id] = {
+            employee: emp,
+            totalHours: 0,
+            byDay: {},
+            byClient: {},
+            jobCompletions: []
+          };
+
+          daysInWeek.forEach(day => {
+            hoursByEmployee[emp.id].byDay[day] = [];
+          });
+        });
+
+        snap.docs.forEach(doc => {
+          const jc = doc.data();
+          jc.id = doc.id;
+
+          if (!hoursByEmployee[jc.employeeId]) return;
+
+          hoursByEmployee[jc.employeeId].totalHours += jc.duration || 0;
+          hoursByEmployee[jc.employeeId].byDay[jc.date].push(jc);
+          hoursByEmployee[jc.employeeId].jobCompletions.push(jc);
+
+          if (!hoursByEmployee[jc.employeeId].byClient[jc.clientId]) {
+            hoursByEmployee[jc.employeeId].byClient[jc.clientId] = [];
+          }
+          hoursByEmployee[jc.employeeId].byClient[jc.clientId].push(jc);
+        });
+
+        window.APP_STATE.hoursByEmployee = hoursByEmployee;
+        console.log('loadWeekHours - hoursByEmployee populated:', Object.keys(hoursByEmployee).length, 'employees', hoursByEmployee);
+      } catch (error) {
+        console.error('Error loading week hours:', error);
+      }
+    }
+
+    async function loadAllData() {
+      if (window.APP_STATE.isSyncing) return;
+      window.APP_STATE.isSyncing = true;
+
+      try {
+        // Load these in parallel
+        await Promise.all([
+          loadAllTeams(),
+          loadEmployees(),
+          loadClients(),
+          loadOfficeSettings()
+        ]);
+
+        // Load team members first, then week hours (depends on team members)
+        await loadTeamMembers();
+
+        // Load schedules and week hours in parallel
+        await Promise.all([
+          loadTodaySchedules(),
+          loadWeekHours()
+        ]);
+
+        updateHeaderStatus();
+        renderAllTabs();
+
+        // Check for morning navigation prompt
+        checkMorningNavigationPrompt();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        showToast('Error al cargar datos', 'error');
+      } finally {
+        window.APP_STATE.isSyncing = false;
+      }
+    }
+
+    function getCurrentWeekRange() {
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - daysFromMonday);
+      monday.setHours(0, 0, 0, 0);
+
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+
+      return { monday, sunday };
+    }
+
+    // ============================================
+    // STATE PERSISTENCE
+    // ============================================
+
+    async function saveCurrentJobState() {
+      if (!window.APP_STATE.currentJob) {
+        localStorage.removeItem('teamclock_currentJob');
+        await clearDBState();
+        return;
+      }
+
+      const state = {
+        currentJob: {
+          scheduleId: window.APP_STATE.currentJob.id,
+          clientId: window.APP_STATE.currentJob.clientId,
+          startTime: window.APP_STATE.jobStartTime.toISOString(),
+          workingEmployees: window.APP_STATE.currentJob.workingEmployees || []
+        }
+      };
+
+      localStorage.setItem('teamclock_currentJob', JSON.stringify(state.currentJob));
+      await saveStateToDB(state);
+    }
+
+    async function restoreSession() {
+      const todayStr = getLocalDateString();
+
+      // Check IndexedDB first
+      let savedState = await loadStateFromDB();
+
+      if (!savedState) {
+        // Try localStorage
+        const saved = localStorage.getItem('teamclock_currentJob');
+        if (saved) savedState = { currentJob: JSON.parse(saved) };
+      }
+
+      if (savedState?.currentJob) {
+        // Verify date is today
+        const savedDate = getLocalDateString(new Date(savedState.currentJob.startTime));
+        if (savedDate !== todayStr) {
+          await clearDBState();
+          localStorage.removeItem('teamclock_currentJob');
+          return;
+        }
+
+        // Verify job still exists and is in progress
+        try {
+          const scheduleDoc = await getDoc(doc(db, 'schedules', savedState.currentJob.scheduleId));
+          if (scheduleDoc.exists() && scheduleDoc.data().status === 'in_progress') {
+            window.APP_STATE.currentJob = {
+              id: savedState.currentJob.scheduleId,
+              clientId: savedState.currentJob.clientId,
+              workingEmployees: savedState.currentJob.workingEmployees
+            };
+            window.APP_STATE.jobStartTime = new Date(savedState.currentJob.startTime);
+            startJobTimer();
+          }
+        } catch (error) {
+          console.error('Error restoring session:', error);
+        }
+      }
+    }
+
+    // ============================================
+    // TAB NAVIGATION
+    // ============================================
+
+    function switchTab(tabName) {
+      console.log('[TAB] Switching to tab:', tabName);
+
+      // Update active nav item
+      document.querySelectorAll('.bottom-nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.tab === tabName) item.classList.add('active');
+      });
+
+      // Update tab visibility with proper transition timing
+      const tabs = ['current-job', 'schedule', 'hours', 'team'];
+      const currentIndex = tabs.indexOf(tabName);
+      console.log('[TAB] Current index:', currentIndex);
+
+      // Remove all active/prev classes to reset to base state
+      document.querySelectorAll('.tab-content').forEach((tab, idx) => {
+        tab.classList.remove('active', 'prev');
+        console.log(`[TAB] Removed classes from tab ${idx}`);
+      });
+
+      // Force reflow to apply the base state
+      void document.body.offsetHeight;
+      console.log('[TAB] Reflow 1 forced - base state applied');
+
+      // Use requestAnimationFrame to ensure the browser processes the reset
+      // before applying the new state (this guarantees animation will trigger)
+      requestAnimationFrame(() => {
+        console.log('[TAB] RAF callback: applying new classes');
+
+        document.querySelectorAll('.tab-content').forEach((tab, index) => {
+          if (index === currentIndex) {
+            tab.classList.add('active');
+            console.log(`[TAB] Applied 'active' to tab ${index}`);
+          } else {
+            tab.classList.add('prev');
+            console.log(`[TAB] Applied 'prev' to tab ${index}`);
+          }
+        });
+
+        // Force another reflow to ensure classes are applied
+        void document.body.offsetHeight;
+        console.log('[TAB] Reflow 2 forced - new state applied');
+
+        // Check computed styles after animation starts
+        setTimeout(() => {
+          const activeTab = document.querySelector('.tab-content.active');
+          if (activeTab) {
+            const styles = window.getComputedStyle(activeTab);
+            console.log('[TAB] Active tab computed styles after animation started:', {
+              left: styles.left,
+              opacity: styles.opacity,
+              transform: styles.transform,
+              transition: styles.transition,
+              pointerEvents: styles.pointerEvents
+            });
+          }
+        }, 10);
+      });
+    }
+
+    window.switchTab = switchTab;
+
+    // ============================================
+    // MODAL FUNCTIONS
+    // ============================================
+
+    window.openModal = function(title, content) {
+      const modalContent = document.getElementById('modalContent');
+      const overlay = document.getElementById('modalOverlay');
+
+      if (typeof content === 'string') {
+        modalContent.innerHTML = `
+          <h3 style="margin-top: 0; margin-bottom: 16px;">${title}</h3>
+          ${content}
+        `;
+      } else {
+        modalContent.innerHTML = content;
+      }
+
+      overlay.classList.add('active');
+    };
+
+    window.closeModal = function(e) {
+      const overlay = document.getElementById('modalOverlay');
+      const content = document.getElementById('modalContent');
+      if (e && e.target !== overlay) return;
+
+      // Add closing animation
+      overlay.classList.add('closing');
+      content.classList.add('closing');
+
+      // Remove active class after animation completes
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        overlay.classList.remove('closing');
+        content.classList.remove('closing');
+      }, 300);
+    };
+
+    // ============================================
+    // EVENT HANDLERS
+    // ============================================
+
+    async function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        await loadAllData();
+
+        // Check if current job was completed elsewhere
+        if (window.APP_STATE.currentJob) {
+          const freshSchedules = window.APP_STATE.todaySchedules;
+          const freshSchedule = freshSchedules.find(s => s.id === window.APP_STATE.currentJob.id);
+
+          if (freshSchedule && freshSchedule.status === 'completed' && window.APP_STATE.currentJob.status !== 'completed') {
+            showToast('Este trabajo fue completado en otro dispositivo', 'info');
+            window.APP_STATE.currentJob = null;
+            window.APP_STATE.jobStartTime = null;
+            if (window.APP_STATE.jobTimerInterval) {
+              clearInterval(window.APP_STATE.jobTimerInterval);
+            }
+            updateHeaderStatus();
+            renderAllTabs();
+          }
+        }
+      }
+    }
+
+    // ============================================
+    // JOB TIMER
+    // ============================================
+
+    function startJobTimer() {
+      if (window.APP_STATE.jobTimerInterval) {
+        clearInterval(window.APP_STATE.jobTimerInterval);
+      }
+
+      window.APP_STATE.jobTimerInterval = setInterval(() => {
+        if (window.APP_STATE.currentJob && window.APP_STATE.jobStartTime) {
+          const elapsed = Date.now() - window.APP_STATE.jobStartTime.getTime();
+          const timerEl = document.getElementById('jobTimer');
+          if (timerEl) {
+            timerEl.textContent = msToHoursMinutes(elapsed);
+          }
+        }
+      }, 100);
+    }
+
+    // ============================================
+    // RENDER FUNCTIONS (Placeholders - will be completed in next phase)
+    // ============================================
+
+    function renderAllTabs() {
+      renderCurrentJobTab();
+      renderScheduleTab();
+      renderHoursTab();
+      renderTeamTab();
+    }
+
+    function renderCurrentJobTab() {
+      const container = document.getElementById('currentJobContent');
+
+      if (window.APP_STATE.currentJob) {
+        renderActiveJobCard(container);
+      } else {
+        renderNoJobState(container);
+      }
+    }
+
+    function renderNoJobState(container) {
+      if (window.APP_STATE.todaySchedules.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 40px 20px; color: var(--gray-600);">
+            <div style="font-size: 48px; margin-bottom: 16px;">📅</div>
+            <h2 style="margin: 0 0 8px 0; color: var(--gray-900);">No hay trabajos hoy</h2>
+            <p>No hay clientes programados para hoy</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Find next scheduled job
+      const nextJob = window.APP_STATE.todaySchedules.find(s => s.status === 'scheduled');
+
+      let nextJobHtml = '';
+      if (nextJob) {
+        const client = window.APP_STATE.clients[nextJob.clientId];
+        if (client) {
+          nextJobHtml = `
+            <div class="card" style="cursor: pointer; background: linear-gradient(135deg, var(--primary-50) 0%, var(--primary-100) 100%); border: 2px solid var(--primary-500); transform: scale(1); transition: transform 0.2s;" onclick="startJobFlow('${nextJob.id}')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                  <div class="card-subtitle" style="color: var(--primary-700); font-weight: 700;">👉 PRÓXIMO CLIENTE</div>
+                </div>
+                <div style="font-size: 24px;">→</div>
+              </div>
+              <div style="font-size: 20px; font-weight: 700; margin-bottom: 12px; color: var(--primary-900);">
+                ${client.firstName} ${client.lastName}
+              </div>
+              <div style="font-size: 14px; color: var(--primary-700); margin-bottom: 8px;">
+                📍 ${client.address?.street || 'N/A'}
+              </div>
+              <div style="font-size: 12px; color: var(--primary-600); margin-top: 12px; font-weight: 600;">Toca para comenzar →</div>
+            </div>
+          `;
+        }
+      }
+
+      container.innerHTML = `
+        <div style="text-align: center; padding: 40px 20px;">
+          <div style="font-size: 64px; margin-bottom: 16px;">⏱️</div>
+          <h2 style="margin: 0 0 8px 0; color: var(--gray-900);">Listo para comenzar</h2>
+          <p style="color: var(--gray-600); margin: 0 0 24px 0;">Selecciona un cliente para comenzar</p>
+        </div>
+        ${nextJobHtml}
+        <div style="margin-top: 24px;">
+          <h3 style="font-size: 14px; font-weight: 700; color: var(--gray-900); margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">Todos los clientes de hoy</h3>
+          <div id="quickStartList"></div>
+        </div>
+      `;
+
+      // Render quick start buttons
+      renderQuickStartList();
+    }
+
+    function renderQuickStartList() {
+      const list = document.getElementById('quickStartList');
+      if (!list) return;
+
+      const html = window.APP_STATE.todaySchedules
+        .filter(s => s.status !== 'completed')
+        .map((schedule, index) => {
+          const client = window.APP_STATE.clients[schedule.clientId];
+          const isInProgress = schedule.status === 'in_progress';
+          const isCancelled = schedule.status === 'cancelled';
+
+          if (!client) return '';
+
+          return `
+            <div class="card" style="margin-bottom: 12px; cursor: pointer; ${isInProgress ? 'border: 2px solid var(--warning-500);' : ''}" onclick="startJobFlow('${schedule.id}')">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+                <div style="flex: 1; text-align: left;">
+                  <div style="font-size: 12px; color: var(--primary-600); font-weight: 600; margin-bottom: 4px;">
+                    ${isCancelled ? '❌ CANCELADO' : isInProgress ? '⚡ EN PROGRESO' : `#${index + 1}`}
+                  </div>
+                  <div style="font-weight: 700; margin-bottom: 4px; ${isCancelled ? 'text-decoration: line-through; color: var(--gray-400);' : ''}">${client.firstName} ${client.lastName}</div>
+                  <div style="font-size: 12px; color: var(--gray-600);">📍 ${client.address?.street || 'N/A'}</div>
+                </div>
+                <div style="font-size: 20px;">${isInProgress ? '▶️' : '→'}</div>
+              </div>
+              <button class="btn" style="width: 100%; background: var(--secondary-500); color: white; padding: 8px; font-size: 13px;" onclick="navigateToClient('${schedule.clientId}'); event.stopPropagation();">🧭 Navegar</button>
+            </div>
+          `;
+        })
+        .join('');
+
+      list.innerHTML = html || '<p style="color: var(--gray-600); text-align: center;">No hay trabajos disponibles</p>';
+    }
+
+    function renderActiveJobCard(container) {
+      const schedule = window.APP_STATE.currentJob;
+      const client = window.APP_STATE.clients[schedule.clientId];
+
+      if (!client) {
+        container.innerHTML = '<p>Error: Cliente no encontrado</p>';
+        return;
+      }
+
+      const workingEmpIds = schedule.workingEmployees || [];
+      const workingEmps = workingEmpIds.map(id => window.APP_STATE.employees[id]).filter(e => e);
+
+      container.innerHTML = `
+        <div class="card" style="background: linear-gradient(135deg, var(--primary-50) 0%, var(--warning-50) 100%); border: 2px solid var(--primary-500); position: relative;">
+          <div style="position: absolute; top: 12px; right: 12px; font-size: 28px;">⚡</div>
+
+          <div style="margin-bottom: 20px;">
+            <div style="font-size: 12px; color: var(--primary-700); font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">Trabajo en progreso</div>
+            <div style="font-size: 24px; font-weight: 700; color: var(--primary-900); font-family: 'Outfit', monospace; margin-bottom: 4px;" id="jobTimer">00:00:00</div>
+          </div>
+
+          <div style="background: white; border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+            <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">${client.firstName} ${client.lastName}</div>
+            <div style="font-size: 14px; color: var(--gray-600); margin-bottom: 4px;">📍 ${client.address?.street || 'N/A'}</div>
+            ${client.address?.city ? `<div style="font-size: 12px; color: var(--gray-600); margin-bottom: 12px;">${client.address.city}</div>` : ''}
+
+            ${(client.doorCode || client.houseCode) && (client.doorCode || client.houseCode) !== 'No code' ? `
+              <div style="background: var(--warning-100); border: 2px solid var(--warning-600); border-radius: 8px; padding: 12px; margin-bottom: 12px; text-align: center;">
+                <div style="font-size: 12px; color: var(--warning-700); font-weight: 600; margin-bottom: 4px;">🔑 CÓDIGO</div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--warning-900); font-family: 'Outfit', monospace; letter-spacing: 2px;">${client.doorCode || client.houseCode}</div>
+              </div>
+            ` : ''}
+
+            ${(client.notes || client.comments) ? `
+              <div style="background: var(--gray-50); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                <div style="font-size: 12px; color: var(--gray-600); font-weight: 600; margin-bottom: 4px;">📝 Notas</div>
+                <div style="font-size: 14px; color: var(--gray-900);">${client.notes || client.comments}</div>
+              </div>
+            ` : ''}
+
+            ${schedule.serviceDetails?.addOns && schedule.serviceDetails.addOns.length > 0 ? `
+              <div style="background: linear-gradient(135deg, var(--success-50) 0%, var(--success-100) 100%); border: 2px solid var(--success-400); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);">
+                <div style="font-size: 13px; color: var(--success-800); font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 18px; animation: pulse 2s infinite;">✨</span>
+                  <span>EXTRAS ESTA VEZ</span>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  ${schedule.serviceDetails.addOns.map(addon => {
+                    const addonLabel = typeof addon === 'object' ? (addon.area || 'Extra') : addon;
+                    const floorLabels = { basement: '🏚️ Sótano', mainLevel: '🏠 Planta Principal', upstairs: '⬆️ Planta Alta' };
+                    const displayLabel = floorLabels[addonLabel] || addonLabel;
+                    return `<span style="background: white; border: 2px solid var(--success-500); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--success-700); font-weight: 700; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);">${displayLabel}</span>`;
+                  }).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            ${client.areas ? `
+              <div style="background: var(--gray-50); border-radius: 8px; padding: 12px;">
+                <div style="font-size: 12px; color: var(--gray-600); font-weight: 600; margin-bottom: 8px;">🏠 Áreas disponibles</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  ${Object.keys(client.areas || {}).map(area => `
+                    <span style="background: white; border: 1px solid var(--gray-300); border-radius: 16px; padding: 4px 12px; font-size: 12px; color: var(--gray-700);">${area}</span>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+          ${workingEmps.length > 0 ? `
+            <div style="margin-bottom: 16px;">
+              <div style="font-size: 12px; color: var(--gray-700); font-weight: 600; margin-bottom: 8px;">👥 Empleados trabajando</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                ${workingEmps.map(emp => `
+                  <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 12px; border-radius: 20px; border: 1px solid var(--gray-200);">
+                    <div class="avatar" style="width: 32px; height: 32px; background: ${getAvatarColor(emp.firstName)}">${emp.firstName[0]}</div>
+                    <span style="font-size: 14px; font-weight: 600;">${emp.firstName}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px;">
+            <button class="btn btn-block" style="background: var(--success-500); color: white; font-size: 16px; padding: 14px;" onclick="completeJob()">
+              ✓ Completar Trabajo
+            </button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <button class="btn btn-block" style="background: var(--secondary-500); color: white;" onclick="navigateToClient('${schedule.clientId}')">
+              🧭 Navegar
+            </button>
+            <button class="btn btn-block btn-danger" onclick="cancelJob()">
+              ✕ Cancelar
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Start timer if not already running
+      startJobTimer();
+    }
+
+    window.startJobFlow = async function(scheduleId) {
+      const schedule = window.APP_STATE.todaySchedules.find(s => s.id === scheduleId);
+      if (!schedule || schedule.status === 'completed' || schedule.status === 'cancelled') {
+        showToast('No se puede iniciar este trabajo', 'warning');
+        return;
+      }
+
+      // Show employee selection modal
+      const employees = window.APP_STATE.teamMembers;
+
+      // Get team leader from teams collection using teamLeaderId
+      const currentTeam = window.APP_STATE.currentTeam;
+      const teamLeaderEmployeeId = currentTeam?.teamLeaderId;
+      const teamLeader = teamLeaderEmployeeId ? employees.find(e => e.id === teamLeaderEmployeeId) : null;
+
+      const modalContent = `
+        <h3 style="margin-top: 0; margin-bottom: 16px;">Seleccionar empleados para trabajar</h3>
+        ${teamLeader ? `<p style="font-size: 12px; color: var(--primary-600); margin-bottom: 12px; font-weight: 600;">👉 El líder del equipo (${teamLeader.firstName}) siempre está trabajando</p>` : ''}
+        <div id="employeeCheckboxes" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+          ${employees.map(emp => {
+            const isTeamLeader = emp.id === teamLeaderEmployeeId;
+            return `
+            <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: ${isTeamLeader ? 'var(--primary-50)' : 'var(--gray-50)'}; border-radius: 8px; cursor: ${isTeamLeader ? 'default' : 'pointer'}; border: ${isTeamLeader ? '1px solid var(--primary-300)' : '1px solid transparent'};">
+              <input type="checkbox" value="${emp.id}" ${isTeamLeader ? 'checked disabled' : 'checked'} style="width: 20px; height: 20px; cursor: ${isTeamLeader ? 'not-allowed' : 'pointer'};">
+              <div style="flex: 1;">
+                <div style="font-weight: 600; color: var(--gray-900);">${emp.firstName} ${emp.lastName}</div>
+                <div style="font-size: 12px; color: var(--gray-600); text-transform: capitalize;">${isTeamLeader ? '👑 Líder' : 'Miembro'}</div>
+              </div>
+              ${isTeamLeader ? `<div style="font-size: 12px; color: var(--primary-600); font-weight: 600;">Siempre</div>` : ''}
+            </label>`;
+          }).join('')}
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <button class="btn btn-block btn-secondary" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-block btn-primary" onclick="confirmStartJob('${scheduleId}')">Comenzar</button>
+        </div>
+      `;
+
+      window.openModal('Comenzar trabajo', modalContent);
+    };
+
+    window.confirmStartJob = async function(scheduleId) {
+      const checkboxes = document.querySelectorAll('#employeeCheckboxes input[type="checkbox"]:checked');
+      const selectedEmployeeIds = Array.from(checkboxes).map(cb => cb.value);
+
+      if (selectedEmployeeIds.length === 0) {
+        showToast('Selecciona al menos un empleado', 'warning');
+        return;
+      }
+
+      try {
+        // Update schedule status
+        const scheduleRef = doc(db, 'schedules', scheduleId);
+        await updateDoc(scheduleRef, {
+          status: 'in_progress',
+          actualStartTime: Timestamp.now(),
+          workingEmployees: selectedEmployeeIds
+        });
+
+        // Find the schedule locally and update current job
+        const schedule = window.APP_STATE.todaySchedules.find(s => s.id === scheduleId);
+        window.APP_STATE.currentJob = {
+          id: scheduleId,
+          clientId: schedule.clientId,
+          workingEmployees: selectedEmployeeIds
+        };
+        window.APP_STATE.jobStartTime = new Date();
+
+        await saveCurrentJobState();
+
+        window.closeModal();
+        showToast('Trabajo iniciado', 'success');
+        updateHeaderStatus();
+        renderCurrentJobTab();
+      } catch (error) {
+        console.error('Error starting job:', error);
+        showToast('Error al iniciar trabajo', 'error');
+      }
+    };
+
+    window.editJobEmployees = function() {
+      const employees = window.APP_STATE.teamMembers;
+      const currentEmps = window.APP_STATE.currentJob?.workingEmployees || [];
+
+      const modalContent = `
+        <h3 style="margin-top: 0; margin-bottom: 16px;">Ajustar empleados</h3>
+        <p style="color: var(--gray-600); font-size: 14px; margin-bottom: 16px;">Nota: Los cambios se aplicarán en el siguiente trabajo. Para este trabajo, ajusta las horas después de completar.</p>
+        <div id="employeeCheckboxes" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+          ${employees.map(emp => `
+            <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--gray-50); border-radius: 8px; cursor: pointer;">
+              <input type="checkbox" value="${emp.id}" ${currentEmps.includes(emp.id) ? 'checked' : ''} style="width: 20px; height: 20px; cursor: pointer;">
+              <div>
+                <div style="font-weight: 600; color: var(--gray-900);">${emp.firstName} ${emp.lastName}</div>
+              </div>
+            </label>
+          `).join('')}
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <button class="btn btn-block btn-secondary" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-block btn-primary" onclick="saveJobEmployeeChanges()">Guardar</button>
+        </div>
+      `;
+
+      window.openModal('Empleados', modalContent);
+    };
+
+    window.saveJobEmployeeChanges = async function() {
+      const checkboxes = document.querySelectorAll('#employeeCheckboxes input[type="checkbox"]:checked');
+      const selectedEmployeeIds = Array.from(checkboxes).map(cb => cb.value);
+
+      if (selectedEmployeeIds.length === 0) {
+        showToast('Selecciona al menos un empleado', 'warning');
+        return;
+      }
+
+      try {
+        const scheduleRef = doc(db, 'schedules', window.APP_STATE.currentJob.id);
+        await updateDoc(scheduleRef, {
+          workingEmployees: selectedEmployeeIds
+        });
+
+        window.APP_STATE.currentJob.workingEmployees = selectedEmployeeIds;
+        await saveCurrentJobState();
+
+        window.closeModal();
+        showToast('Empleados actualizados', 'success');
+        renderCurrentJobTab();
+      } catch (error) {
+        console.error('Error updating employees:', error);
+        showToast('Error al actualizar empleados', 'error');
+      }
+    };
+
+    window.completeJob = function() {
+      if (!window.APP_STATE.currentJob || !window.APP_STATE.jobStartTime) {
+        showToast('No hay trabajo en progreso', 'warning');
+        return;
+      }
+
+      const schedule = window.APP_STATE.currentJob;
+      const client = window.APP_STATE.clients[schedule.clientId];
+
+      // Show payment/notes modal
+      const modalContent = `
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--gray-900);">Tipo de Pago</label>
+            <select id="paymentType" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px; background: white;">
+              <option value="efectivo">💵 Efectivo</option>
+              <option value="cheque">📝 Cheque</option>
+              <option value="otro">📋 Otro</option>
+            </select>
+          </div>
+
+          <div id="amountContainer" style="display: block;">
+            <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--gray-900);">Monto Recibido</label>
+            <input type="number" id="amountReceived" placeholder="0.00" step="0.01" min="0" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+          </div>
+
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--gray-900);">Notas (Opcional)</label>
+            <textarea id="employeeNotes" placeholder="Cualquier observación sobre el trabajo..." style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px; resize: vertical; min-height: 80px; box-sizing: border-box; font-family: inherit;"></textarea>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 12px;">
+            <button onclick="window.closeModal();" style="flex: 1; padding: 12px; background: var(--gray-200); color: var(--gray-900); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+              Cancelar
+            </button>
+            <button onclick="window.saveJobCompletion();" style="flex: 1; padding: 12px; background: var(--success-500); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+              Completar Trabajo
+            </button>
+          </div>
+        </div>
+      `;
+
+      openModal('Completar Trabajo', modalContent);
+
+      // Handle payment type change to show/hide amount field
+      const paymentTypeSelect = document.getElementById('paymentType');
+      const amountContainer = document.getElementById('amountContainer');
+
+      paymentTypeSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'efectivo') {
+          amountContainer.style.display = 'block';
+        } else {
+          amountContainer.style.display = 'none';
+          document.getElementById('amountReceived').value = '';
+        }
+      });
+    };
+
+    window.saveJobCompletion = async function() {
+      if (!window.APP_STATE.currentJob || !window.APP_STATE.jobStartTime) {
+        showToast('No hay trabajo en progreso', 'warning');
+        return;
+      }
+
+      try {
+        const schedule = window.APP_STATE.currentJob;
+        const client = window.APP_STATE.clients[schedule.clientId];
+        const endTime = new Date();
+        const durationMs = endTime.getTime() - window.APP_STATE.jobStartTime.getTime();
+        const durationHours = durationMs / 3600000;
+
+        // Get payment data from modal
+        const paymentType = document.getElementById('paymentType')?.value || 'otro';
+        const amountReceived = paymentType === 'efectivo' ? (parseFloat(document.getElementById('amountReceived')?.value) || 0) : null;
+        const employeeNotes = document.getElementById('employeeNotes')?.value || '';
+
+        // Update schedule
+        await updateDoc(doc(db, 'schedules', schedule.id), {
+          status: 'completed',
+          actualEndTime: Timestamp.now(),
+          completedEmployees: schedule.workingEmployees
+        });
+
+        // Create jobCompletions for each employee
+        const todayStr = getLocalDateString();
+        for (const empId of schedule.workingEmployees) {
+          const emp = window.APP_STATE.employees[empId];
+          if (emp) {
+            await addDoc(collection(db, 'jobCompletions'), {
+              date: todayStr,
+              employeeId: empId,
+              employeeName: `${emp.firstName} ${emp.lastName}`,
+              clientId: schedule.clientId,
+              clientName: `${client.firstName} ${client.lastName}`,
+              duration: durationHours,
+              startTime: Timestamp.fromDate(window.APP_STATE.jobStartTime),
+              endTime: Timestamp.fromDate(endTime),
+              scheduleId: schedule.id,
+              manual: false,
+              teamId: window.APP_STATE.currentTeam?.id || emp.teamId,
+              paymentType: paymentType,
+              amountReceived: amountReceived,
+              employeeNotes: employeeNotes,
+              createdAt: Timestamp.now()
+            });
+          }
+        }
+
+        // Log to audit log
+        await addDoc(collection(db, 'auditLog'), {
+          action: 'job_completed',
+          userId: window.APP_STATE.user?.uid,
+          scheduleId: schedule.id,
+          clientId: schedule.clientId,
+          details: {
+            clientName: `${client.firstName} ${client.lastName}`,
+            duration: durationHours,
+            paymentType: paymentType,
+            amountReceived: amountReceived,
+            notes: employeeNotes,
+            workingEmployees: schedule.workingEmployees.length,
+            workingEmployeeIds: schedule.workingEmployees
+          },
+          timestamp: Timestamp.now()
+        });
+
+        // Clear current job
+        window.APP_STATE.currentJob = null;
+        window.APP_STATE.jobStartTime = null;
+        if (window.APP_STATE.jobTimerInterval) {
+          clearInterval(window.APP_STATE.jobTimerInterval);
+        }
+
+        await saveCurrentJobState();
+        await loadAllData();
+
+        updateHeaderStatus();
+        renderAllTabs();
+        window.closeModal();
+        window.switchTab('schedule');
+
+        showToast('Trabajo completado', 'success');
+
+        // Check if this was the last job and offer to navigate to office
+        setTimeout(() => {
+          checkEndOfDayNavigationPrompt();
+        }, 500);
+      } catch (error) {
+        console.error('Error completing job:', error);
+        showToast('Error al completar trabajo', 'error');
+      }
+    };
+
+    window.cancelJob = async function() {
+      if (!confirm('¿Estás seguro de que deseas cancelar este trabajo?')) return;
+
+      try {
+        const schedule = window.APP_STATE.currentJob;
+
+        // Update schedule
+        await updateDoc(doc(db, 'schedules', schedule.id), {
+          status: 'cancelled',
+          actualEndTime: Timestamp.now()
+        });
+
+        // Clear current job
+        window.APP_STATE.currentJob = null;
+        window.APP_STATE.jobStartTime = null;
+        if (window.APP_STATE.jobTimerInterval) {
+          clearInterval(window.APP_STATE.jobTimerInterval);
+        }
+
+        await saveCurrentJobState();
+        await loadTodaySchedules();
+
+        updateHeaderStatus();
+        renderCurrentJobTab();
+
+        showToast('Trabajo cancelado', 'success');
+      } catch (error) {
+        console.error('Error cancelling job:', error);
+        showToast('Error al cancelar trabajo', 'error');
+      }
+    };
+
+    window.navigateToClient = function(clientId) {
+      const client = window.APP_STATE.clients[clientId];
+      if (!client || !client.address) {
+        showToast('No hay dirección disponible', 'warning');
+        return;
+      }
+
+      const address = encodeURIComponent(client.address.street || '');
+
+      // Try Apple Maps first
+      const appleUrl = `maps://maps.apple.com/?q=${address}`;
+      window.location.href = appleUrl;
+
+      // Fallback to Google Maps after 500ms
+      setTimeout(() => {
+        const googleUrl = `https://maps.google.com/?q=${address}`;
+        window.open(googleUrl, '_blank');
+      }, 500);
+    };
+
+    function renderScheduleTab() {
+      const container = document.getElementById('scheduleContent');
+
+      if (window.APP_STATE.todaySchedules.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 40px 20px; color: var(--gray-600);">
+            <div style="font-size: 48px; margin-bottom: 16px;">📅</div>
+            <h2 style="margin: 0 0 8px 0; color: var(--gray-900);">No hay trabajos hoy</h2>
+            <p>No hay clientes programados para hoy</p>
+          </div>
+        `;
+        return;
+      }
+
+      const scheduleHtml = window.APP_STATE.todaySchedules
+        .map((schedule, index) => {
+          const client = window.APP_STATE.clients[schedule.clientId];
+          if (!client) return '';
+
+          console.log(`Schedule ${index + 1} - ${client.firstName} ${client.lastName}:`, { client });
+
+          const isCompleted = schedule.status === 'completed';
+          const isActive = schedule.status === 'in_progress';
+          const isCancelled = schedule.status === 'cancelled';
+
+          return `
+            <div class="card" style="cursor: pointer; ${isActive ? 'border: 2px solid var(--warning-500); background: linear-gradient(135deg, var(--warning-50) 0%, white 100%);' : ''}" onclick="toggleScheduleDetails('${schedule.id}')">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                  <div style="width: 40px; height: 40px; border-radius: 50%; background: ${isCompleted ? 'var(--success-100)' : isActive ? 'var(--warning-100)' : 'var(--primary-100)'}; display: flex; align-items: center; justify-content: center; font-weight: 700; color: ${isCompleted ? 'var(--success-700)' : isActive ? 'var(--warning-700)' : 'var(--primary-700)'}; flex-shrink: 0;">
+                    ${isCompleted ? '✓' : isCancelled ? '✕' : index + 1}
+                  </div>
+                  <div style="flex: 1;">
+                    <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px; ${isCancelled ? 'text-decoration: line-through; color: var(--gray-400);' : ''}">${client.firstName} ${client.lastName}</div>
+                    <div style="font-size: 13px; color: var(--gray-600);">📍 ${client.address?.street || 'N/A'}</div>
+                  </div>
+                </div>
+                <div style="font-size: 20px; color: var(--gray-400);" id="expand-icon-${schedule.id}">▼</div>
+              </div>
+
+              <div id="details-${schedule.id}" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--gray-200);">
+                ${client.address?.city ? `
+                  <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <span style="color: var(--gray-600); font-size: 13px;">📍</span>
+                    <div>
+                      <div style="font-size: 12px; color: var(--gray-600);">Ciudad</div>
+                      <div style="font-size: 14px; font-weight: 600;">${client.address.city}</div>
+                    </div>
+                  </div>
+                ` : ''}
+
+                ${(client.doorCode || client.houseCode) && (client.doorCode || client.houseCode) !== 'No code' ? `
+                  <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <span style="color: var(--warning-600); font-size: 13px;">🔑</span>
+                    <div>
+                      <div style="font-size: 12px; color: var(--gray-600);">Código</div>
+                      <div style="font-size: 16px; font-weight: 700; font-family: 'Outfit', monospace; color: var(--warning-700); letter-spacing: 1px;">${client.doorCode || client.houseCode}</div>
+                    </div>
+                  </div>
+                ` : ''}
+
+                ${schedule.serviceDetails?.addOns && schedule.serviceDetails.addOns.length > 0 ? `
+                  <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <span style="color: var(--success-600); font-size: 13px;">✨</span>
+                    <div style="flex: 1;">
+                      <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 6px;">Extras (Esta vez)</div>
+                      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        ${schedule.serviceDetails.addOns.map(addon => {
+                          const addonLabel = typeof addon === 'object' ? (addon.area || 'Extra') : addon;
+                          const floorLabels = { basement: '🏚️ Sótano', mainLevel: '🏠 Planta Principal', upstairs: '⬆️ Planta Alta' };
+                          const displayLabel = floorLabels[addonLabel] || addonLabel;
+                          return `<span style="background: var(--success-50); border: 1px solid var(--success-300); border-radius: 12px; padding: 4px 10px; font-size: 12px; color: var(--success-700);">${displayLabel}</span>`;
+                        }).join('')}
+                      </div>
+                    </div>
+                  </div>
+                ` : ''}
+
+                ${client.areas ? `
+                  <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <span style="color: var(--primary-600); font-size: 13px;">🏠</span>
+                    <div style="flex: 1;">
+                      <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 6px;">Áreas disponibles</div>
+                      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        ${Object.keys(client.areas || {}).map(area => `
+                          <span style="background: var(--primary-50); border: 1px solid var(--primary-300); border-radius: 12px; padding: 4px 10px; font-size: 12px; color: var(--primary-700);">${area}</span>
+                        `).join('')}
+                      </div>
+                    </div>
+                  </div>
+                ` : ''}
+
+                ${(client.notes || client.comments) ? `
+                  <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <span style="color: var(--gray-600); font-size: 13px;">📝</span>
+                    <div style="flex: 1;">
+                      <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Notas</div>
+                      <div style="font-size: 14px; color: var(--gray-900);">${client.notes || client.comments}</div>
+                    </div>
+                  </div>
+                ` : ''}
+
+                <div style="display: flex; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--gray-200);">
+                  <button class="btn btn-block" style="background: var(--secondary-500); color: white; padding: 10px;" onclick="openClientInMaps('${schedule.clientId}', event)">
+                    🧭 Navegar
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      container.innerHTML = `
+        ${window.APP_STATE.todaySchedules.some(s => s.status !== 'completed' && s.status !== 'cancelled') ? `
+          <button class="btn btn-block btn-primary" style="margin-bottom: 16px;" onclick="openRouteInMaps()">
+            🗺️ Ver Ruta Completa
+          </button>
+        ` : ''}
+        ${scheduleHtml}
+      `;
+    }
+
+    window.toggleScheduleDetails = function(scheduleId) {
+      const details = document.getElementById(`details-${scheduleId}`);
+      const icon = document.getElementById(`expand-icon-${scheduleId}`);
+
+      if (details.style.display === 'none') {
+        details.style.display = 'block';
+        icon.textContent = '▲';
+      } else {
+        details.style.display = 'none';
+        icon.textContent = '▼';
+      }
+    };
+
+    window.openClientInMaps = function(clientId, event) {
+      event.stopPropagation();
+      window.navigateToClient(clientId);
+    };
+
+    window.openRouteInMaps = function() {
+      const sortedSchedules = window.APP_STATE.todaySchedules
+        .filter(s => s.status !== 'cancelled' && s.status !== 'completed')
+        .sort((a, b) => (a.routeOrder || 0) - (b.routeOrder || 0));
+
+      if (sortedSchedules.length === 0) {
+        showToast('No hay trabajos activos para mostrar ruta', 'warning');
+        return;
+      }
+
+      const addresses = sortedSchedules
+        .map(s => {
+          const client = window.APP_STATE.clients[s.clientId];
+          return client?.address?.street ? encodeURIComponent(client.address.street) : null;
+        })
+        .filter(a => a);
+
+      if (addresses.length === 0) {
+        showToast('No hay direcciones disponibles', 'warning');
+        return;
+      }
+
+      // Try Apple Maps first with multiple destinations
+      if (addresses.length === 1) {
+        const appleUrl = `maps://maps.apple.com/?q=${addresses[0]}`;
+        window.location.href = appleUrl;
+      } else {
+        // Apple Maps with directions (daddr for first destination, saddr for starting point)
+        const waypointString = addresses.join('&daddr=');
+        const appleUrl = `maps://maps.apple.com/?daddr=${waypointString}`;
+        window.location.href = appleUrl;
+      }
+
+      // Fallback to Google Maps
+      setTimeout(() => {
+        const googleUrl = `https://www.google.com/maps/dir/${addresses.join('/')}`;
+        window.open(googleUrl, '_blank');
+      }, 500);
+    };
+
+    function renderHoursTab() {
+      const container = document.getElementById('hoursContent');
+
+      if (window.APP_STATE.teamMembers.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 40px 20px; color: var(--gray-600);">
+            <div style="font-size: 48px; margin-bottom: 16px;">👥</div>
+            <h2 style="margin: 0 0 8px 0; color: var(--gray-900);">No hay miembros del equipo</h2>
+          </div>
+        `;
+        return;
+      }
+
+      const { monday, sunday } = getCurrentWeekRange();
+      const weekStart = formatDate(monday).split(' ')[0];
+      const weekEnd = formatDate(sunday).split(' ')[0];
+
+      const employeeCards = window.APP_STATE.teamMembers
+        .map(emp => {
+          const empData = window.APP_STATE.hoursByEmployee[emp.id];
+          const totalHours = empData ? empData.totalHours.toFixed(1) : '0.0';
+
+          return `
+            <div class="card" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="showEmployeeHoursDetail('${emp.id}')">
+              <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                <div class="avatar" style="background: ${getAvatarColor(emp.firstName)}">${emp.firstName[0]}${emp.lastName[0]}</div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 700; color: var(--gray-900);">${emp.firstName} ${emp.lastName}</div>
+                  <div style="font-size: 13px; color: var(--gray-600); text-transform: capitalize;">${emp.role === 'team_leader' ? '👑 Líder' : 'Miembro'}</div>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 20px; font-weight: 700; color: var(--primary-600);">${totalHours}</div>
+                <div style="font-size: 11px; color: var(--gray-600);">horas</div>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      container.innerHTML = `
+        <div style="margin-bottom: 12px;">
+          <h3 style="font-size: 14px; font-weight: 700; color: var(--gray-900); margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">Semana (${weekStart} - ${weekEnd})</h3>
+          <p style="font-size: 12px; color: var(--gray-600); margin: 0;">Lunes a Domingo</p>
+        </div>
+        ${employeeCards}
+      `;
+    }
+
+    window.renderHoursTab = renderHoursTab;
+
+    window.showEmployeeHoursDetail = function(employeeId) {
+      const empData = window.APP_STATE.hoursByEmployee[employeeId];
+      console.log('showEmployeeHoursDetail:', { employeeId, empData });
+      if (!empData) {
+        console.warn('No employee data found for:', employeeId);
+        return;
+      }
+
+      const emp = empData.employee;
+      const { monday, sunday } = getCurrentWeekRange();
+
+      // Get all clients worked on this week, in chronological order
+      const clientsWorked = Object.entries(empData.byClient)
+        .map(([clientId, jobs]) => {
+          const client = window.APP_STATE.clients[clientId];
+          return {
+            client,
+            clientId,
+            jobs: jobs.sort((a, b) => a.date.localeCompare(b.date)),
+            totalHours: jobs.reduce((sum, j) => sum + (j.duration || 0), 0)
+          };
+        })
+        .filter(cw => cw.client)
+        .sort((a, b) => a.jobs[0].date.localeCompare(b.jobs[0].date));
+
+      const clientHtml = clientsWorked.map(cw => `
+        <div class="card" style="cursor: pointer;" onclick="editClientHours('${employeeId}', '${cw.clientId}')">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="flex: 1;">
+              <div style="font-weight: 700; margin-bottom: 4px;">${cw.client.firstName} ${cw.client.lastName}</div>
+              <div style="font-size: 12px; color: var(--gray-600);">
+                ${cw.jobs.length} entrada(s) • ${cw.totalHours.toFixed(1)} horas
+              </div>
+            </div>
+            <div style="font-size: 18px; color: var(--primary-600); font-weight: 700;">${cw.totalHours.toFixed(1)}h</div>
+          </div>
+        </div>
+      `).join('');
+
+      const content = `
+        <button style="background: none; border: none; font-size: 18px; cursor: pointer; margin-bottom: 16px;" onclick="window.closeModal(); window.renderHoursTab();">
+          ‹ Atrás
+        </button>
+
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div class="avatar" style="width: 60px; height: 60px; background: ${getAvatarColor(emp.firstName)}; margin: 0 auto 12px; font-size: 20px;">${emp.firstName[0]}${emp.lastName[0]}</div>
+          <h2 style="margin: 0 0 4px 0; color: var(--gray-900);">${emp.firstName} ${emp.lastName}</h2>
+          <div style="font-size: 28px; font-weight: 700; color: var(--primary-600);">${empData.totalHours.toFixed(1)}</div>
+          <div style="font-size: 12px; color: var(--gray-600);">horas totales esta semana</div>
+        </div>
+
+        ${clientsWorked.length === 0 ? `
+          <div style="text-align: center; color: var(--gray-600); padding: 20px;">
+            <p>No hay horas registradas esta semana</p>
+          </div>
+        ` : `
+          <h3 style="font-size: 13px; font-weight: 700; color: var(--gray-900); margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">Trabajos</h3>
+          ${clientHtml}
+        `}
+      `;
+
+      window.openModal('Horas', content);
+    };
+
+    window.editClientHours = function(employeeId, clientId) {
+      const empData = window.APP_STATE.hoursByEmployee[employeeId];
+      const emp = empData.employee;
+      const client = window.APP_STATE.clients[clientId];
+      const jobs = empData.byClient[clientId] || [];
+
+      console.log('editClientHours:', { employeeId, clientId, empData, jobs, client });
+
+      if (jobs.length === 0) {
+        showToast('No hay horas para este cliente', 'warning');
+        console.warn('No jobs found for employee/client:', { employeeId, clientId });
+        return;
+      }
+
+      // Combine all jobs for this client into one editable entry
+      const totalDuration = jobs.reduce((sum, j) => sum + (j.duration || 0), 0);
+      const earliestStart = jobs.reduce((earliest, j) => {
+        const jDate = j.startTime.toDate();
+        return earliest ? (jDate < earliest ? jDate : earliest) : jDate;
+      }, null);
+      const latestEnd = jobs.reduce((latest, j) => {
+        const jDate = j.endTime.toDate();
+        return latest ? (jDate > latest ? jDate : latest) : jDate;
+      }, null);
+
+      // Show time editor modal with visual slider
+      // Use defaults: start 8 AM (480), end 10 AM (600)
+      const defaultStartMin = earliestStart ? (earliestStart.getHours() * 60 + earliestStart.getMinutes()) : 480; // 8 AM
+      const defaultEndMin = latestEnd ? (latestEnd.getHours() * 60 + latestEnd.getMinutes()) : 600; // 10 AM
+
+      const modalContent = `
+        <h3 style="margin-top: 0; margin-bottom: 8px;">Editar Horas</h3>
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="font-size: 14px; color: var(--gray-600); margin-bottom: 4px;">Cliente</div>
+          <div style="font-size: 16px; font-weight: 700;">${client.firstName} ${client.lastName}</div>
+          <div style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">Empleado: ${emp.firstName} ${emp.lastName}</div>
+        </div>
+
+        <div style="margin-bottom: 20px; text-align: center;">
+          <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Horas Totales</div>
+          <div style="font-size: 36px; font-weight: 700; color: var(--primary-600); font-family: 'Outfit', monospace;" id="displayHours">${totalDuration.toFixed(1)}</div>
+          <div style="font-size: 12px; color: var(--gray-600);">horas</div>
+        </div>
+
+        <!-- Manual Time Input Fields -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Inicio</label>
+            <input type="time" id="startTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Fin</label>
+            <input type="time" id="endTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 28px;">
+          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos</div>
+
+          <!-- Time Scale Labels (5 AM to 8 PM) -->
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
+            <span>5:00 AM</span>
+            <span>8:00 AM</span>
+            <span>11:00 AM</span>
+            <span>2:00 PM</span>
+            <span>5:00 PM</span>
+            <span>8:00 PM</span>
+          </div>
+
+          <!-- Slider Container (5 AM to 8 PM range only) -->
+          <div id="timeSliderContainer" style="position: relative; height: 60px; background: linear-gradient(90deg, var(--gray-50) 0%, var(--gray-100) 50%, var(--gray-50) 100%); border-radius: 12px; border: 2px solid var(--gray-300); overflow: hidden;">
+            <!-- Time Range Fill -->
+            <div id="sliderFill" style="position: absolute; top: 0; height: 100%; background: var(--primary-200); border: 2px solid var(--primary-500); border-radius: 10px; z-index: 1;"></div>
+
+            <!-- Start Handle -->
+            <div id="startHandle" class="time-slider-handle" style="position: absolute; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--primary-600); border: 3px solid white; border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);" data-type="start"></div>
+
+            <!-- End Handle -->
+            <div id="endHandle" class="time-slider-handle" style="position: absolute; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--primary-600); border: 3px solid white; border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);" data-type="end"></div>
+
+            <!-- Time Labels on Handles -->
+            <div id="startTimeLabel" style="position: absolute; top: -24px; left: 0; transform: translateX(-50%); font-size: 11px; font-weight: 600; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">8:00 AM</div>
+            <div id="endTimeLabel" style="position: absolute; top: -24px; right: 0; transform: translateX(50%); font-size: 11px; font-weight: 600; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">10:00 AM</div>
+          </div>
+
+          <!-- Time Scale Marks -->
+          <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
+            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
+            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
+            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
+            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
+            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <button class="btn btn-block btn-secondary" onclick="window.closeModal()">Cancelar</button>
+          <button class="btn btn-block btn-primary" onclick="saveEditedHours('${employeeId}', '${clientId}', '${jobs[0].date}')">Guardar</button>
+        </div>
+
+        <button class="btn btn-block btn-danger" onclick="deleteClientHours('${employeeId}', '${clientId}')">
+          ✕ Eliminar todas las horas
+        </button>
+
+        <input type="hidden" id="editStartMinutes" value="${defaultStartMin}">
+        <input type="hidden" id="editEndMinutes" value="${defaultEndMin}">
+      `;
+
+      window.openModal('Editar Horas', modalContent);
+
+      // Initialize slider after modal is rendered
+      setTimeout(() => {
+        initializeTimeSlider(employeeId, clientId, jobs[0].date);
+      }, 100);
+    };
+
+    function initializeTimeSlider(employeeId, clientId, date) {
+      const sliderContainer = document.getElementById('timeSliderContainer');
+      if (!sliderContainer) {
+        console.error('Slider container not found');
+        return;
+      }
+
+      const startHandle = document.getElementById('startHandle');
+      const endHandle = document.getElementById('endHandle');
+      const sliderFill = document.getElementById('sliderFill');
+      const displayHours = document.getElementById('displayHours');
+      const startTimeLabel = document.getElementById('startTimeLabel');
+      const endTimeLabel = document.getElementById('endTimeLabel');
+      const startTimeInput = document.getElementById('startTimeInput');
+      const endTimeInput = document.getElementById('endTimeInput');
+
+      const sliderWidth = sliderContainer.offsetWidth - 24;
+
+      // Time range: 5 AM (300) to 8 PM (1020) = 720 minutes
+      const MIN_MINUTES = 300;
+      const MAX_MINUTES = 1020;
+      const RANGE_MINUTES = MAX_MINUTES - MIN_MINUTES;
+      const SNAP_INTERVAL = 5;
+
+      function minutesToPercent(minutes) {
+        return ((minutes - MIN_MINUTES) / RANGE_MINUTES) * 100;
+      }
+
+      function minutesToTime(minutes) {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHour = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+        return `${displayHour}:${mins.toString().padStart(2, '0')} ${ampm}`;
+      }
+
+      function minutesToTimeInput(minutes) {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+      }
+
+      function updateDisplay() {
+        try {
+          const startMin = parseInt(document.getElementById('editStartMinutes').value);
+          const endMin = parseInt(document.getElementById('editEndMinutes').value);
+          const hours = (endMin - startMin) / 60;
+
+          if (displayHours) displayHours.textContent = Math.max(0, hours).toFixed(1);
+
+          const startPercent = minutesToPercent(startMin);
+          const endPercent = minutesToPercent(endMin);
+
+          if (startHandle) startHandle.style.left = `calc(${startPercent}% - 12px)`;
+          if (endHandle) endHandle.style.left = `calc(${endPercent}% - 12px)`;
+
+          const fillPercent = Math.max(0, endPercent - startPercent);
+          if (sliderFill) {
+            sliderFill.style.left = `${startPercent}%`;
+            sliderFill.style.width = `${fillPercent}%`;
+          }
+
+          if (startTimeLabel) {
+            startTimeLabel.textContent = minutesToTime(startMin);
+            startTimeLabel.style.left = `calc(${startPercent}% - 12px)`;
+          }
+          if (endTimeLabel) {
+            endTimeLabel.textContent = minutesToTime(endMin);
+            endTimeLabel.style.left = `calc(${endPercent}% + 12px)`;
+          }
+
+          if (startTimeInput) startTimeInput.value = minutesToTimeInput(startMin);
+          if (endTimeInput) endTimeInput.value = minutesToTimeInput(endMin);
+        } catch (error) {
+          console.error('Error updating display:', error);
+        }
+      }
+
+      function snapToInterval(minutes) {
+        return Math.round(minutes / SNAP_INTERVAL) * SNAP_INTERVAL;
+      }
+
+      function makeHandleDraggable(handle) {
+        let isDragging = false;
+        let startX = 0;
+
+        handle.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          startX = e.clientX;
+          handle.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+
+          const deltaX = e.clientX - startX;
+          const percent = deltaX / sliderWidth;
+          const deltaMinutes = percent * RANGE_MINUTES;
+
+          const isStart = handle.id === 'startHandle';
+          const fieldId = isStart ? 'editStartMinutes' : 'editEndMinutes';
+          const otherFieldId = isStart ? 'editEndMinutes' : 'editStartMinutes';
+
+          let newMinutes = parseInt(document.getElementById(fieldId).value) + deltaMinutes;
+          newMinutes = snapToInterval(newMinutes);
+          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
+
+          const otherMinutes = parseInt(document.getElementById(otherFieldId).value);
+          if (isStart && newMinutes >= otherMinutes) {
+            newMinutes = otherMinutes - SNAP_INTERVAL;
+          } else if (!isStart && newMinutes <= otherMinutes) {
+            newMinutes = otherMinutes + SNAP_INTERVAL;
+          }
+
+          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
+          document.getElementById(fieldId).value = newMinutes;
+
+          startX = e.clientX;
+          updateDisplay();
+        });
+
+        document.addEventListener('mouseup', () => {
+          isDragging = false;
+          handle.style.cursor = 'grab';
+        });
+      }
+
+      function makeHandleTouchable(handle) {
+        let isTouching = false;
+        let startX = 0;
+
+        handle.addEventListener('touchstart', (e) => {
+          isTouching = true;
+          startX = e.touches[0].clientX;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+          if (!isTouching) return;
+
+          const deltaX = e.touches[0].clientX - startX;
+          const percent = deltaX / sliderWidth;
+          const deltaMinutes = percent * RANGE_MINUTES;
+
+          const isStart = handle.id === 'startHandle';
+          const fieldId = isStart ? 'editStartMinutes' : 'editEndMinutes';
+          const otherFieldId = isStart ? 'editEndMinutes' : 'editStartMinutes';
+
+          let newMinutes = parseInt(document.getElementById(fieldId).value) + deltaMinutes;
+          newMinutes = snapToInterval(newMinutes);
+          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
+
+          const otherMinutes = parseInt(document.getElementById(otherFieldId).value);
+          if (isStart && newMinutes >= otherMinutes) {
+            newMinutes = otherMinutes - SNAP_INTERVAL;
+          } else if (!isStart && newMinutes <= otherMinutes) {
+            newMinutes = otherMinutes + SNAP_INTERVAL;
+          }
+
+          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
+          document.getElementById(fieldId).value = newMinutes;
+
+          startX = e.touches[0].clientX;
+          updateDisplay();
+        });
+
+        document.addEventListener('touchend', () => {
+          isTouching = false;
+        });
+      }
+
+      if (startTimeInput) {
+        startTimeInput.addEventListener('change', () => {
+          const [hours, minutes] = startTimeInput.value.split(':').map(Number);
+          const newMinutes = hours * 60 + minutes;
+          const endMin = parseInt(document.getElementById('editEndMinutes').value);
+
+          if (newMinutes < endMin && newMinutes >= MIN_MINUTES && newMinutes <= MAX_MINUTES) {
+            document.getElementById('editStartMinutes').value = newMinutes;
+            updateDisplay();
+          }
+        });
+      }
+
+      if (endTimeInput) {
+        endTimeInput.addEventListener('change', () => {
+          const [hours, minutes] = endTimeInput.value.split(':').map(Number);
+          const newMinutes = hours * 60 + minutes;
+          const startMin = parseInt(document.getElementById('editStartMinutes').value);
+
+          if (newMinutes > startMin && newMinutes >= MIN_MINUTES && newMinutes <= MAX_MINUTES) {
+            document.getElementById('editEndMinutes').value = newMinutes;
+            updateDisplay();
+          }
+        });
+      }
+
+      makeHandleDraggable(startHandle);
+      makeHandleDraggable(endHandle);
+      makeHandleTouchable(startHandle);
+      makeHandleTouchable(endHandle);
+
+      updateDisplay();
+    }
+
+    window.saveEditedHours = async function(employeeId, clientId, date) {
+      const startMinutes = parseInt(document.getElementById('editStartMinutes').value);
+      const endMinutes = parseInt(document.getElementById('editEndMinutes').value);
+      const hours = (endMinutes - startMinutes) / 60;
+
+      if (isNaN(hours) || hours < 0 || hours > 24) {
+        showToast('Ingresa un horario válido', 'warning');
+        return;
+      }
+
+      if (hours === 0) {
+        showToast('Las horas de inicio y fin deben ser diferentes', 'warning');
+        return;
+      }
+
+      try {
+        const empData = window.APP_STATE.hoursByEmployee[employeeId];
+        const jobs = empData.byClient[clientId] || [];
+
+        // Convert minutes to hours and minutes
+        const startHour = Math.floor(startMinutes / 60);
+        const startMin = startMinutes % 60;
+        const endHour = Math.floor(endMinutes / 60);
+        const endMin = endMinutes % 60;
+
+        const startDate = new Date(date);
+        startDate.setHours(startHour, startMin, 0, 0);
+
+        const endDate = new Date(date);
+        endDate.setHours(endHour, endMin, 0, 0);
+
+        // Create new entry with edited hours (don't delete old ones as admins may need them for audit)
+        const emp = empData.employee;
+        const client = window.APP_STATE.clients[clientId];
+        const teamId = window.APP_STATE.currentTeam?.id || emp.teamId;
+
+        // Ensure teamId is set
+        if (!teamId) {
+          showToast('Error: equipo no encontrado', 'error');
+          console.error('No team ID for employee:', employeeId, emp);
+          return;
+        }
+
+        await addDoc(collection(db, 'jobCompletions'), {
+          date: date,
+          employeeId: employeeId,
+          employeeName: `${emp.firstName} ${emp.lastName}`,
+          clientId: clientId,
+          clientName: `${client.firstName} ${client.lastName}`,
+          duration: hours,
+          startTime: Timestamp.fromDate(startDate),
+          endTime: Timestamp.fromDate(endDate),
+          scheduleId: jobs[0]?.scheduleId || null,
+          manual: true,
+          teamId: teamId,
+          replaced: false,
+          createdAt: Timestamp.now()
+        });
+
+        // Log to audit
+        await addDoc(collection(db, 'auditLog'), {
+          action: 'edit_hours',
+          targetType: 'jobCompletion',
+          targetId: clientId,
+          details: {
+            employeeId,
+            clientId,
+            date,
+            hours,
+            startTime: startDate.toISOString(),
+            endTime: endDate.toISOString()
+          },
+          userId: window.APP_STATE.user.uid,
+          timestamp: Timestamp.now()
+        });
+
+        await loadWeekHours();
+        window.closeModal();
+        showToast('Horas actualizadas', 'success');
+        renderHoursTab();
+      } catch (error) {
+        console.error('Error saving hours:', error);
+        showToast('Error al guardar horas', 'error');
+      }
+    };
+
+    window.deleteClientHours = async function(employeeId, clientId) {
+      if (!confirm('¿Estás seguro de que deseas eliminar todas las horas para este cliente?')) return;
+
+      try {
+        const empData = window.APP_STATE.hoursByEmployee[employeeId];
+        const jobs = empData.byClient[clientId] || [];
+
+        for (const job of jobs) {
+          await deleteDoc(doc(db, 'jobCompletions', job.id));
+        }
+
+        await loadWeekHours();
+        window.closeModal();
+        showToast('Horas eliminadas', 'success');
+        renderHoursTab();
+      } catch (error) {
+        console.error('Error deleting hours:', error);
+        showToast('Error al eliminar horas', 'error');
+      }
+    };
+
+    function formatTimeForInput(date) {
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+
+    function renderTeamTab() {
+      const container = document.getElementById('teamContent');
+
+      if (window.APP_STATE.teamMembers.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 40px 20px; color: var(--gray-600);">
+            <div style="font-size: 48px; margin-bottom: 16px;">👥</div>
+            <h2 style="margin: 0 0 8px 0; color: var(--gray-900);">No hay equipo</h2>
+          </div>
+        `;
+        return;
+      }
+
+      const leader = window.APP_STATE.teamMembers.find(m => m.role === 'team_leader');
+      const members = window.APP_STATE.teamMembers.filter(m => m.role !== 'team_leader');
+
+      const { monday, sunday } = getCurrentWeekRange();
+      const weekStart = formatDate(monday).split(' ')[0];
+      const weekEnd = formatDate(sunday).split(' ')[0];
+
+      let html = `
+        <div style="margin-bottom: 24px;">
+          <h2 style="margin: 0 0 4px 0; color: var(--gray-900); font-size: 24px;">
+            ${window.APP_STATE.currentTeam ? window.APP_STATE.currentTeam.name : 'Equipo'}
+          </h2>
+          <p style="margin: 0; font-size: 12px; color: var(--gray-600);">Semana: ${weekStart} - ${weekEnd}</p>
+        </div>
+      `;
+
+      if (leader) {
+        const leaderData = window.APP_STATE.hoursByEmployee[leader.id];
+        const leaderHours = leaderData ? leaderData.totalHours.toFixed(1) : '0.0';
+
+        html += `
+          <div class="card" style="border: 2px solid var(--primary-500); background: linear-gradient(135deg, var(--primary-50) 0%, white 100%);">
+            <div style="font-size: 12px; font-weight: 700; color: var(--primary-700); text-transform: uppercase; margin-bottom: 12px;">👑 Líder de Equipo</div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="avatar" style="background: ${getAvatarColor(leader.firstName)}">${leader.firstName[0]}${leader.lastName[0]}</div>
+              <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: var(--gray-900);">${leader.firstName} ${leader.lastName}</div>
+                <div style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">Horas esta semana: <span style="font-weight: 700; color: var(--primary-600);">${leaderHours}</span></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (members.length > 0) {
+        html += `
+          <h3 style="font-size: 14px; font-weight: 700; color: var(--gray-900); margin: 24px 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">👥 Miembros del Equipo</h3>
+        `;
+
+        html += members.map(member => {
+          const memberData = window.APP_STATE.hoursByEmployee[member.id];
+          const memberHours = memberData ? memberData.totalHours.toFixed(1) : '0.0';
+
+          return `
+            <div class="card">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="avatar" style="background: ${getAvatarColor(member.firstName)}">${member.firstName[0]}${member.lastName[0]}</div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 700; color: var(--gray-900);">${member.firstName} ${member.lastName}</div>
+                  <div style="font-size: 12px; color: var(--gray-600); margin-top: 2px;">Horas: <span style="font-weight: 600; color: var(--primary-600);">${memberHours}</span></div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      container.innerHTML = html;
+    }
+
+    // Helper for hours summary (needed for back button)
+    window.getHoursSummaryHtml = function() {
+      const container = document.getElementById('hoursContent');
+      renderHoursTab();
+    };
+
+    // Expose to window for onclick handlers
+    window.APP = {
+      switchTab,
+      openModal,
+      closeModal,
+      loadAllData,
+      updateHeaderClock,
+      startJobTimer
+    };
+  </script>
+
+  <!-- Register Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => {
+          console.warn('Service Worker registration failed:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
