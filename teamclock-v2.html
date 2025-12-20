@@ -2958,6 +2958,24 @@
     };
 
     window.addNewHourEntry = function(date) {
+      // Get scheduled clients for this day
+      const scheduledClientIds = new Set();
+      const todaySchedules = window.APP_STATE.todaySchedules || [];
+      todaySchedules.forEach(schedule => {
+        if (schedule.date === date && schedule.status !== 'cancelled') {
+          scheduledClientIds.add(schedule.clientId);
+        }
+      });
+
+      const scheduledClients = Array.from(scheduledClientIds)
+        .map(clientId => window.APP_STATE.clients[clientId])
+        .filter(client => client)
+        .sort((a, b) => (a.firstName + a.lastName).localeCompare(b.firstName + b.lastName));
+
+      const clientOptions = scheduledClients.length > 0
+        ? scheduledClients.map(client => `<option value="${client.id}">${client.firstName} ${client.lastName}</option>`).join('')
+        : '<option value="">Sin clientes programados</option>';
+
       const modalContent = `
         <h3 style="margin: 0 0 8px 0; font-size: 16px;">Agregar Nueva Entrada</h3>
         <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 16px;">Fecha: ${formatDate(new Date(date))}</div>
@@ -2968,10 +2986,10 @@
           ${window.APP_STATE.teamMembers.map(emp => `<option value="${emp.id}">${emp.firstName} ${emp.lastName}</option>`).join('')}
         </select>
 
-        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Cliente</label>
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Cliente <span style="font-size: 11px; color: var(--gray-500);">(Programados hoy)</span></label>
         <select id="newEntryClient" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;">
           <option value="">Selecciona un cliente</option>
-          ${Object.values(window.APP_STATE.clients).map(client => `<option value="${client.id}">${client.firstName} ${client.lastName}</option>`).join('')}
+          ${clientOptions}
         </select>
 
         <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Inicio</label>
@@ -2990,14 +3008,33 @@
     };
 
     window.addNewEntryForDay = function(employeeId, date) {
+      // Get scheduled clients for this day
+      const scheduledClientIds = new Set();
+      const todaySchedules = window.APP_STATE.todaySchedules || [];
+      todaySchedules.forEach(schedule => {
+        if (schedule.date === date && schedule.status !== 'cancelled') {
+          scheduledClientIds.add(schedule.clientId);
+        }
+      });
+
+      const scheduledClients = Array.from(scheduledClientIds)
+        .map(clientId => window.APP_STATE.clients[clientId])
+        .filter(client => client)
+        .sort((a, b) => (a.firstName + a.lastName).localeCompare(b.firstName + b.lastName));
+
+      const clientOptions = scheduledClients.length > 0
+        ? scheduledClients.map(client => `<option value="${client.id}">${client.firstName} ${client.lastName}</option>`).join('')
+        : '<option value="">Sin clientes programados</option>';
+
+      const emp = window.APP_STATE.teamMembers.find(e => e.id === employeeId);
       const modalContent = `
         <h3 style="margin: 0 0 8px 0; font-size: 16px;">Agregar Nueva Entrada</h3>
-        <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 16px;">Empleado: ${window.APP_STATE.teamMembers.find(e => e.id === employeeId)?.firstName} ${window.APP_STATE.teamMembers.find(e => e.id === employeeId)?.lastName}</div>
+        <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 16px;">Empleado: ${emp?.firstName} ${emp?.lastName}</div>
 
-        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Cliente</label>
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Cliente <span style="font-size: 11px; color: var(--gray-500);">(Programados hoy)</span></label>
         <select id="newEntryClient" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;">
           <option value="">Selecciona un cliente</option>
-          ${Object.values(window.APP_STATE.clients).map(client => `<option value="${client.id}">${client.firstName} ${client.lastName}</option>`).join('')}
+          ${clientOptions}
         </select>
 
         <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Inicio</label>
