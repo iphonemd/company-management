@@ -2231,35 +2231,97 @@
       const weekStart = formatDate(monday).split(' ')[0];
       const weekEnd = formatDate(sunday).split(' ')[0];
 
-      const employeeCards = window.APP_STATE.teamMembers
-        .map(emp => {
-          const empData = window.APP_STATE.hoursByEmployee[emp.id];
-          const totalHours = empData ? empData.totalHours.toFixed(1) : '0.0';
+      const daysInWeek = [];
+      const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-          return `
-            <div class="card" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="showEmployeeHoursDetail('${emp.id}')">
-              <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                <div class="avatar" style="background: ${getAvatarColor(emp.firstName)}">${emp.firstName[0]}${emp.lastName[0]}</div>
-                <div style="flex: 1;">
-                  <div style="font-weight: 700; color: var(--gray-900);">${emp.firstName} ${emp.lastName}</div>
-                  <div style="font-size: 13px; color: var(--gray-600); text-transform: capitalize;">${emp.role === 'team_leader' ? '👑 Líder' : 'Miembro'}</div>
+      for (let d = new Date(monday); d <= sunday; d.setDate(d.getDate() + 1)) {
+        daysInWeek.push({
+          date: getLocalDateString(d),
+          display: formatDate(new Date(d)),
+          dayName: dayNames[d.getDay() === 0 ? 6 : d.getDay() - 1],
+          dateObj: new Date(d)
+        });
+      }
+
+      const daysSections = daysInWeek.map(day => {
+        const dayHours = {};
+
+        // Organize employees and their hours for this day
+        window.APP_STATE.teamMembers.forEach(emp => {
+          const empData = window.APP_STATE.hoursByEmployee[emp.id];
+          if (empData && empData.byDay && empData.byDay[day.date]) {
+            const entries = empData.byDay[day.date];
+            dayHours[emp.id] = {
+              employee: emp,
+              entries: entries,
+              totalHours: entries.reduce((sum, e) => sum + (e.duration || 0), 0)
+            };
+          }
+        });
+
+        const employeesList = Object.values(dayHours)
+          .sort((a, b) => b.totalHours - a.totalHours)
+          .map(item => {
+            const hours = item.totalHours.toFixed(1);
+            return `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--gray-50); border-radius: 8px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                  <div class="avatar" style="width: 32px; height: 32px; background: ${getAvatarColor(item.employee.firstName)}; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white; font-weight: 600; font-size: 12px;">${item.employee.firstName[0]}${item.employee.lastName[0]}</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 600; color: var(--gray-900); font-size: 14px;">${item.employee.firstName} ${item.employee.lastName}</div>
+                    <div style="font-size: 11px; color: var(--gray-600);">${item.entries.length} entrada(s)</div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="text-align: right; min-width: 50px;">
+                    <div style="font-weight: 700; color: var(--primary-600); font-size: 16px;">${hours}</div>
+                    <div style="font-size: 11px; color: var(--gray-600);">hrs</div>
+                  </div>
+                  <button style="background: var(--primary-500); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;" onclick="editDayEmployeeHours('${item.employee.id}', '${day.date}')">Editar</button>
                 </div>
               </div>
-              <div style="text-align: right;">
-                <div style="font-size: 20px; font-weight: 700; color: var(--primary-600);">${totalHours}</div>
-                <div style="font-size: 11px; color: var(--gray-600);">horas</div>
+            `;
+          })
+          .join('');
+
+        const otherEmployees = window.APP_STATE.teamMembers
+          .filter(emp => !dayHours[emp.id])
+          .map(emp => {
+            return `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--gray-100); border-radius: 8px; margin-bottom: 8px; opacity: 0.6;">
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                  <div class="avatar" style="width: 32px; height: 32px; background: ${getAvatarColor(emp.firstName)}; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white; font-weight: 600; font-size: 12px;">${emp.firstName[0]}${emp.lastName[0]}</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 600; color: var(--gray-900); font-size: 14px;">${emp.firstName} ${emp.lastName}</div>
+                    <div style="font-size: 11px; color: var(--gray-600);">Sin horas</div>
+                  </div>
+                </div>
+                <button style="background: var(--gray-300); color: var(--gray-700); border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;" onclick="editDayEmployeeHours('${emp.id}', '${day.date}')">Agregar</button>
               </div>
+            `;
+          })
+          .join('');
+
+        return `
+          <div style="margin-bottom: 24px;">
+            <h3 style="font-size: 13px; font-weight: 700; color: var(--gray-900); margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+              ${day.dayName} - ${day.display}
+            </h3>
+            <div style="margin-bottom: 12px;">
+              ${employeesList}
+              ${otherEmployees}
             </div>
-          `;
-        })
-        .join('');
+            <button style="width: 100%; padding: 12px; background: var(--gray-200); color: var(--gray-700); border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;" onclick="addNewHourEntry('${day.date}')">+ Agregar Entrada</button>
+          </div>
+        `;
+      }).join('');
 
       container.innerHTML = `
         <div style="margin-bottom: 12px;">
           <h3 style="font-size: 14px; font-weight: 700; color: var(--gray-900); margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">Semana (${weekStart} - ${weekEnd})</h3>
-          <p style="font-size: 12px; color: var(--gray-600); margin: 0;">Lunes a Domingo</p>
+          <p style="font-size: 12px; color: var(--gray-600); margin: 0;">Horas por día</p>
         </div>
-        ${employeeCards}
+        ${daysSections}
       `;
     }
 
@@ -2848,6 +2910,319 @@
       } catch (error) {
         console.error('Error deleting hours:', error);
         showToast('Error al eliminar horas', 'error');
+      }
+    };
+
+    window.editDayEmployeeHours = function(employeeId, date) {
+      const emp = window.APP_STATE.teamMembers.find(e => e.id === employeeId);
+      if (!emp) return;
+
+      const empData = window.APP_STATE.hoursByEmployee[employeeId];
+      const entries = empData && empData.byDay && empData.byDay[date] ? empData.byDay[date] : [];
+      const totalHours = entries.reduce((sum, e) => sum + (e.duration || 0), 0);
+
+      let entriesHtml = '';
+      if (entries.length > 0) {
+        entriesHtml = entries.map(entry => {
+          const start = entry.startTime?.toDate ? entry.startTime.toDate() : new Date(entry.startTime);
+          const end = entry.endTime?.toDate ? entry.endTime.toDate() : new Date(entry.endTime);
+          const client = window.APP_STATE.clients[entry.clientId];
+          return `
+            <div style="padding: 12px; background: var(--gray-50); border-radius: 8px; margin-bottom: 8px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <div style="font-weight: 600; color: var(--gray-900);">${client ? client.firstName + ' ' + client.lastName : 'Sin cliente'}</div>
+                <div style="font-weight: 600; color: var(--primary-600);">${entry.duration.toFixed(1)}h</div>
+              </div>
+              <div style="font-size: 12px; color: var(--gray-600);">${formatTimeForInput(start)} - ${formatTimeForInput(end)}</div>
+              <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <button style="flex: 1; padding: 6px; background: var(--primary-500); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" onclick="editSpecificEntry('${entry.id}', '${employeeId}', '${date}')">Editar</button>
+                <button style="flex: 1; padding: 6px; background: var(--danger-500); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" onclick="deleteSpecificEntry('${entry.id}', '${employeeId}')">Eliminar</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        entriesHtml = '<div style="text-align: center; padding: 20px; color: var(--gray-600); font-style: italic;">Sin horas registradas</div>';
+      }
+
+      const modalContent = `
+        <h3 style="margin: 0 0 8px 0; font-size: 16px;">${emp.firstName} ${emp.lastName}</h3>
+        <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 16px;">Fecha: ${formatDate(new Date(date))}</div>
+        <div style="margin-bottom: 16px;">
+          ${entriesHtml}
+        </div>
+        <button style="width: 100%; padding: 12px; background: var(--primary-500); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 8px;" onclick="addNewEntryForDay('${employeeId}', '${date}')">+ Agregar Nueva Entrada</button>
+      `;
+
+      window.openModal('Editar Horas por Día', modalContent);
+    };
+
+    window.addNewHourEntry = function(date) {
+      const modalContent = `
+        <h3 style="margin: 0 0 8px 0; font-size: 16px;">Agregar Nueva Entrada</h3>
+        <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 16px;">Fecha: ${formatDate(new Date(date))}</div>
+
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Empleado</label>
+        <select id="newEntryEmployee" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;">
+          <option value="">Selecciona un empleado</option>
+          ${window.APP_STATE.teamMembers.map(emp => `<option value="${emp.id}">${emp.firstName} ${emp.lastName}</option>`).join('')}
+        </select>
+
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Cliente</label>
+        <select id="newEntryClient" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;">
+          <option value="">Selecciona un cliente</option>
+          ${Object.values(window.APP_STATE.clients).map(client => `<option value="${client.id}">${client.firstName} ${client.lastName}</option>`).join('')}
+        </select>
+
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Inicio</label>
+        <input type="time" id="newEntryStart" value="08:00" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;">
+
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Fin</label>
+        <input type="time" id="newEntryEnd" value="10:00" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <button style="padding: 12px; background: var(--gray-300); color: var(--gray-700); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="window.closeModal()">Cancelar</button>
+          <button style="padding: 12px; background: var(--primary-500); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="saveNewHourEntry('${date}')">Guardar</button>
+        </div>
+      `;
+
+      window.openModal('Nueva Entrada', modalContent);
+    };
+
+    window.addNewEntryForDay = function(employeeId, date) {
+      const modalContent = `
+        <h3 style="margin: 0 0 8px 0; font-size: 16px;">Agregar Nueva Entrada</h3>
+        <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 16px;">Empleado: ${window.APP_STATE.teamMembers.find(e => e.id === employeeId)?.firstName} ${window.APP_STATE.teamMembers.find(e => e.id === employeeId)?.lastName}</div>
+
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Cliente</label>
+        <select id="newEntryClient" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;">
+          <option value="">Selecciona un cliente</option>
+          ${Object.values(window.APP_STATE.clients).map(client => `<option value="${client.id}">${client.firstName} ${client.lastName}</option>`).join('')}
+        </select>
+
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Inicio</label>
+        <input type="time" id="newEntryStart" value="08:00" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;">
+
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Fin</label>
+        <input type="time" id="newEntryEnd" value="10:00" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <button style="padding: 12px; background: var(--gray-300); color: var(--gray-700); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="window.closeModal()">Cancelar</button>
+          <button style="padding: 12px; background: var(--primary-500); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="saveNewEntryForDay('${employeeId}', '${date}')">Guardar</button>
+        </div>
+      `;
+
+      window.openModal('Nueva Entrada', modalContent);
+    };
+
+    window.saveNewHourEntry = async function(date) {
+      const employeeId = document.getElementById('newEntryEmployee')?.value;
+      const clientId = document.getElementById('newEntryClient')?.value;
+      const startTime = document.getElementById('newEntryStart')?.value;
+      const endTime = document.getElementById('newEntryEnd')?.value;
+
+      if (!employeeId || !clientId || !startTime || !endTime) {
+        showToast('Completa todos los campos', 'warning');
+        return;
+      }
+
+      try {
+        const [startH, startM] = startTime.split(':').map(Number);
+        const [endH, endM] = endTime.split(':').map(Number);
+        const startDate = new Date(date);
+        startDate.setHours(startH, startM);
+        const endDate = new Date(date);
+        endDate.setHours(endH, endM);
+
+        if (endDate <= startDate) {
+          showToast('La hora fin debe ser después de la hora inicio', 'warning');
+          return;
+        }
+
+        const duration = (endDate - startDate) / (1000 * 60 * 60);
+        const emp = window.APP_STATE.teamMembers.find(e => e.id === employeeId);
+        const client = window.APP_STATE.clients[clientId];
+
+        const jobCompletion = {
+          date: date,
+          employeeId: employeeId,
+          employeeName: emp.firstName + ' ' + emp.lastName,
+          clientId: clientId,
+          clientName: client.firstName + ' ' + client.lastName,
+          duration: duration,
+          startTime: Timestamp.fromDate(startDate),
+          endTime: Timestamp.fromDate(endDate),
+          manual: true,
+          createdAt: Timestamp.now()
+        };
+
+        await addDoc(collection(db, 'jobCompletions'), jobCompletion);
+        await logAudit('create', 'jobCompletions', null, { type: 'manual_entry', date, employee: employeeId, client: clientId, duration });
+
+        await loadWeekHours();
+        window.closeModal();
+        showToast('Entrada agregada', 'success');
+        renderHoursTab();
+      } catch (error) {
+        console.error('Error saving entry:', error);
+        showToast('Error al guardar entrada', 'error');
+      }
+    };
+
+    window.saveNewEntryForDay = async function(employeeId, date) {
+      const clientId = document.getElementById('newEntryClient')?.value;
+      const startTime = document.getElementById('newEntryStart')?.value;
+      const endTime = document.getElementById('newEntryEnd')?.value;
+
+      if (!clientId || !startTime || !endTime) {
+        showToast('Completa todos los campos', 'warning');
+        return;
+      }
+
+      try {
+        const [startH, startM] = startTime.split(':').map(Number);
+        const [endH, endM] = endTime.split(':').map(Number);
+        const startDate = new Date(date);
+        startDate.setHours(startH, startM);
+        const endDate = new Date(date);
+        endDate.setHours(endH, endM);
+
+        if (endDate <= startDate) {
+          showToast('La hora fin debe ser después de la hora inicio', 'warning');
+          return;
+        }
+
+        const duration = (endDate - startDate) / (1000 * 60 * 60);
+        const emp = window.APP_STATE.teamMembers.find(e => e.id === employeeId);
+        const client = window.APP_STATE.clients[clientId];
+
+        const jobCompletion = {
+          date: date,
+          employeeId: employeeId,
+          employeeName: emp.firstName + ' ' + emp.lastName,
+          clientId: clientId,
+          clientName: client.firstName + ' ' + client.lastName,
+          duration: duration,
+          startTime: Timestamp.fromDate(startDate),
+          endTime: Timestamp.fromDate(endDate),
+          manual: true,
+          createdAt: Timestamp.now()
+        };
+
+        await addDoc(collection(db, 'jobCompletions'), jobCompletion);
+        await logAudit('create', 'jobCompletions', null, { type: 'manual_entry', date, employee: employeeId, client: clientId, duration });
+
+        await loadWeekHours();
+        window.closeModal();
+        showToast('Entrada agregada', 'success');
+        renderHoursTab();
+      } catch (error) {
+        console.error('Error saving entry:', error);
+        showToast('Error al guardar entrada', 'error');
+      }
+    };
+
+    window.editSpecificEntry = function(entryId, employeeId, date) {
+      const empData = window.APP_STATE.hoursByEmployee[employeeId];
+      const entry = empData?.byDay?.[date]?.find(e => e.id === entryId);
+
+      if (!entry) {
+        showToast('Entrada no encontrada', 'warning');
+        return;
+      }
+
+      const start = entry.startTime?.toDate ? entry.startTime.toDate() : new Date(entry.startTime);
+      const end = entry.endTime?.toDate ? entry.endTime.toDate() : new Date(entry.endTime);
+      const client = window.APP_STATE.clients[entry.clientId];
+
+      const startH = String(start.getHours()).padStart(2, '0');
+      const startM = String(start.getMinutes()).padStart(2, '0');
+      const endH = String(end.getHours()).padStart(2, '0');
+      const endM = String(end.getMinutes()).padStart(2, '0');
+
+      const modalContent = `
+        <h3 style="margin: 0 0 8px 0; font-size: 16px;">Editar Entrada</h3>
+        <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 16px;">Cliente: ${client ? client.firstName + ' ' + client.lastName : 'Sin cliente'}</div>
+
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Inicio</label>
+        <input type="time" id="editEntryStart" value="${startH}:${startM}" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;">
+
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Fin</label>
+        <input type="time" id="editEntryEnd" value="${endH}:${endM}" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <button style="padding: 12px; background: var(--gray-300); color: var(--gray-700); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="window.editDayEmployeeHours('${employeeId}', '${date}')">Atrás</button>
+          <button style="padding: 12px; background: var(--primary-500); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="updateSpecificEntry('${entryId}', '${employeeId}', '${date}')">Guardar</button>
+        </div>
+      `;
+
+      window.openModal('Editar Entrada', modalContent);
+    };
+
+    window.updateSpecificEntry = async function(entryId, employeeId, date) {
+      const startTime = document.getElementById('editEntryStart')?.value;
+      const endTime = document.getElementById('editEntryEnd')?.value;
+
+      if (!startTime || !endTime) {
+        showToast('Completa todos los campos', 'warning');
+        return;
+      }
+
+      try {
+        const [startH, startM] = startTime.split(':').map(Number);
+        const [endH, endM] = endTime.split(':').map(Number);
+        const startDate = new Date(date);
+        startDate.setHours(startH, startM);
+        const endDate = new Date(date);
+        endDate.setHours(endH, endM);
+
+        if (endDate <= startDate) {
+          showToast('La hora fin debe ser después de la hora inicio', 'warning');
+          return;
+        }
+
+        const duration = (endDate - startDate) / (1000 * 60 * 60);
+
+        await updateDoc(doc(db, 'jobCompletions', entryId), {
+          startTime: Timestamp.fromDate(startDate),
+          endTime: Timestamp.fromDate(endDate),
+          duration: duration
+        });
+
+        await logAudit('update', 'jobCompletions', entryId, { employee: employeeId, newDuration: duration });
+
+        await loadWeekHours();
+        showToast('Entrada actualizada', 'success');
+        window.editDayEmployeeHours(employeeId, date);
+      } catch (error) {
+        console.error('Error updating entry:', error);
+        showToast('Error al actualizar entrada', 'error');
+      }
+    };
+
+    window.deleteSpecificEntry = async function(entryId, employeeId) {
+      if (!confirm('¿Eliminar esta entrada?')) return;
+
+      try {
+        await deleteDoc(doc(db, 'jobCompletions', entryId));
+        await logAudit('delete', 'jobCompletions', entryId, { employee: employeeId });
+
+        await loadWeekHours();
+        showToast('Entrada eliminada', 'success');
+
+        // Reopen the edit dialog
+        const currentDate = new Date();
+        const empData = window.APP_STATE.hoursByEmployee[employeeId];
+        if (empData && empData.byDay) {
+          const dateStr = Object.keys(empData.byDay)[0];
+          window.editDayEmployeeHours(employeeId, dateStr);
+        } else {
+          window.closeModal();
+          renderHoursTab();
+        }
+      } catch (error) {
+        console.error('Error deleting entry:', error);
+        showToast('Error al eliminar entrada', 'error');
       }
     };
 
