@@ -694,6 +694,26 @@
     } from './js/utils.js';
 
     // ============================================
+    // AUDIT LOGGING (Stub)
+    // ============================================
+    async function logAudit(action, targetType, targetId, details) {
+      // Stub function - logging is optional
+      try {
+        await addDoc(collection(db, 'auditLog'), {
+          action,
+          targetType,
+          targetId,
+          details,
+          userId: window.APP_STATE.user?.uid,
+          timestamp: Timestamp.now()
+        });
+      } catch (error) {
+        console.warn('Audit logging failed:', error);
+        // Don't throw - logging shouldn't block the operation
+      }
+    }
+
+    // ============================================
     // GLOBAL STATE
     // ============================================
     window.APP_STATE = {
@@ -1013,8 +1033,10 @@
       // Only check if no job is currently in progress
       if (window.APP_STATE.currentJob) return;
 
-      // Only show once per session
-      if (window.APP_STATE.morningPromptShown) return;
+      // Only show once per day
+      const todayStr = getLocalDateString();
+      const savedPromptDate = localStorage.getItem('teamclock_morningPromptDate');
+      if (savedPromptDate === todayStr) return;
 
       // Check if we have schedules for today
       const schedules = window.APP_STATE.todaySchedules || [];
@@ -1024,7 +1046,7 @@
       const firstJob = schedules.find(s => s.status === 'scheduled');
       if (!firstJob) return;
 
-      window.APP_STATE.morningPromptShown = true;
+      localStorage.setItem('teamclock_morningPromptDate', todayStr);
 
       const client = window.APP_STATE.clients[firstJob.clientId];
       if (!client) return;
@@ -2526,6 +2548,9 @@
       const RANGE_MINUTES = MAX_MINUTES - MIN_MINUTES;
       const SNAP_INTERVAL = 5;
 
+      // State for dragging
+      let dragState = { isDragging: false, handle: null, startX: 0 };
+
       function minutesToPercent(minutes) {
         return ((minutes - MIN_MINUTES) / RANGE_MINUTES) * 100;
       }
@@ -2544,26 +2569,47 @@
         return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
       }
 
+      function snapToInterval(minutes) {
+        return Math.round(minutes / SNAP_INTERVAL) * SNAP_INTERVAL;
+      }
+
       function updateDisplay() {
         try {
-          const startMin = parseInt(document.getElementById('editStartMinutes').value);
-          const endMin = parseInt(document.getElementById('editEndMinutes').value);
-          const hours = (endMin - startMin) / 60;
+          const startMinEl = document.getElementById('editStartMinutes');
+          const endMinEl = document.getElementById('editEndMinutes');
+          if (!startMinEl || !endMinEl) return;
 
+          let startMin = parseInt(startMinEl.value) || 480;
+          let endMin = parseInt(endMinEl.value) || 600;
+
+          // Ensure validity
+          startMin = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, startMin));
+          endMin = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, endMin));
+          if (startMin >= endMin) {
+            endMin = Math.min(MAX_MINUTES, startMin + SNAP_INTERVAL);
+          }
+
+          startMinEl.value = startMin;
+          endMinEl.value = endMin;
+
+          const hours = (endMin - startMin) / 60;
           if (displayHours) displayHours.textContent = Math.max(0, hours).toFixed(1);
 
           const startPercent = minutesToPercent(startMin);
           const endPercent = minutesToPercent(endMin);
 
+          // Position handles (center them properly)
           if (startHandle) startHandle.style.left = `calc(${startPercent}% - 12px)`;
           if (endHandle) endHandle.style.left = `calc(${endPercent}% - 12px)`;
 
+          // Fill bar
           const fillPercent = Math.max(0, endPercent - startPercent);
           if (sliderFill) {
             sliderFill.style.left = `${startPercent}%`;
             sliderFill.style.width = `${fillPercent}%`;
           }
 
+          // Time labels on handles
           if (startTimeLabel) {
             startTimeLabel.textContent = minutesToTime(startMin);
             startTimeLabel.style.left = `calc(${startPercent}% - 12px)`;
@@ -2573,6 +2619,7 @@
             endTimeLabel.style.left = `calc(${endPercent}% + 12px)`;
           }
 
+          // Update time inputs
           if (startTimeInput) startTimeInput.value = minutesToTimeInput(startMin);
           if (endTimeInput) endTimeInput.value = minutesToTimeInput(endMin);
         } catch (error) {
@@ -2580,195 +2627,148 @@
         }
       }
 
-      function snapToInterval(minutes) {
-        return Math.round(minutes / SNAP_INTERVAL) * SNAP_INTERVAL;
+      // Mouse move handler
+      function onMouseMove(e) {
+        if (!dragState.isDragging || !dragState.handle) return;
+
+        const deltaX = e.clientX - dragState.startX;
+        const percent = deltaX / sliderWidth;
+        const deltaMinutes = percent * RANGE_MINUTES;
+
+        const startMinEl = document.getElementById('editStartMinutes');
+        const endMinEl = document.getElementById('editEndMinutes');
+        if (!startMinEl || !endMinEl) return;
+
+        const isStart = dragState.handle.id === 'startHandle';
+        const fieldId = isStart ? 'editStartMinutes' : 'editEndMinutes';
+        const otherFieldId = isStart ? 'editEndMinutes' : 'editStartMinutes';
+
+        let newMinutes = parseInt(document.getElementById(fieldId).value) + deltaMinutes;
+        newMinutes = snapToInterval(newMinutes);
+        newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
+
+        const otherMinutes = parseInt(document.getElementById(otherFieldId).value);
+        if (isStart && newMinutes >= otherMinutes) {
+          newMinutes = otherMinutes - SNAP_INTERVAL;
+        } else if (!isStart && newMinutes <= otherMinutes) {
+          newMinutes = otherMinutes + SNAP_INTERVAL;
+        }
+
+        newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
+        document.getElementById(fieldId).value = newMinutes;
+
+        dragState.startX = e.clientX;
+        updateDisplay();
       }
 
-      function makeHandleDraggable(handle) {
-        let isDragging = false;
-        let startX = 0;
+      // Mouse up handler
+      function onMouseUp() {
+        if (dragState.handle) {
+          dragState.handle.style.cursor = 'grab';
+        }
+        dragState.isDragging = false;
+        dragState.handle = null;
+      }
 
+      // Handle dragging
+      function setupHandleDrag(handle) {
         handle.addEventListener('mousedown', (e) => {
-          isDragging = true;
-          startX = e.clientX;
+          dragState.isDragging = true;
+          dragState.handle = handle;
+          dragState.startX = e.clientX;
           handle.style.cursor = 'grabbing';
+          e.preventDefault();
         });
-
-        document.addEventListener('mousemove', (e) => {
-          if (!isDragging) return;
-
-          const deltaX = e.clientX - startX;
-          const percent = deltaX / sliderWidth;
-          const deltaMinutes = percent * RANGE_MINUTES;
-
-          const isStart = handle.id === 'startHandle';
-          const fieldId = isStart ? 'editStartMinutes' : 'editEndMinutes';
-          const otherFieldId = isStart ? 'editEndMinutes' : 'editStartMinutes';
-
-          let newMinutes = parseInt(document.getElementById(fieldId).value) + deltaMinutes;
-          newMinutes = snapToInterval(newMinutes);
-          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-
-          const otherMinutes = parseInt(document.getElementById(otherFieldId).value);
-          if (isStart && newMinutes >= otherMinutes) {
-            newMinutes = otherMinutes - SNAP_INTERVAL;
-          } else if (!isStart && newMinutes <= otherMinutes) {
-            newMinutes = otherMinutes + SNAP_INTERVAL;
-          }
-
-          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-          document.getElementById(fieldId).value = newMinutes;
-
-          startX = e.clientX;
-          updateDisplay();
-        });
-
-        document.addEventListener('mouseup', () => {
-          isDragging = false;
-          handle.style.cursor = 'grab';
-        });
-      }
-
-      function makeHandleTouchable(handle) {
-        let isTouching = false;
-        let startX = 0;
 
         handle.addEventListener('touchstart', (e) => {
-          isTouching = true;
-          startX = e.touches[0].clientX;
-        });
-
-        document.addEventListener('touchmove', (e) => {
-          if (!isTouching) return;
-
-          const deltaX = e.touches[0].clientX - startX;
-          const percent = deltaX / sliderWidth;
-          const deltaMinutes = percent * RANGE_MINUTES;
-
-          const isStart = handle.id === 'startHandle';
-          const fieldId = isStart ? 'editStartMinutes' : 'editEndMinutes';
-          const otherFieldId = isStart ? 'editEndMinutes' : 'editStartMinutes';
-
-          let newMinutes = parseInt(document.getElementById(fieldId).value) + deltaMinutes;
-          newMinutes = snapToInterval(newMinutes);
-          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-
-          const otherMinutes = parseInt(document.getElementById(otherFieldId).value);
-          if (isStart && newMinutes >= otherMinutes) {
-            newMinutes = otherMinutes - SNAP_INTERVAL;
-          } else if (!isStart && newMinutes <= otherMinutes) {
-            newMinutes = otherMinutes + SNAP_INTERVAL;
-          }
-
-          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-          document.getElementById(fieldId).value = newMinutes;
-
-          startX = e.touches[0].clientX;
-          updateDisplay();
-        });
-
-        document.addEventListener('touchend', () => {
-          isTouching = false;
+          dragState.isDragging = true;
+          dragState.handle = handle;
+          dragState.startX = e.touches[0].clientX;
+          e.preventDefault();
         });
       }
 
-      function makeFillDraggable(fill) {
-        let isDragging = false;
-        let startX = 0;
-
+      // Fill dragging
+      function setupFillDrag(fill) {
         fill.addEventListener('mousedown', (e) => {
-          isDragging = true;
-          startX = e.clientX;
+          dragState.isDragging = true;
+          dragState.handle = { id: 'fill' };
+          dragState.startX = e.clientX;
           fill.style.cursor = 'grabbing';
+          e.preventDefault();
         });
-
-        document.addEventListener('mousemove', (e) => {
-          if (!isDragging) return;
-
-          const deltaX = e.clientX - startX;
-          const percent = deltaX / sliderWidth;
-          const deltaMinutes = percent * RANGE_MINUTES;
-
-          const startMin = parseInt(document.getElementById('editStartMinutes').value);
-          const endMin = parseInt(document.getElementById('editEndMinutes').value);
-          const duration = endMin - startMin;
-
-          let newStart = startMin + deltaMinutes;
-          newStart = snapToInterval(newStart);
-
-          let newEnd = newStart + duration;
-
-          if (newStart < MIN_MINUTES) {
-            newStart = MIN_MINUTES;
-            newEnd = newStart + duration;
-          }
-          if (newEnd > MAX_MINUTES) {
-            newEnd = MAX_MINUTES;
-            newStart = newEnd - duration;
-          }
-
-          document.getElementById('editStartMinutes').value = newStart;
-          document.getElementById('editEndMinutes').value = newEnd;
-
-          startX = e.clientX;
-          updateDisplay();
-        });
-
-        document.addEventListener('mouseup', () => {
-          isDragging = false;
-          fill.style.cursor = 'grab';
-        });
-      }
-
-      function makeFilllTouchable(fill) {
-        let isTouching = false;
-        let startX = 0;
 
         fill.addEventListener('touchstart', (e) => {
-          isTouching = true;
-          startX = e.touches[0].clientX;
-        });
-
-        document.addEventListener('touchmove', (e) => {
-          if (!isTouching) return;
-
-          const deltaX = e.touches[0].clientX - startX;
-          const percent = deltaX / sliderWidth;
-          const deltaMinutes = percent * RANGE_MINUTES;
-
-          const startMin = parseInt(document.getElementById('editStartMinutes').value);
-          const endMin = parseInt(document.getElementById('editEndMinutes').value);
-          const duration = endMin - startMin;
-
-          let newStart = startMin + deltaMinutes;
-          newStart = snapToInterval(newStart);
-
-          let newEnd = newStart + duration;
-
-          if (newStart < MIN_MINUTES) {
-            newStart = MIN_MINUTES;
-            newEnd = newStart + duration;
-          }
-          if (newEnd > MAX_MINUTES) {
-            newEnd = MAX_MINUTES;
-            newStart = newEnd - duration;
-          }
-
-          document.getElementById('editStartMinutes').value = newStart;
-          document.getElementById('editEndMinutes').value = newEnd;
-
-          startX = e.touches[0].clientX;
-          updateDisplay();
-        });
-
-        document.addEventListener('touchend', () => {
-          isTouching = false;
+          dragState.isDragging = true;
+          dragState.handle = { id: 'fill' };
+          dragState.startX = e.touches[0].clientX;
+          e.preventDefault();
         });
       }
 
+      // Custom mousemove/touchmove for fill dragging
+      function onFillMove(e) {
+        if (!dragState.isDragging || dragState.handle?.id !== 'fill') return;
+
+        const deltaX = (e.clientX !== undefined ? e.clientX : e.touches[0].clientX) - dragState.startX;
+        const percent = deltaX / sliderWidth;
+        const deltaMinutes = percent * RANGE_MINUTES;
+
+        const startMin = parseInt(document.getElementById('editStartMinutes').value);
+        const endMin = parseInt(document.getElementById('editEndMinutes').value);
+        const duration = endMin - startMin;
+
+        let newStart = startMin + deltaMinutes;
+        newStart = snapToInterval(newStart);
+
+        let newEnd = newStart + duration;
+
+        if (newStart < MIN_MINUTES) {
+          newStart = MIN_MINUTES;
+          newEnd = newStart + duration;
+        }
+        if (newEnd > MAX_MINUTES) {
+          newEnd = MAX_MINUTES;
+          newStart = newEnd - duration;
+        }
+
+        document.getElementById('editStartMinutes').value = newStart;
+        document.getElementById('editEndMinutes').value = newEnd;
+
+        dragState.startX = (e.clientX !== undefined ? e.clientX : e.touches[0].clientX);
+        updateDisplay();
+      }
+
+      // Global move/up handlers
+      document.addEventListener('mousemove', (e) => {
+        if (dragState.handle?.id === 'fill') {
+          onFillMove(e);
+        } else {
+          onMouseMove(e);
+        }
+      });
+
+      document.addEventListener('touchmove', (e) => {
+        if (dragState.isTouching && dragState.handle) {
+          if (dragState.handle.id === 'fill') {
+            onFillMove(e);
+          } else {
+            onMouseMove({ clientX: e.touches[0].clientX });
+          }
+        }
+      });
+
+      document.addEventListener('mouseup', onMouseUp);
+      document.addEventListener('touchend', () => {
+        onMouseUp();
+      });
+
+      // Time input listeners with live sync
       if (startTimeInput) {
-        startTimeInput.addEventListener('change', () => {
+        startTimeInput.addEventListener('input', () => {
           const [hours, minutes] = startTimeInput.value.split(':').map(Number);
+          if (isNaN(hours) || isNaN(minutes)) return;
+
           const newMinutes = hours * 60 + minutes;
           const endMin = parseInt(document.getElementById('editEndMinutes').value);
 
@@ -2780,8 +2780,10 @@
       }
 
       if (endTimeInput) {
-        endTimeInput.addEventListener('change', () => {
+        endTimeInput.addEventListener('input', () => {
           const [hours, minutes] = endTimeInput.value.split(':').map(Number);
+          if (isNaN(hours) || isNaN(minutes)) return;
+
           const newMinutes = hours * 60 + minutes;
           const startMin = parseInt(document.getElementById('editStartMinutes').value);
 
@@ -2792,258 +2794,298 @@
         });
       }
 
-      makeHandleDraggable(startHandle);
-      makeHandleDraggable(endHandle);
-      makeHandleTouchable(startHandle);
-      makeHandleTouchable(endHandle);
-      makeFillDraggable(sliderFill);
-      makeFilllTouchable(sliderFill);
+      // Setup dragging for handles and fill
+      setupHandleDrag(startHandle);
+      setupHandleDrag(endHandle);
+      setupFillDrag(sliderFill);
 
       // Make fill draggable
       sliderFill.style.cursor = 'grab';
       sliderFill.style.userSelect = 'none';
 
+      // Initial display
+      updateDisplay();
+    }
+
+    function initializeGenericTimeSlider(prefix) {
+      const sliderContainer = document.getElementById(prefix + 'TimeSliderContainer');
+      if (!sliderContainer) return;
+
+      const startHandle = document.getElementById(prefix + 'StartHandle');
+      const endHandle = document.getElementById(prefix + 'EndHandle');
+      const sliderFill = document.getElementById(prefix + 'SliderFill');
+      const displayHours = document.getElementById(prefix + 'DisplayHours');
+      const startTimeLabel = document.getElementById(prefix + 'StartTimeLabel');
+      const endTimeLabel = document.getElementById(prefix + 'EndTimeLabel');
+      const startMinutesId = prefix + 'StartMinutes';
+      const endMinutesId = prefix + 'EndMinutes';
+
+      const sliderWidth = sliderContainer.offsetWidth - 24;
+
+      if (!startHandle || !endHandle || !sliderFill) return;
+
+      const MIN_MINUTES = 300;
+      const MAX_MINUTES = 1020;
+      const RANGE_MINUTES = MAX_MINUTES - MIN_MINUTES;
+      const SNAP_INTERVAL = 5;
+      let dragState = { isDragging: false, handle: null, startX: 0 };
+
+      function minutesToPercent(minutes) {
+        return ((minutes - MIN_MINUTES) / RANGE_MINUTES) * 100;
+      }
+
+      function minutesToTime(minutes) {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHour = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+        return `${displayHour}:${mins.toString().padStart(2, '0')} ${ampm}`;
+      }
+
+      function minutesToTimeInput(minutes) {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+      }
+
+      function snapToInterval(minutes) {
+        return Math.round(minutes / SNAP_INTERVAL) * SNAP_INTERVAL;
+      }
+
+      function updateDisplay() {
+        try {
+          const startMinEl = document.getElementById(startMinutesId);
+          const endMinEl = document.getElementById(endMinutesId);
+          if (!startMinEl || !endMinEl) return;
+
+          let startMin = parseInt(startMinEl.value) || 480;
+          let endMin = parseInt(endMinEl.value) || 600;
+
+          startMin = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, startMin));
+          endMin = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, endMin));
+          if (startMin >= endMin) {
+            endMin = Math.min(MAX_MINUTES, startMin + SNAP_INTERVAL);
+          }
+
+          startMinEl.value = startMin;
+          endMinEl.value = endMin;
+
+          const hours = (endMin - startMin) / 60;
+          if (displayHours) displayHours.textContent = Math.max(0, hours).toFixed(1);
+
+          const startPercent = minutesToPercent(startMin);
+          const endPercent = minutesToPercent(endMin);
+
+          if (startHandle) startHandle.style.left = `calc(${startPercent}% - 12px)`;
+          if (endHandle) endHandle.style.left = `calc(${endPercent}% - 12px)`;
+
+          const fillPercent = Math.max(0, endPercent - startPercent);
+          if (sliderFill) {
+            sliderFill.style.left = `${startPercent}%`;
+            sliderFill.style.width = `${fillPercent}%`;
+          }
+
+          if (startTimeLabel) {
+            startTimeLabel.textContent = minutesToTime(startMin);
+            startTimeLabel.style.left = `calc(${startPercent}% - 12px)`;
+          }
+          if (endTimeLabel) {
+            endTimeLabel.textContent = minutesToTime(endMin);
+            endTimeLabel.style.left = `calc(${endPercent}% + 12px)`;
+          }
+
+          // Update time input fields
+          const startTimeInputEl = document.getElementById(prefix + 'StartTimeInput');
+          const endTimeInputEl = document.getElementById(prefix + 'EndTimeInput');
+          if (startTimeInputEl) startTimeInputEl.value = minutesToTimeInput(startMin);
+          if (endTimeInputEl) endTimeInputEl.value = minutesToTimeInput(endMin);
+        } catch (error) {
+          console.error('Error updating slider display:', error);
+        }
+      }
+
+      function onMouseMove(e) {
+        if (!dragState.isDragging || !dragState.handle) return;
+
+        const deltaX = e.clientX - dragState.startX;
+        const percent = deltaX / sliderWidth;
+        const deltaMinutes = percent * RANGE_MINUTES;
+
+        const isStart = dragState.handle === startHandle;
+        const fieldId = isStart ? startMinutesId : endMinutesId;
+        const otherFieldId = isStart ? endMinutesId : startMinutesId;
+
+        let newMinutes = parseInt(document.getElementById(fieldId).value) + deltaMinutes;
+        newMinutes = snapToInterval(newMinutes);
+        newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
+
+        const otherMinutes = parseInt(document.getElementById(otherFieldId).value);
+        if (isStart && newMinutes >= otherMinutes) {
+          newMinutes = otherMinutes - SNAP_INTERVAL;
+        } else if (!isStart && newMinutes <= otherMinutes) {
+          newMinutes = otherMinutes + SNAP_INTERVAL;
+        }
+
+        newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
+        document.getElementById(fieldId).value = newMinutes;
+
+        dragState.startX = e.clientX;
+        updateDisplay();
+      }
+
+      function onMouseUp() {
+        if (dragState.handle && dragState.handle !== 'fill' && dragState.handle.style) {
+          dragState.handle.style.cursor = 'grab';
+        }
+        if (dragState.handle === 'fill' && sliderFill) {
+          sliderFill.style.cursor = 'grab';
+        }
+        dragState.isDragging = false;
+        dragState.handle = null;
+      }
+
+      function onFillMove(e) {
+        if (!dragState.isDragging || dragState.handle !== 'fill') return;
+
+        const deltaX = e.clientX - dragState.startX;
+        const percent = deltaX / sliderWidth;
+        const deltaMinutes = percent * RANGE_MINUTES;
+
+        const startMin = parseInt(document.getElementById(startMinutesId).value);
+        const endMin = parseInt(document.getElementById(endMinutesId).value);
+        const duration = endMin - startMin;
+
+        let newStart = startMin + deltaMinutes;
+        newStart = snapToInterval(newStart);
+
+        let newEnd = newStart + duration;
+
+        if (newStart < MIN_MINUTES) {
+          newStart = MIN_MINUTES;
+          newEnd = newStart + duration;
+        }
+        if (newEnd > MAX_MINUTES) {
+          newEnd = MAX_MINUTES;
+          newStart = newEnd - duration;
+        }
+
+        document.getElementById(startMinutesId).value = newStart;
+        document.getElementById(endMinutesId).value = newEnd;
+
+        dragState.startX = e.clientX;
+        updateDisplay();
+      }
+
+      function setupHandleDrag(handle) {
+        handle.addEventListener('mousedown', (e) => {
+          dragState.isDragging = true;
+          dragState.handle = handle;
+          dragState.startX = e.clientX;
+          handle.style.cursor = 'grabbing';
+          e.preventDefault();
+        });
+
+        handle.addEventListener('touchstart', (e) => {
+          dragState.isDragging = true;
+          dragState.handle = handle;
+          dragState.startX = e.touches[0].clientX;
+          e.preventDefault();
+        });
+      }
+
+      function setupFillDrag(fill) {
+        fill.addEventListener('mousedown', (e) => {
+          dragState.isDragging = true;
+          dragState.handle = 'fill';
+          dragState.startX = e.clientX;
+          fill.style.cursor = 'grabbing';
+          e.preventDefault();
+        });
+
+        fill.addEventListener('touchstart', (e) => {
+          dragState.isDragging = true;
+          dragState.handle = 'fill';
+          dragState.startX = e.touches[0].clientX;
+          e.preventDefault();
+        });
+      }
+
+      document.addEventListener('mousemove', (e) => {
+        if (dragState.handle === 'fill') {
+          onFillMove(e);
+        } else {
+          onMouseMove(e);
+        }
+      });
+
+      document.addEventListener('mouseup', () => {
+        onMouseUp();
+        if (sliderFill) sliderFill.style.cursor = 'grab';
+      });
+
+      document.addEventListener('touchmove', (e) => {
+        if (dragState.isDragging && dragState.handle) {
+          if (dragState.handle === 'fill') {
+            onFillMove({ clientX: e.touches[0].clientX });
+          } else {
+            onMouseMove({ clientX: e.touches[0].clientX });
+          }
+        }
+      });
+
+      document.addEventListener('touchend', onMouseUp);
+
+      setupHandleDrag(startHandle);
+      setupHandleDrag(endHandle);
+      setupFillDrag(sliderFill);
+      sliderFill.style.cursor = 'grab';
+      sliderFill.style.userSelect = 'none';
+
+      // Time input listeners with live sync
+      const startTimeInputId = prefix + 'StartTimeInput';
+      const endTimeInputId = prefix + 'EndTimeInput';
+      const startTimeInput = document.getElementById(startTimeInputId);
+      const endTimeInput = document.getElementById(endTimeInputId);
+
+      if (startTimeInput) {
+        startTimeInput.addEventListener('input', () => {
+          const [hours, minutes] = startTimeInput.value.split(':').map(Number);
+          if (isNaN(hours) || isNaN(minutes)) return;
+
+          const newMinutes = hours * 60 + minutes;
+          const endMin = parseInt(document.getElementById(endMinutesId).value);
+
+          if (newMinutes < endMin && newMinutes >= MIN_MINUTES && newMinutes <= MAX_MINUTES) {
+            document.getElementById(startMinutesId).value = newMinutes;
+            updateDisplay();
+          }
+        });
+      }
+
+      if (endTimeInput) {
+        endTimeInput.addEventListener('input', () => {
+          const [hours, minutes] = endTimeInput.value.split(':').map(Number);
+          if (isNaN(hours) || isNaN(minutes)) return;
+
+          const newMinutes = hours * 60 + minutes;
+          const startMin = parseInt(document.getElementById(startMinutesId).value);
+
+          if (newMinutes > startMin && newMinutes >= MIN_MINUTES && newMinutes <= MAX_MINUTES) {
+            document.getElementById(endMinutesId).value = newMinutes;
+            updateDisplay();
+          }
+        });
+      }
+
       updateDisplay();
     }
 
     function initializeNewEntrySlider() {
-      const sliderContainer = document.getElementById('newEntryTimeSliderContainer');
-      if (!sliderContainer) return;
-
-      const startHandle = document.getElementById('newEntryStartHandle');
-      const endHandle = document.getElementById('newEntryEndHandle');
-      const sliderFill = document.getElementById('newEntrySliderFill');
-      const displayHours = document.getElementById('newEntryDisplayHours');
-      const startTimeLabel = document.getElementById('newEntryStartTimeLabel');
-      const endTimeLabel = document.getElementById('newEntryEndTimeLabel');
-
-      const sliderWidth = sliderContainer.offsetWidth - 24;
-
-      if (!startHandle || !endHandle || !sliderFill) return;
-
-      const MIN_MINUTES = 300;
-      const MAX_MINUTES = 1020;
-      const RANGE_MINUTES = MAX_MINUTES - MIN_MINUTES;
-      const SNAP_INTERVAL = 5;
-
-      function minutesToPercent(minutes) {
-        return ((minutes - MIN_MINUTES) / RANGE_MINUTES) * 100;
-      }
-
-      function minutesToTime(minutes) {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const displayHour = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
-        return `${displayHour}:${mins.toString().padStart(2, '0')} ${ampm}`;
-      }
-
-      function updateDisplay() {
-        try {
-          const startMin = parseInt(document.getElementById('newEntryStartMinutes').value);
-          const endMin = parseInt(document.getElementById('newEntryEndMinutes').value);
-          const hours = (endMin - startMin) / 60;
-
-          if (displayHours) displayHours.textContent = Math.max(0, hours).toFixed(1);
-
-          const startPercent = minutesToPercent(startMin);
-          const endPercent = minutesToPercent(endMin);
-
-          if (startHandle) startHandle.style.left = `calc(${startPercent}% - 12px)`;
-          if (endHandle) endHandle.style.left = `calc(${endPercent}% - 12px)`;
-
-          const fillPercent = Math.max(0, endPercent - startPercent);
-          if (sliderFill) {
-            sliderFill.style.left = `${startPercent}%`;
-            sliderFill.style.width = `${fillPercent}%`;
-          }
-
-          if (startTimeLabel) {
-            startTimeLabel.textContent = minutesToTime(startMin);
-            startTimeLabel.style.left = `calc(${startPercent}% - 12px)`;
-          }
-          if (endTimeLabel) {
-            endTimeLabel.textContent = minutesToTime(endMin);
-            endTimeLabel.style.left = `calc(${endPercent}% + 12px)`;
-          }
-        } catch (error) {
-          console.error('Error updating new entry slider:', error);
-        }
-      }
-
-      function snapToInterval(minutes) {
-        return Math.round(minutes / SNAP_INTERVAL) * SNAP_INTERVAL;
-      }
-
-      function makeHandleDraggable(handle) {
-        let isDragging = false;
-        let startX = 0;
-
-        handle.addEventListener('mousedown', (e) => {
-          isDragging = true;
-          startX = e.clientX;
-          handle.style.cursor = 'grabbing';
-        });
-
-        document.addEventListener('mousemove', (e) => {
-          if (!isDragging) return;
-
-          const deltaX = e.clientX - startX;
-          const percent = deltaX / sliderWidth;
-          const deltaMinutes = percent * RANGE_MINUTES;
-
-          const isStart = handle.id === 'newEntryStartHandle';
-          const fieldId = isStart ? 'newEntryStartMinutes' : 'newEntryEndMinutes';
-          const otherFieldId = isStart ? 'newEntryEndMinutes' : 'newEntryStartMinutes';
-
-          let newMinutes = parseInt(document.getElementById(fieldId).value) + deltaMinutes;
-          newMinutes = snapToInterval(newMinutes);
-          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-
-          const otherMinutes = parseInt(document.getElementById(otherFieldId).value);
-          if (isStart && newMinutes >= otherMinutes) {
-            newMinutes = otherMinutes - SNAP_INTERVAL;
-          } else if (!isStart && newMinutes <= otherMinutes) {
-            newMinutes = otherMinutes + SNAP_INTERVAL;
-          }
-
-          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-          document.getElementById(fieldId).value = newMinutes;
-
-          startX = e.clientX;
-          updateDisplay();
-        });
-
-        document.addEventListener('mouseup', () => {
-          isDragging = false;
-          handle.style.cursor = 'grab';
-        });
-      }
-
-      makeHandleDraggable(startHandle);
-      makeHandleDraggable(endHandle);
-
-      updateDisplay();
+      initializeGenericTimeSlider('newEntry');
     }
 
     function initializeEditEntrySlider() {
-      const sliderContainer = document.getElementById('editEntryTimeSliderContainer');
-      if (!sliderContainer) return;
-
-      const startHandle = document.getElementById('editEntryStartHandle');
-      const endHandle = document.getElementById('editEntryEndHandle');
-      const sliderFill = document.getElementById('editEntrySliderFill');
-      const displayHours = document.getElementById('editEntryDisplayHours');
-      const startTimeLabel = document.getElementById('editEntryStartTimeLabel');
-      const endTimeLabel = document.getElementById('editEntryEndTimeLabel');
-
-      const sliderWidth = sliderContainer.offsetWidth - 24;
-
-      if (!startHandle || !endHandle || !sliderFill) return;
-
-      const MIN_MINUTES = 300;
-      const MAX_MINUTES = 1020;
-      const RANGE_MINUTES = MAX_MINUTES - MIN_MINUTES;
-      const SNAP_INTERVAL = 5;
-
-      function minutesToPercent(minutes) {
-        return ((minutes - MIN_MINUTES) / RANGE_MINUTES) * 100;
-      }
-
-      function minutesToTime(minutes) {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const displayHour = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
-        return `${displayHour}:${mins.toString().padStart(2, '0')} ${ampm}`;
-      }
-
-      function updateDisplay() {
-        try {
-          const startMin = parseInt(document.getElementById('editEntryStartMinutes').value);
-          const endMin = parseInt(document.getElementById('editEntryEndMinutes').value);
-          const hours = (endMin - startMin) / 60;
-
-          if (displayHours) displayHours.textContent = Math.max(0, hours).toFixed(1);
-
-          const startPercent = minutesToPercent(startMin);
-          const endPercent = minutesToPercent(endMin);
-
-          if (startHandle) startHandle.style.left = `calc(${startPercent}% - 12px)`;
-          if (endHandle) endHandle.style.left = `calc(${endPercent}% - 12px)`;
-
-          const fillPercent = Math.max(0, endPercent - startPercent);
-          if (sliderFill) {
-            sliderFill.style.left = `${startPercent}%`;
-            sliderFill.style.width = `${fillPercent}%`;
-          }
-
-          if (startTimeLabel) {
-            startTimeLabel.textContent = minutesToTime(startMin);
-            startTimeLabel.style.left = `calc(${startPercent}% - 12px)`;
-          }
-          if (endTimeLabel) {
-            endTimeLabel.textContent = minutesToTime(endMin);
-            endTimeLabel.style.left = `calc(${endPercent}% + 12px)`;
-          }
-        } catch (error) {
-          console.error('Error updating edit entry slider:', error);
-        }
-      }
-
-      function snapToInterval(minutes) {
-        return Math.round(minutes / SNAP_INTERVAL) * SNAP_INTERVAL;
-      }
-
-      function makeHandleDraggable(handle) {
-        let isDragging = false;
-        let startX = 0;
-
-        handle.addEventListener('mousedown', (e) => {
-          isDragging = true;
-          startX = e.clientX;
-          handle.style.cursor = 'grabbing';
-        });
-
-        document.addEventListener('mousemove', (e) => {
-          if (!isDragging) return;
-
-          const deltaX = e.clientX - startX;
-          const percent = deltaX / sliderWidth;
-          const deltaMinutes = percent * RANGE_MINUTES;
-
-          const isStart = handle.id === 'editEntryStartHandle';
-          const fieldId = isStart ? 'editEntryStartMinutes' : 'editEntryEndMinutes';
-          const otherFieldId = isStart ? 'editEntryEndMinutes' : 'editEntryStartMinutes';
-
-          let newMinutes = parseInt(document.getElementById(fieldId).value) + deltaMinutes;
-          newMinutes = snapToInterval(newMinutes);
-          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-
-          const otherMinutes = parseInt(document.getElementById(otherFieldId).value);
-          if (isStart && newMinutes >= otherMinutes) {
-            newMinutes = otherMinutes - SNAP_INTERVAL;
-          } else if (!isStart && newMinutes <= otherMinutes) {
-            newMinutes = otherMinutes + SNAP_INTERVAL;
-          }
-
-          newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-          document.getElementById(fieldId).value = newMinutes;
-
-          startX = e.clientX;
-          updateDisplay();
-        });
-
-        document.addEventListener('mouseup', () => {
-          isDragging = false;
-          handle.style.cursor = 'grab';
-        });
-      }
-
-      makeHandleDraggable(startHandle);
-      makeHandleDraggable(endHandle);
-
-      updateDisplay();
+      initializeGenericTimeSlider('editEntry');
     }
 
     window.saveEditedHours = async function(employeeId, clientId, date) {
@@ -3256,8 +3298,20 @@
           <div style="font-size: 12px; color: var(--gray-600);">horas</div>
         </div>
 
+        <!-- Manual Time Input Fields -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Inicio</label>
+            <input type="time" id="newEntryStartTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Fin</label>
+            <input type="time" id="newEntryEndTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+          </div>
+        </div>
+
         <div style="margin-bottom: 28px;">
-          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos</div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos o el área entre ellos</div>
 
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
             <span>5:00 AM</span>
@@ -3357,8 +3411,20 @@
           <div style="font-size: 12px; color: var(--gray-600);">horas</div>
         </div>
 
+        <!-- Manual Time Input Fields -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Inicio</label>
+            <input type="time" id="newEntryStartTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Fin</label>
+            <input type="time" id="newEntryEndTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+          </div>
+        </div>
+
         <div style="margin-bottom: 28px;">
-          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos</div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos o el área entre ellos</div>
 
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
             <span>5:00 AM</span>
@@ -3535,8 +3601,20 @@
           <div style="font-size: 12px; color: var(--gray-600);">horas</div>
         </div>
 
+        <!-- Manual Time Input Fields -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Inicio</label>
+            <input type="time" id="editEntryStartTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Fin</label>
+            <input type="time" id="editEntryEndTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+          </div>
+        </div>
+
         <div style="margin-bottom: 28px;">
-          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos</div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos o el área entre ellos</div>
 
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
             <span>5:00 AM</span>
