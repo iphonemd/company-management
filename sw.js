@@ -2,6 +2,7 @@
 const CACHE_NAME = 'cleanpro-timeclock-v1';
 const urlsToCache = [
   '/timeclock.html',
+  '/teamclock-v2.html',
   '/css/styles.css',
   '/js/firebase-config.js',
   '/js/i18n.js',
