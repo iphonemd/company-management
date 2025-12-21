@@ -1450,6 +1450,11 @@
         modalContent.innerHTML = content;
       }
 
+      // Force animation replay by temporarily removing it and triggering a reflow
+      overlay.classList.remove('active');
+      modalContent.style.animation = 'none';
+      void modalContent.offsetWidth; // Trigger reflow
+      modalContent.style.animation = '';
       overlay.classList.add('active');
     };
 
@@ -2408,14 +2413,15 @@
 
         return `
           <div style="margin-bottom: 24px;">
-            <h3 style="font-size: 13px; font-weight: 700; color: var(--gray-900); margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">
-              ${day.dayName} - ${day.display}
-            </h3>
-            <div style="margin-bottom: 12px;">
+            <button style="width: 100%; padding: 12px; background: var(--primary-500); color: white; margin-bottom: 0; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; text-align: left; display: flex; justify-content: space-between; align-items: center;" onclick="toggleDaySection('${day.date}')">
+              <span>${day.dayName} - ${day.display}</span>
+              <span id="expand-icon-${day.date}" style="font-size: 16px;">▼</span>
+            </button>
+            <div id="day-content-${day.date}" style="display: none; margin-bottom: 12px; margin-top: 12px;">
               ${employeesList}
               ${otherEmployees}
+              <button style="width: 100%; padding: 12px; background: var(--gray-200); color: var(--gray-700); border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;" onclick="addNewHourEntry('${day.date}')">+ Agregar Entrada</button>
             </div>
-            <button style="width: 100%; padding: 12px; background: var(--gray-200); color: var(--gray-700); border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;" onclick="addNewHourEntry('${day.date}')">+ Agregar Entrada</button>
           </div>
         `;
       }).join('');
@@ -2430,6 +2436,19 @@
     }
 
     window.renderHoursTab = renderHoursTab;
+
+    window.toggleDaySection = function(dateStr) {
+      const content = document.getElementById(`day-content-${dateStr}`);
+      const icon = document.getElementById(`expand-icon-${dateStr}`);
+
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▲';
+      } else {
+        content.style.display = 'none';
+        icon.textContent = '▼';
+      }
+    };
 
     window.showEmployeeHoursDetail = function(employeeId) {
       const empData = window.APP_STATE.hoursByEmployee[employeeId];
@@ -2550,39 +2569,32 @@
           <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos</div>
 
           <!-- Time Scale Labels (5 AM to 8 PM) -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
-            <span>5:00 AM</span>
-            <span>8:00 AM</span>
-            <span>11:00 AM</span>
-            <span>2:00 PM</span>
-            <span>5:00 PM</span>
-            <span>8:00 PM</span>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
+            <span>5 AM</span>
+            <span>8 AM</span>
+            <span>11 AM</span>
+            <span>2 PM</span>
+            <span>5 PM</span>
+            <span>8 PM</span>
           </div>
 
-          <!-- Slider Container (5 AM to 8 PM range only) -->
-          <div id="timeSliderContainer" style="position: relative; height: 60px; background: linear-gradient(90deg, var(--gray-50) 0%, var(--gray-100) 50%, var(--gray-50) 100%); border-radius: 12px; border: 2px solid var(--gray-300); overflow: hidden;">
-            <!-- Time Range Fill -->
-            <div id="sliderFill" style="position: absolute; top: 0; height: 100%; background: var(--primary-200); border: 2px solid var(--primary-500); border-radius: 10px; z-index: 1;"></div>
+          <!-- Clean Line-Based Slider Container -->
+          <div id="timeSliderContainer" style="position: relative; height: 100px; margin-bottom: 16px;">
+            <!-- Background timeline (5 AM to 8 PM) -->
+            <div id="timelineBar" style="position: absolute; top: 40px; left: 0; right: 0; height: 4px; background: #ddd; border-radius: 2px;"></div>
 
-            <!-- Start Handle -->
-            <div id="startHandle" class="time-slider-handle" style="position: absolute; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--primary-600); border: 3px solid white; border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);" data-type="start"></div>
+            <!-- Filled region between dots -->
+            <div id="sliderFill" style="position: absolute; top: 40px; height: 6px; background: var(--primary-500); border-radius: 3px; cursor: grab; z-index: 2;" data-type="fill"></div>
 
-            <!-- End Handle -->
-            <div id="endHandle" class="time-slider-handle" style="position: absolute; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--primary-600); border: 3px solid white; border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);" data-type="end"></div>
+            <!-- Start time dot -->
+            <div id="startHandle" style="position: absolute; top: 25px; left: 0; width: 40px; height: 40px; background: white; border: 3px solid var(--primary-600); border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: translateX(-50%); display: flex; align-items: center; justify-content: center;" data-type="start">
+              <div id="startTimeLabel" style="position: absolute; top: -28px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">8:00 AM</div>
+            </div>
 
-            <!-- Time Labels on Handles -->
-            <div id="startTimeLabel" style="position: absolute; top: -24px; left: 0; transform: translateX(-50%); font-size: 11px; font-weight: 600; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">8:00 AM</div>
-            <div id="endTimeLabel" style="position: absolute; top: -24px; right: 0; transform: translateX(50%); font-size: 11px; font-weight: 600; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">10:00 AM</div>
-          </div>
-
-          <!-- Time Scale Marks -->
-          <div style="display: flex; justify-content: space-between; margin-top: 8px;">
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
+            <!-- End time dot -->
+            <div id="endHandle" style="position: absolute; top: 25px; left: 0; width: 40px; height: 40px; background: white; border: 3px solid var(--primary-600); border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: translateX(-50%); display: flex; align-items: center; justify-content: center;" data-type="end">
+              <div id="endTimeLabel" style="position: absolute; top: 48px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">10:00 AM</div>
+            </div>
           </div>
         </div>
 
@@ -2608,613 +2620,426 @@
     };
 
     function initializeTimeSlider(employeeId, clientId, date) {
-      const sliderContainer = document.getElementById('timeSliderContainer');
-      if (!sliderContainer) return;
+      const container = document.getElementById('timeSliderContainer');
+      if (!container) return;
 
-      const startHandle = document.getElementById('startHandle');
-      const endHandle = document.getElementById('endHandle');
-      const sliderFill = document.getElementById('sliderFill');
-      const displayHours = document.getElementById('displayHours');
-      const startTimeLabel = document.getElementById('startTimeLabel');
-      const endTimeLabel = document.getElementById('endTimeLabel');
-      const startTimeInput = document.getElementById('startTimeInput');
-      const endTimeInput = document.getElementById('endTimeInput');
+      const startDot = document.getElementById('startHandle');
+      const endDot = document.getElementById('endHandle');
+      const fillBar = document.getElementById('sliderFill');
+      const startLabel = document.getElementById('startTimeLabel');
+      const endLabel = document.getElementById('endTimeLabel');
 
-      const sliderWidth = sliderContainer.offsetWidth;
+      if (!startDot || !endDot || !fillBar) return;
 
-      if (!startHandle || !endHandle || !sliderFill) return;
+      // Constants
+      const MIN_MIN = 300;   // 5 AM
+      const MAX_MIN = 1200;  // 8 PM
+      const RANGE = MAX_MIN - MIN_MIN;
+      const SNAP = 5;
+      const MIN_DURATION = 5; // Minimum 5 minutes between start and end
 
-      // Time range: 5 AM (300) to 8 PM (1020) = 720 minutes
-      const MIN_MINUTES = 300;
-      const MAX_MINUTES = 1020;
-      const RANGE_MINUTES = MAX_MINUTES - MIN_MINUTES;
-      const SNAP_INTERVAL = 5;
-
-      // State for dragging
-      let dragState = { isDragging: false, handle: null, startX: 0 };
-
-      function minutesToPercent(minutes) {
-        return ((minutes - MIN_MINUTES) / RANGE_MINUTES) * 100;
+      // Helper: convert minutes to percentage position
+      function minToPercent(minutes) {
+        return ((minutes - MIN_MIN) / RANGE) * 100;
       }
 
-      function minutesToTime(minutes) {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const displayHour = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
-        return `${displayHour}:${mins.toString().padStart(2, '0')} ${ampm}`;
+      // Helper: convert percentage to minutes
+      function percentToMin(percent) {
+        return (percent / 100) * RANGE + MIN_MIN;
       }
 
-      function minutesToTimeInput(minutes) {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+      // Helper: convert minutes to time display
+      function minToTime(min) {
+        const h = Math.floor(min / 60);
+        const m = min % 60;
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+        return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`;
       }
 
-      function snapToInterval(minutes) {
-        return Math.round(minutes / SNAP_INTERVAL) * SNAP_INTERVAL;
+      // Helper: snap to interval
+      function snap(minutes) {
+        return Math.round(minutes / SNAP) * SNAP;
       }
 
+      // Update visual display based on input values
       function updateDisplay() {
-        try {
-          const startMinEl = document.getElementById('editStartMinutes');
-          const endMinEl = document.getElementById('editEndMinutes');
-          if (!startMinEl || !endMinEl) return;
+        let start = parseInt(document.getElementById('editStartMinutes').value) || 480;
+        let end = parseInt(document.getElementById('editEndMinutes').value) || 600;
 
-          let startMin = parseInt(startMinEl.value) || 480;
-          let endMin = parseInt(endMinEl.value) || 600;
+        // Clamp to boundaries
+        start = Math.max(MIN_MIN, Math.min(MAX_MIN, start));
+        end = Math.max(MIN_MIN, Math.min(MAX_MIN, end));
 
-          // Ensure validity
-          startMin = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, startMin));
-          endMin = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, endMin));
-          if (startMin >= endMin) {
-            endMin = Math.min(MAX_MINUTES, startMin + SNAP_INTERVAL);
-          }
-
-          startMinEl.value = startMin;
-          endMinEl.value = endMin;
-
-          const hours = (endMin - startMin) / 60;
-          if (displayHours) displayHours.textContent = Math.max(0, hours).toFixed(1);
-
-          const startPercent = minutesToPercent(startMin);
-          const endPercent = minutesToPercent(endMin);
-
-          // Position handles (center them properly)
-          if (startHandle) startHandle.style.left = `calc(${startPercent}% - 12px)`;
-          if (endHandle) endHandle.style.left = `calc(${endPercent}% - 12px)`;
-
-          // Fill bar
-          const fillPercent = Math.max(0, endPercent - startPercent);
-          if (sliderFill) {
-            sliderFill.style.left = `${startPercent}%`;
-            sliderFill.style.width = `${fillPercent}%`;
-          }
-
-          // Time labels on handles
-          if (startTimeLabel) {
-            startTimeLabel.textContent = minutesToTime(startMin);
-            startTimeLabel.style.left = `calc(${startPercent}% - 12px)`;
-          }
-          if (endTimeLabel) {
-            endTimeLabel.textContent = minutesToTime(endMin);
-            endTimeLabel.style.left = `calc(${endPercent}% + 12px)`;
-          }
-
-          // Update time inputs
-          if (startTimeInput) startTimeInput.value = minutesToTimeInput(startMin);
-          if (endTimeInput) endTimeInput.value = minutesToTimeInput(endMin);
-        } catch (error) {
-          console.error('Error updating display:', error);
+        // Ensure minimum 5 minute duration
+        if (end - start < MIN_DURATION) {
+          end = Math.min(MAX_MIN, start + MIN_DURATION);
         }
+        if (start > end - MIN_DURATION) {
+          start = Math.max(MIN_MIN, end - MIN_DURATION);
+        }
+
+        // Save back to inputs
+        document.getElementById('editStartMinutes').value = start;
+        document.getElementById('editEndMinutes').value = end;
+
+        // Calculate percentages
+        const startPercent = minToPercent(start);
+        const endPercent = minToPercent(end);
+
+        // Position start dot
+        startDot.style.left = `${startPercent}%`;
+        startLabel.textContent = minToTime(start);
+
+        // Position end dot
+        endDot.style.left = `${endPercent}%`;
+        endLabel.textContent = minToTime(end);
+
+        // Position and size fill bar
+        fillBar.style.left = `${startPercent}%`;
+        fillBar.style.width = `${endPercent - startPercent}%`;
       }
 
-      // Mouse move handler
+      // Drag state
+      let dragging = null; // 'start', 'end', 'fill', or null
+      let dragStartX = 0;
+      let dragStartMinutes = { start: 0, end: 0 };
+
+      function startDrag(type, e) {
+        dragging = type;
+        dragStartX = e.clientX || e.touches[0].clientX;
+        dragStartMinutes.start = parseInt(document.getElementById('editStartMinutes').value);
+        dragStartMinutes.end = parseInt(document.getElementById('editEndMinutes').value);
+
+        startDot.style.cursor = type === 'start' ? 'grabbing' : 'grab';
+        endDot.style.cursor = type === 'end' ? 'grabbing' : 'grab';
+        fillBar.style.cursor = type === 'fill' ? 'grabbing' : 'grab';
+      }
+
+      function stopDrag() {
+        dragging = null;
+        startDot.style.cursor = 'grab';
+        endDot.style.cursor = 'grab';
+        fillBar.style.cursor = 'grab';
+      }
+
       function onMouseMove(e) {
-        if (!dragState.isDragging || !dragState.handle) return;
+        if (!dragging) return;
 
-        // Calculate delta in viewport coordinates
-        const deltaX = e.clientX - dragState.startClientX;
-        const currentSliderWidth = sliderContainer.offsetWidth;
-        const percent = deltaX / currentSliderWidth;
-        const deltaMinutes = percent * RANGE_MINUTES;
+        const currentX = e.clientX || e.touches[0].clientX;
+        const deltaPixels = currentX - dragStartX;
+        const deltaPercent = (deltaPixels / container.offsetWidth) * 100;
+        const deltaMinutes = (deltaPercent / 100) * RANGE;
+        let newStart = dragStartMinutes.start;
+        let newEnd = dragStartMinutes.end;
 
-        const startMinEl = document.getElementById('editStartMinutes');
-        const endMinEl = document.getElementById('editEndMinutes');
-        if (!startMinEl || !endMinEl) return;
-
-        const isStart = dragState.handle.id === 'startHandle';
-        const fieldId = isStart ? 'editStartMinutes' : 'editEndMinutes';
-        const otherFieldId = isStart ? 'editEndMinutes' : 'editStartMinutes';
-
-        let newMinutes = parseInt(document.getElementById(fieldId).value) + deltaMinutes;
-        newMinutes = snapToInterval(newMinutes);
-        newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-
-        const otherMinutes = parseInt(document.getElementById(otherFieldId).value);
-        if (isStart && newMinutes >= otherMinutes) {
-          newMinutes = otherMinutes - SNAP_INTERVAL;
-        } else if (!isStart && newMinutes <= otherMinutes) {
-          newMinutes = otherMinutes + SNAP_INTERVAL;
-        }
-
-        newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-        document.getElementById(fieldId).value = newMinutes;
-
-        // Update start position for next movement
-        dragState.startClientX = e.clientX;
-        updateDisplay();
-      }
-
-      // Mouse up handler
-      function onMouseUp() {
-        if (dragState.handle) {
-          dragState.handle.style.cursor = 'grab';
-        }
-        dragState.isDragging = false;
-        dragState.handle = null;
-      }
-
-      // Handle dragging
-      function setupHandleDrag(handle) {
-        handle.addEventListener('mousedown', (e) => {
-          dragState.isDragging = true;
-          dragState.handle = handle;
-          // Store viewport X position (absolute screen coordinate)
-          dragState.startClientX = e.clientX;
-          handle.style.cursor = 'grabbing';
-          e.preventDefault();
-        });
-
-        handle.addEventListener('touchstart', (e) => {
-          dragState.isDragging = true;
-          dragState.handle = handle;
-          // Store viewport X position (absolute screen coordinate)
-          dragState.startClientX = e.touches[0].clientX;
-          e.preventDefault();
-        });
-      }
-
-      // Fill dragging
-      function setupFillDrag(fill) {
-        fill.addEventListener('mousedown', (e) => {
-          dragState.isDragging = true;
-          dragState.handle = { id: 'fill' };
-          // Store viewport X position (absolute screen coordinate)
-          dragState.startClientX = e.clientX;
-          fill.style.cursor = 'grabbing';
-          e.preventDefault();
-        });
-
-        fill.addEventListener('touchstart', (e) => {
-          dragState.isDragging = true;
-          dragState.handle = { id: 'fill' };
-          // Store viewport X position (absolute screen coordinate)
-          dragState.startClientX = e.touches[0].clientX;
-          e.preventDefault();
-        });
-      }
-
-      // Custom mousemove/touchmove for fill dragging
-      function onFillMove(e) {
-        if (!dragState.isDragging || dragState.handle?.id !== 'fill') return;
-
-        // Calculate delta in viewport coordinates
-        const currentClientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
-        const deltaX = currentClientX - dragState.startClientX;
-        const currentSliderWidth = sliderContainer.offsetWidth;
-        const percent = deltaX / currentSliderWidth;
-        const deltaMinutes = percent * RANGE_MINUTES;
-
-        const startMin = parseInt(document.getElementById('editStartMinutes').value);
-        const endMin = parseInt(document.getElementById('editEndMinutes').value);
-        const duration = endMin - startMin;
-
-        let newStart = startMin + deltaMinutes;
-        newStart = snapToInterval(newStart);
-
-        let newEnd = newStart + duration;
-
-        if (newStart < MIN_MINUTES) {
-          newStart = MIN_MINUTES;
+        if (dragging === 'start') {
+          newStart = snap(dragStartMinutes.start + deltaMinutes);
+          newStart = Math.max(MIN_MIN, Math.min(MAX_MIN, newStart));
+          if (newStart > newEnd - MIN_DURATION) {
+            newStart = newEnd - MIN_DURATION;
+          }
+        } else if (dragging === 'end') {
+          newEnd = snap(dragStartMinutes.end + deltaMinutes);
+          newEnd = Math.max(MIN_MIN, Math.min(MAX_MIN, newEnd));
+          if (newEnd < newStart + MIN_DURATION) {
+            newEnd = newStart + MIN_DURATION;
+          }
+        } else if (dragging === 'fill') {
+          const duration = dragStartMinutes.end - dragStartMinutes.start;
+          newStart = snap(dragStartMinutes.start + deltaMinutes);
           newEnd = newStart + duration;
-        }
-        if (newEnd > MAX_MINUTES) {
-          newEnd = MAX_MINUTES;
-          newStart = newEnd - duration;
+
+          // Hard boundaries - don't allow dragging beyond
+          if (newStart < MIN_MIN) {
+            newStart = MIN_MIN;
+            newEnd = newStart + duration;
+          }
+          if (newEnd > MAX_MIN) {
+            newEnd = MAX_MIN;
+            newStart = newEnd - duration;
+          }
         }
 
+        // Update inputs
         document.getElementById('editStartMinutes').value = newStart;
         document.getElementById('editEndMinutes').value = newEnd;
 
-        // Update start position for next movement
-        dragState.startClientX = currentClientX;
+        // Update display
         updateDisplay();
       }
 
-      // Create named handlers so we can remove them later
-      const handleMouseMove = (e) => {
-        if (dragState.handle?.id === 'fill') {
-          onFillMove(e);
-        } else {
-          onMouseMove(e);
-        }
-      };
+      // Event listeners for start dot
+      startDot.addEventListener('mousedown', (e) => startDrag('start', e));
+      startDot.addEventListener('touchstart', (e) => startDrag('start', e));
 
-      const handleTouchMove = (e) => {
-        if (dragState.isTouching && dragState.handle) {
-          if (dragState.handle.id === 'fill') {
-            onFillMove(e);
-          } else {
-            onMouseMove({ clientX: e.touches[0].clientX });
-          }
-        }
-      };
+      // Event listeners for end dot
+      endDot.addEventListener('mousedown', (e) => startDrag('end', e));
+      endDot.addEventListener('touchstart', (e) => startDrag('end', e));
 
-      const handleMouseUp = () => onMouseUp();
-      const handleTouchEnd = () => onMouseUp();
+      // Event listeners for fill bar (middle section)
+      fillBar.addEventListener('mousedown', (e) => startDrag('fill', e));
+      fillBar.addEventListener('touchstart', (e) => startDrag('fill', e));
 
-      // Remove any old listeners first (in case modal was opened before)
-      document.removeEventListener('mousemove', window._editSliderMouseMove);
-      document.removeEventListener('touchmove', window._editSliderTouchMove);
-      document.removeEventListener('mouseup', window._editSliderMouseUp);
-      document.removeEventListener('touchend', window._editSliderTouchEnd);
+      // Sync with visible time input fields
+      const startTimeInput = document.getElementById('startTimeInput');
+      const endTimeInput = document.getElementById('endTimeInput');
 
-      // Store references globally so we can remove them later
-      window._editSliderMouseMove = handleMouseMove;
-      window._editSliderTouchMove = handleTouchMove;
-      window._editSliderMouseUp = handleMouseUp;
-      window._editSliderTouchEnd = handleTouchEnd;
-
-      // Add the new listeners
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('touchmove', handleTouchMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchend', handleTouchEnd);
-
-      // Time input listeners with live sync
       if (startTimeInput) {
-        startTimeInput.addEventListener('input', () => {
-          const [hours, minutes] = startTimeInput.value.split(':').map(Number);
-          if (isNaN(hours) || isNaN(minutes)) return;
-
-          const newMinutes = hours * 60 + minutes;
-          const endMin = parseInt(document.getElementById('editEndMinutes').value);
-
-          if (newMinutes < endMin && newMinutes >= MIN_MINUTES && newMinutes <= MAX_MINUTES) {
-            document.getElementById('editStartMinutes').value = newMinutes;
+        startTimeInput.addEventListener('change', () => {
+          const timeStr = startTimeInput.value; // Format: HH:mm
+          if (timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            const minutes = h * 60 + m;
+            document.getElementById('editStartMinutes').value = minutes;
             updateDisplay();
           }
         });
       }
 
       if (endTimeInput) {
-        endTimeInput.addEventListener('input', () => {
-          const [hours, minutes] = endTimeInput.value.split(':').map(Number);
-          if (isNaN(hours) || isNaN(minutes)) return;
-
-          const newMinutes = hours * 60 + minutes;
-          const startMin = parseInt(document.getElementById('editStartMinutes').value);
-
-          if (newMinutes > startMin && newMinutes >= MIN_MINUTES && newMinutes <= MAX_MINUTES) {
-            document.getElementById('editEndMinutes').value = newMinutes;
+        endTimeInput.addEventListener('change', () => {
+          const timeStr = endTimeInput.value; // Format: HH:mm
+          if (timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            const minutes = h * 60 + m;
+            document.getElementById('editEndMinutes').value = minutes;
             updateDisplay();
           }
         });
       }
 
-      // Setup dragging for handles and fill
-      setupHandleDrag(startHandle);
-      setupHandleDrag(endHandle);
-      setupFillDrag(sliderFill);
+      // Update time inputs when slider changes
+      const originalUpdateDisplay = updateDisplay;
+      updateDisplay = function() {
+        originalUpdateDisplay();
+        // Also update the visible time input fields
+        const startMin = parseInt(document.getElementById('editStartMinutes').value);
+        const endMin = parseInt(document.getElementById('editEndMinutes').value);
+        if (startTimeInput && !isNaN(startMin)) {
+          const h = Math.floor(startMin / 60);
+          const m = startMin % 60;
+          startTimeInput.value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+        if (endTimeInput && !isNaN(endMin)) {
+          const h = Math.floor(endMin / 60);
+          const m = endMin % 60;
+          endTimeInput.value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+      };
 
-      // Initialize display to position handles based on current input values
-      updateDisplay();
-      sliderFill.style.cursor = 'grab';
-      sliderFill.style.userSelect = 'none';
+      // Global movement and stop listeners
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('touchmove', onMouseMove);
+      document.addEventListener('mouseup', stopDrag);
+      document.addEventListener('touchend', stopDrag);
 
       // Initial display
       updateDisplay();
     }
 
     function initializeGenericTimeSlider(prefix) {
-      const sliderContainer = document.getElementById(prefix + 'TimeSliderContainer');
-      if (!sliderContainer) return;
+      const container = document.getElementById(prefix + 'TimeSliderContainer');
+      if (!container) return;
 
-      const startHandle = document.getElementById(prefix + 'StartHandle');
-      const endHandle = document.getElementById(prefix + 'EndHandle');
-      const sliderFill = document.getElementById(prefix + 'SliderFill');
-      const displayHours = document.getElementById(prefix + 'DisplayHours');
-      const startTimeLabel = document.getElementById(prefix + 'StartTimeLabel');
-      const endTimeLabel = document.getElementById(prefix + 'EndTimeLabel');
-      const startMinutesId = prefix + 'StartMinutes';
-      const endMinutesId = prefix + 'EndMinutes';
+      const startDot = document.getElementById(prefix + 'StartHandle');
+      const endDot = document.getElementById(prefix + 'EndHandle');
+      const fillBar = document.getElementById(prefix + 'SliderFill');
+      const startLabel = document.getElementById(prefix + 'StartTimeLabel');
+      const endLabel = document.getElementById(prefix + 'EndTimeLabel');
+      const startMinId = prefix + 'StartMinutes';
+      const endMinId = prefix + 'EndMinutes';
 
-      const sliderWidth = sliderContainer.offsetWidth;
+      if (!startDot || !endDot || !fillBar) return;
 
-      if (!startHandle || !endHandle || !sliderFill) return;
+      // Constants
+      const MIN_MIN = 300;   // 5 AM
+      const MAX_MIN = 1200;  // 8 PM
+      const RANGE = MAX_MIN - MIN_MIN;
+      const SNAP = 5;
+      const MIN_DURATION = 5;
 
-      const MIN_MINUTES = 300;
-      const MAX_MINUTES = 1020;
-      const RANGE_MINUTES = MAX_MINUTES - MIN_MINUTES;
-      const SNAP_INTERVAL = 5;
-      let dragState = { isDragging: false, handle: null, startX: 0 };
-
-      function minutesToPercent(minutes) {
-        return ((minutes - MIN_MINUTES) / RANGE_MINUTES) * 100;
+      // Helpers
+      function minToPercent(minutes) {
+        return ((minutes - MIN_MIN) / RANGE) * 100;
       }
 
-      function minutesToTime(minutes) {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const displayHour = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
-        return `${displayHour}:${mins.toString().padStart(2, '0')} ${ampm}`;
+      function minToTime(min) {
+        const h = Math.floor(min / 60);
+        const m = min % 60;
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+        return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`;
       }
 
-      function minutesToTimeInput(minutes) {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-      }
-
-      function snapToInterval(minutes) {
-        return Math.round(minutes / SNAP_INTERVAL) * SNAP_INTERVAL;
+      function snap(minutes) {
+        return Math.round(minutes / SNAP) * SNAP;
       }
 
       function updateDisplay() {
-        try {
-          const startMinEl = document.getElementById(startMinutesId);
-          const endMinEl = document.getElementById(endMinutesId);
-          if (!startMinEl || !endMinEl) return;
+        let start = parseInt(document.getElementById(startMinId).value) || 480;
+        let end = parseInt(document.getElementById(endMinId).value) || 600;
 
-          let startMin = parseInt(startMinEl.value) || 480;
-          let endMin = parseInt(endMinEl.value) || 600;
+        // Clamp to boundaries
+        start = Math.max(MIN_MIN, Math.min(MAX_MIN, start));
+        end = Math.max(MIN_MIN, Math.min(MAX_MIN, end));
 
-          startMin = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, startMin));
-          endMin = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, endMin));
-          if (startMin >= endMin) {
-            endMin = Math.min(MAX_MINUTES, startMin + SNAP_INTERVAL);
-          }
-
-          startMinEl.value = startMin;
-          endMinEl.value = endMin;
-
-          const hours = (endMin - startMin) / 60;
-          if (displayHours) displayHours.textContent = Math.max(0, hours).toFixed(1);
-
-          const startPercent = minutesToPercent(startMin);
-          const endPercent = minutesToPercent(endMin);
-
-          if (startHandle) startHandle.style.left = `calc(${startPercent}% - 12px)`;
-          if (endHandle) endHandle.style.left = `calc(${endPercent}% - 12px)`;
-
-          const fillPercent = Math.max(0, endPercent - startPercent);
-          if (sliderFill) {
-            sliderFill.style.left = `${startPercent}%`;
-            sliderFill.style.width = `${fillPercent}%`;
-          }
-
-          if (startTimeLabel) {
-            startTimeLabel.textContent = minutesToTime(startMin);
-            startTimeLabel.style.left = `calc(${startPercent}% - 12px)`;
-          }
-          if (endTimeLabel) {
-            endTimeLabel.textContent = minutesToTime(endMin);
-            endTimeLabel.style.left = `calc(${endPercent}% + 12px)`;
-          }
-
-          // Update time input fields
-          const startTimeInputEl = document.getElementById(prefix + 'StartTimeInput');
-          const endTimeInputEl = document.getElementById(prefix + 'EndTimeInput');
-          if (startTimeInputEl) startTimeInputEl.value = minutesToTimeInput(startMin);
-          if (endTimeInputEl) endTimeInputEl.value = minutesToTimeInput(endMin);
-        } catch (error) {
-          console.error('Error updating slider display:', error);
+        // Ensure minimum duration
+        if (end - start < MIN_DURATION) {
+          end = Math.min(MAX_MIN, start + MIN_DURATION);
         }
+        if (start > end - MIN_DURATION) {
+          start = Math.max(MIN_MIN, end - MIN_DURATION);
+        }
+
+        // Save back
+        document.getElementById(startMinId).value = start;
+        document.getElementById(endMinId).value = end;
+
+        // Calculate positions
+        const startPercent = minToPercent(start);
+        const endPercent = minToPercent(end);
+
+        // Position dots
+        startDot.style.left = `${startPercent}%`;
+        startLabel.textContent = minToTime(start);
+        endDot.style.left = `${endPercent}%`;
+        endLabel.textContent = minToTime(end);
+
+        // Position fill
+        fillBar.style.left = `${startPercent}%`;
+        fillBar.style.width = `${endPercent - startPercent}%`;
+      }
+
+      // Drag state
+      let dragging = null;
+      let dragStartX = 0;
+      let dragStartMinutes = { start: 0, end: 0 };
+
+      function startDrag(type, e) {
+        dragging = type;
+        dragStartX = e.clientX || e.touches[0].clientX;
+        dragStartMinutes.start = parseInt(document.getElementById(startMinId).value);
+        dragStartMinutes.end = parseInt(document.getElementById(endMinId).value);
+
+        startDot.style.cursor = type === 'start' ? 'grabbing' : 'grab';
+        endDot.style.cursor = type === 'end' ? 'grabbing' : 'grab';
+        fillBar.style.cursor = type === 'fill' ? 'grabbing' : 'grab';
+      }
+
+      function stopDrag() {
+        dragging = null;
+        startDot.style.cursor = 'grab';
+        endDot.style.cursor = 'grab';
+        fillBar.style.cursor = 'grab';
       }
 
       function onMouseMove(e) {
-        if (!dragState.isDragging || !dragState.handle) return;
+        if (!dragging) return;
 
-        // Calculate delta in viewport coordinates
-        const deltaX = e.clientX - dragState.startClientX;
-        const currentSliderWidth = sliderContainer.offsetWidth;
-        const percent = deltaX / currentSliderWidth;
-        const deltaMinutes = percent * RANGE_MINUTES;
+        const currentX = e.clientX || e.touches[0].clientX;
+        const deltaPixels = currentX - dragStartX;
+        const deltaPercent = (deltaPixels / container.offsetWidth) * 100;
+        const deltaMinutes = (deltaPercent / 100) * RANGE;
+        let newStart = dragStartMinutes.start;
+        let newEnd = dragStartMinutes.end;
 
-        const isStart = dragState.handle === startHandle;
-        const fieldId = isStart ? startMinutesId : endMinutesId;
-        const otherFieldId = isStart ? endMinutesId : startMinutesId;
-
-        let newMinutes = parseInt(document.getElementById(fieldId).value) + deltaMinutes;
-        newMinutes = snapToInterval(newMinutes);
-        newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-
-        const otherMinutes = parseInt(document.getElementById(otherFieldId).value);
-        if (isStart && newMinutes >= otherMinutes) {
-          newMinutes = otherMinutes - SNAP_INTERVAL;
-        } else if (!isStart && newMinutes <= otherMinutes) {
-          newMinutes = otherMinutes + SNAP_INTERVAL;
-        }
-
-        newMinutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, newMinutes));
-        document.getElementById(fieldId).value = newMinutes;
-
-        // Update start position for next movement
-        dragState.startClientX = e.clientX;
-        updateDisplay();
-      }
-
-      function onMouseUp() {
-        if (dragState.handle && dragState.handle !== 'fill' && dragState.handle.style) {
-          dragState.handle.style.cursor = 'grab';
-        }
-        if (dragState.handle === 'fill' && sliderFill) {
-          sliderFill.style.cursor = 'grab';
-        }
-        dragState.isDragging = false;
-        dragState.handle = null;
-      }
-
-      function onFillMove(e) {
-        if (!dragState.isDragging || dragState.handle !== 'fill') return;
-
-        // Calculate delta in viewport coordinates
-        const deltaX = e.clientX - dragState.startClientX;
-        const currentSliderWidth = sliderContainer.offsetWidth;
-        const percent = deltaX / currentSliderWidth;
-        const deltaMinutes = percent * RANGE_MINUTES;
-
-        const startMin = parseInt(document.getElementById(startMinutesId).value);
-        const endMin = parseInt(document.getElementById(endMinutesId).value);
-        const duration = endMin - startMin;
-
-        let newStart = startMin + deltaMinutes;
-        newStart = snapToInterval(newStart);
-
-        let newEnd = newStart + duration;
-
-        if (newStart < MIN_MINUTES) {
-          newStart = MIN_MINUTES;
+        if (dragging === 'start') {
+          newStart = snap(dragStartMinutes.start + deltaMinutes);
+          newStart = Math.max(MIN_MIN, Math.min(MAX_MIN, newStart));
+          if (newStart > newEnd - MIN_DURATION) {
+            newStart = newEnd - MIN_DURATION;
+          }
+        } else if (dragging === 'end') {
+          newEnd = snap(dragStartMinutes.end + deltaMinutes);
+          newEnd = Math.max(MIN_MIN, Math.min(MAX_MIN, newEnd));
+          if (newEnd < newStart + MIN_DURATION) {
+            newEnd = newStart + MIN_DURATION;
+          }
+        } else if (dragging === 'fill') {
+          const duration = dragStartMinutes.end - dragStartMinutes.start;
+          newStart = snap(dragStartMinutes.start + deltaMinutes);
           newEnd = newStart + duration;
-        }
-        if (newEnd > MAX_MINUTES) {
-          newEnd = MAX_MINUTES;
-          newStart = newEnd - duration;
-        }
 
-        document.getElementById(startMinutesId).value = newStart;
-        document.getElementById(endMinutesId).value = newEnd;
-
-        // Update start position for next movement
-        dragState.startClientX = e.clientX;
-        updateDisplay();
-      }
-
-      function setupHandleDrag(handle) {
-        handle.addEventListener('mousedown', (e) => {
-          dragState.isDragging = true;
-          dragState.handle = handle;
-          dragState.startClientX = e.clientX;
-          handle.style.cursor = 'grabbing';
-          e.preventDefault();
-        });
-
-        handle.addEventListener('touchstart', (e) => {
-          dragState.isDragging = true;
-          dragState.handle = handle;
-          dragState.startClientX = e.touches[0].clientX;
-          e.preventDefault();
-        });
-      }
-
-      function setupFillDrag(fill) {
-        fill.addEventListener('mousedown', (e) => {
-          dragState.isDragging = true;
-          dragState.handle = 'fill';
-          dragState.startClientX = e.clientX;
-          fill.style.cursor = 'grabbing';
-          e.preventDefault();
-        });
-
-        fill.addEventListener('touchstart', (e) => {
-          dragState.isDragging = true;
-          dragState.handle = 'fill';
-          dragState.startClientX = e.touches[0].clientX;
-          e.preventDefault();
-        });
-      }
-
-      // Create named handlers so we can remove them later
-      const handleMouseMove = (e) => {
-        if (dragState.handle === 'fill') {
-          onFillMove(e);
-        } else {
-          onMouseMove(e);
-        }
-      };
-
-      const handleMouseUp = () => {
-        onMouseUp();
-        if (sliderFill) sliderFill.style.cursor = 'grab';
-      };
-
-      const handleTouchMove = (e) => {
-        if (dragState.isDragging && dragState.handle) {
-          if (dragState.handle === 'fill') {
-            onFillMove({ clientX: e.touches[0].clientX });
-          } else {
-            onMouseMove({ clientX: e.touches[0].clientX });
+          if (newStart < MIN_MIN) {
+            newStart = MIN_MIN;
+            newEnd = newStart + duration;
+          }
+          if (newEnd > MAX_MIN) {
+            newEnd = MAX_MIN;
+            newStart = newEnd - duration;
           }
         }
-      };
 
-      const handleTouchEnd = () => onMouseUp();
+        // Update inputs
+        document.getElementById(startMinId).value = newStart;
+        document.getElementById(endMinId).value = newEnd;
 
-      // Remove any old listeners first (in case modal was opened before)
-      document.removeEventListener('mousemove', window._genericSliderMouseMove);
-      document.removeEventListener('mouseup', window._genericSliderMouseUp);
-      document.removeEventListener('touchmove', window._genericSliderTouchMove);
-      document.removeEventListener('touchend', window._genericSliderTouchEnd);
+        // Update display
+        updateDisplay();
+      }
 
-      // Store references globally so we can remove them later
-      window._genericSliderMouseMove = handleMouseMove;
-      window._genericSliderMouseUp = handleMouseUp;
-      window._genericSliderTouchMove = handleTouchMove;
-      window._genericSliderTouchEnd = handleTouchEnd;
+      // Event listeners
+      startDot.addEventListener('mousedown', (e) => startDrag('start', e));
+      startDot.addEventListener('touchstart', (e) => startDrag('start', e));
+      endDot.addEventListener('mousedown', (e) => startDrag('end', e));
+      endDot.addEventListener('touchstart', (e) => startDrag('end', e));
+      fillBar.addEventListener('mousedown', (e) => startDrag('fill', e));
+      fillBar.addEventListener('touchstart', (e) => startDrag('fill', e));
 
-      // Add the new listeners
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove);
-      document.addEventListener('touchend', handleTouchEnd);
-
-      setupHandleDrag(startHandle);
-      setupHandleDrag(endHandle);
-      setupFillDrag(sliderFill);
-      sliderFill.style.cursor = 'grab';
-      sliderFill.style.userSelect = 'none';
-
-      // Initialize display to position handles based on current input values
-      updateDisplay();
-
-      // Time input listeners with live sync
-      const startTimeInputId = prefix + 'StartTimeInput';
-      const endTimeInputId = prefix + 'EndTimeInput';
-      const startTimeInput = document.getElementById(startTimeInputId);
-      const endTimeInput = document.getElementById(endTimeInputId);
+      // Sync with visible time input fields
+      const startTimeInput = document.getElementById(prefix + 'StartTimeInput');
+      const endTimeInput = document.getElementById(prefix + 'EndTimeInput');
 
       if (startTimeInput) {
-        startTimeInput.addEventListener('input', () => {
-          const [hours, minutes] = startTimeInput.value.split(':').map(Number);
-          if (isNaN(hours) || isNaN(minutes)) return;
-
-          const newMinutes = hours * 60 + minutes;
-          const endMin = parseInt(document.getElementById(endMinutesId).value);
-
-          if (newMinutes < endMin && newMinutes >= MIN_MINUTES && newMinutes <= MAX_MINUTES) {
-            document.getElementById(startMinutesId).value = newMinutes;
+        startTimeInput.addEventListener('change', () => {
+          const timeStr = startTimeInput.value;
+          if (timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            const minutes = h * 60 + m;
+            document.getElementById(startMinId).value = minutes;
             updateDisplay();
           }
         });
       }
 
       if (endTimeInput) {
-        endTimeInput.addEventListener('input', () => {
-          const [hours, minutes] = endTimeInput.value.split(':').map(Number);
-          if (isNaN(hours) || isNaN(minutes)) return;
-
-          const newMinutes = hours * 60 + minutes;
-          const startMin = parseInt(document.getElementById(startMinutesId).value);
-
-          if (newMinutes > startMin && newMinutes >= MIN_MINUTES && newMinutes <= MAX_MINUTES) {
-            document.getElementById(endMinutesId).value = newMinutes;
+        endTimeInput.addEventListener('change', () => {
+          const timeStr = endTimeInput.value;
+          if (timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            const minutes = h * 60 + m;
+            document.getElementById(endMinId).value = minutes;
             updateDisplay();
           }
         });
       }
 
+      // Update time inputs when slider changes
+      const originalUpdateDisplay = updateDisplay;
+      updateDisplay = function() {
+        originalUpdateDisplay();
+        const startMin = parseInt(document.getElementById(startMinId).value);
+        const endMin = parseInt(document.getElementById(endMinId).value);
+        if (startTimeInput && !isNaN(startMin)) {
+          const h = Math.floor(startMin / 60);
+          const m = startMin % 60;
+          startTimeInput.value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+        if (endTimeInput && !isNaN(endMin)) {
+          const h = Math.floor(endMin / 60);
+          const m = endMin % 60;
+          endTimeInput.value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+      };
+
+      // Global listeners
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('touchmove', onMouseMove);
+      document.addEventListener('mouseup', stopDrag);
+      document.addEventListener('touchend', stopDrag);
+
+      // Initial display
       updateDisplay();
     }
 
@@ -3449,32 +3274,26 @@
         </div>
 
         <div style="margin-bottom: 28px;">
-          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos o el área entre ellos</div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos</div>
 
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
-            <span>5:00 AM</span>
-            <span>8:00 AM</span>
-            <span>11:00 AM</span>
-            <span>2:00 PM</span>
-            <span>5:00 PM</span>
-            <span>8:00 PM</span>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
+            <span>5 AM</span>
+            <span>8 AM</span>
+            <span>11 AM</span>
+            <span>2 PM</span>
+            <span>5 PM</span>
+            <span>8 PM</span>
           </div>
 
-          <div id="newEntryTimeSliderContainer" style="position: relative; height: 60px; background: linear-gradient(90deg, var(--gray-50) 0%, var(--gray-100) 50%, var(--gray-50) 100%); border-radius: 12px; border: 2px solid var(--gray-300); overflow: hidden;">
-            <div id="newEntrySliderFill" style="position: absolute; top: 0; height: 100%; background: var(--primary-200); border: 2px solid var(--primary-500); border-radius: 10px; z-index: 1;"></div>
-            <div id="newEntryStartHandle" class="time-slider-handle" style="position: absolute; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--primary-600); border: 3px solid white; border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);" data-type="start"></div>
-            <div id="newEntryEndHandle" class="time-slider-handle" style="position: absolute; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--primary-600); border: 3px solid white; border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);" data-type="end"></div>
-            <div id="newEntryStartTimeLabel" style="position: absolute; top: -24px; left: 0; transform: translateX(-50%); font-size: 11px; font-weight: 600; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">8:00 AM</div>
-            <div id="newEntryEndTimeLabel" style="position: absolute; top: -24px; right: 0; transform: translateX(50%); font-size: 11px; font-weight: 600; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">10:00 AM</div>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; margin-top: 8px;">
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
+          <div id="newEntryTimeSliderContainer" style="position: relative; height: 100px; margin-bottom: 16px;">
+            <div id="newEntryTimelineBar" style="position: absolute; top: 40px; left: 0; right: 0; height: 4px; background: #ddd; border-radius: 2px;"></div>
+            <div id="newEntrySliderFill" style="position: absolute; top: 40px; height: 6px; background: var(--primary-500); border-radius: 3px; cursor: grab; z-index: 2;" data-type="fill"></div>
+            <div id="newEntryStartHandle" style="position: absolute; top: 25px; left: 0; width: 40px; height: 40px; background: white; border: 3px solid var(--primary-600); border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: translateX(-50%); display: flex; align-items: center; justify-content: center;" data-type="start">
+              <div id="newEntryStartTimeLabel" style="position: absolute; top: -28px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">8:00 AM</div>
+            </div>
+            <div id="newEntryEndHandle" style="position: absolute; top: 25px; left: 0; width: 40px; height: 40px; background: white; border: 3px solid var(--primary-600); border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: translateX(-50%); display: flex; align-items: center; justify-content: center;" data-type="end">
+              <div id="newEntryEndTimeLabel" style="position: absolute; top: 48px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">10:00 AM</div>
+            </div>
           </div>
         </div>
 
@@ -3562,32 +3381,26 @@
         </div>
 
         <div style="margin-bottom: 28px;">
-          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos o el área entre ellos</div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos</div>
 
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
-            <span>5:00 AM</span>
-            <span>8:00 AM</span>
-            <span>11:00 AM</span>
-            <span>2:00 PM</span>
-            <span>5:00 PM</span>
-            <span>8:00 PM</span>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
+            <span>5 AM</span>
+            <span>8 AM</span>
+            <span>11 AM</span>
+            <span>2 PM</span>
+            <span>5 PM</span>
+            <span>8 PM</span>
           </div>
 
-          <div id="newEntryTimeSliderContainer" style="position: relative; height: 60px; background: linear-gradient(90deg, var(--gray-50) 0%, var(--gray-100) 50%, var(--gray-50) 100%); border-radius: 12px; border: 2px solid var(--gray-300); overflow: hidden;">
-            <div id="newEntrySliderFill" style="position: absolute; top: 0; height: 100%; background: var(--primary-200); border: 2px solid var(--primary-500); border-radius: 10px; z-index: 1;"></div>
-            <div id="newEntryStartHandle" class="time-slider-handle" style="position: absolute; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--primary-600); border: 3px solid white; border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);" data-type="start"></div>
-            <div id="newEntryEndHandle" class="time-slider-handle" style="position: absolute; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--primary-600); border: 3px solid white; border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);" data-type="end"></div>
-            <div id="newEntryStartTimeLabel" style="position: absolute; top: -24px; left: 0; transform: translateX(-50%); font-size: 11px; font-weight: 600; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">8:00 AM</div>
-            <div id="newEntryEndTimeLabel" style="position: absolute; top: -24px; right: 0; transform: translateX(50%); font-size: 11px; font-weight: 600; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">10:00 AM</div>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; margin-top: 8px;">
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
+          <div id="newEntryTimeSliderContainer" style="position: relative; height: 100px; margin-bottom: 16px;">
+            <div id="newEntryTimelineBar" style="position: absolute; top: 40px; left: 0; right: 0; height: 4px; background: #ddd; border-radius: 2px;"></div>
+            <div id="newEntrySliderFill" style="position: absolute; top: 40px; height: 6px; background: var(--primary-500); border-radius: 3px; cursor: grab; z-index: 2;" data-type="fill"></div>
+            <div id="newEntryStartHandle" style="position: absolute; top: 25px; left: 0; width: 40px; height: 40px; background: white; border: 3px solid var(--primary-600); border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: translateX(-50%); display: flex; align-items: center; justify-content: center;" data-type="start">
+              <div id="newEntryStartTimeLabel" style="position: absolute; top: -28px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">8:00 AM</div>
+            </div>
+            <div id="newEntryEndHandle" style="position: absolute; top: 25px; left: 0; width: 40px; height: 40px; background: white; border: 3px solid var(--primary-600); border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: translateX(-50%); display: flex; align-items: center; justify-content: center;" data-type="end">
+              <div id="newEntryEndTimeLabel" style="position: absolute; top: 48px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;">10:00 AM</div>
+            </div>
           </div>
         </div>
 
@@ -3752,32 +3565,26 @@
         </div>
 
         <div style="margin-bottom: 28px;">
-          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos o el área entre ellos</div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Ajusta el horario deslizando los puntos</div>
 
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
-            <span>5:00 AM</span>
-            <span>8:00 AM</span>
-            <span>11:00 AM</span>
-            <span>2:00 PM</span>
-            <span>5:00 PM</span>
-            <span>8:00 PM</span>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 11px; color: var(--gray-600); font-weight: 600;">
+            <span>5 AM</span>
+            <span>8 AM</span>
+            <span>11 AM</span>
+            <span>2 PM</span>
+            <span>5 PM</span>
+            <span>8 PM</span>
           </div>
 
-          <div id="editEntryTimeSliderContainer" style="position: relative; height: 60px; background: linear-gradient(90deg, var(--gray-50) 0%, var(--gray-100) 50%, var(--gray-50) 100%); border-radius: 12px; border: 2px solid var(--gray-300); overflow: hidden;">
-            <div id="editEntrySliderFill" style="position: absolute; top: 0; height: 100%; background: var(--primary-200); border: 2px solid var(--primary-500); border-radius: 10px; z-index: 1;"></div>
-            <div id="editEntryStartHandle" class="time-slider-handle" style="position: absolute; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--primary-600); border: 3px solid white; border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);" data-type="start"></div>
-            <div id="editEntryEndHandle" class="time-slider-handle" style="position: absolute; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: var(--primary-600); border: 3px solid white; border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);" data-type="end"></div>
-            <div id="editEntryStartTimeLabel" style="position: absolute; top: -24px; left: 0; transform: translateX(-50%); font-size: 11px; font-weight: 600; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;"></div>
-            <div id="editEntryEndTimeLabel" style="position: absolute; top: -24px; right: 0; transform: translateX(50%); font-size: 11px; font-weight: 600; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;"></div>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; margin-top: 8px;">
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
-            <div style="width: 1px; height: 4px; background: var(--gray-400);"></div>
+          <div id="editEntryTimeSliderContainer" style="position: relative; height: 100px; margin-bottom: 16px;">
+            <div id="editEntryTimelineBar" style="position: absolute; top: 40px; left: 0; right: 0; height: 4px; background: #ddd; border-radius: 2px;"></div>
+            <div id="editEntrySliderFill" style="position: absolute; top: 40px; height: 6px; background: var(--primary-500); border-radius: 3px; cursor: grab; z-index: 2;" data-type="fill"></div>
+            <div id="editEntryStartHandle" style="position: absolute; top: 25px; left: 0; width: 40px; height: 40px; background: white; border: 3px solid var(--primary-600); border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: translateX(-50%); display: flex; align-items: center; justify-content: center;" data-type="start">
+              <div id="editEntryStartTimeLabel" style="position: absolute; top: -28px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;"></div>
+            </div>
+            <div id="editEntryEndHandle" style="position: absolute; top: 25px; left: 0; width: 40px; height: 40px; background: white; border: 3px solid var(--primary-600); border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: translateX(-50%); display: flex; align-items: center; justify-content: center;" data-type="end">
+              <div id="editEntryEndTimeLabel" style="position: absolute; top: 48px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--primary-700); white-space: nowrap; font-family: 'Outfit', monospace;"></div>
+            </div>
           </div>
         </div>
 
