@@ -577,6 +577,53 @@
       font-weight: 600;
     }
 
+    /* Expandable Employee Hours */
+    .employee-card {
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .employee-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .expand-icon {
+      font-size: 12px;
+      color: var(--primary-500);
+      min-width: 16px;
+      transition: transform 0.2s;
+    }
+
+    .expand-icon.expanded {
+      transform: rotate(90deg);
+    }
+
+    .employee-hours-breakdown {
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--gray-50);
+      border-radius: 8px;
+      border-left: 3px solid var(--primary-500);
+    }
+
+    .employee-hours-breakdown.hidden {
+      display: none;
+    }
+
+    .day-hours {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--gray-200);
+      font-size: 14px;
+    }
+
+    .day-hours:last-child {
+      border-bottom: none;
+    }
+
     /* Toast Positioning - Above Bottom Nav */
     /* Bottom nav is 50px + safe area, add 20px clearance */
     .toast-container {
@@ -596,6 +643,10 @@
         <div id="headerStatus" class="header-status" style="display: none;">
           <span class="status-dot idle"></span>
           <span id="statusText">Inactivo</span>
+        </div>
+        <div id="offlineIndicator" class="header-status" style="display: none; background: var(--danger-500);">
+          <span>⚠️</span>
+          <span>Sin conexión</span>
         </div>
         <div class="header-actions">
           <button class="header-btn" id="refreshBtn" title="Actualizar" onclick="location.reload()">🔄</button>
@@ -651,7 +702,7 @@
       </button>
       <button class="bottom-nav-item" data-tab="schedule" onclick="switchTab('schedule')">
         <div class="bottom-nav-icon">📅</div>
-        <div class="bottom-nav-label">Horario</div>
+        <div class="bottom-nav-label">Agenda</div>
       </button>
       <button class="bottom-nav-item" data-tab="hours" onclick="switchTab('hours')">
         <div class="bottom-nav-icon">⏳</div>
@@ -930,6 +981,23 @@
             loadAllData();
           });
         }
+
+        // Setup online/offline status monitoring
+        window.addEventListener('online', () => {
+          document.getElementById('offlineIndicator').style.display = 'none';
+          showToast('Conexión restaurada', 'success');
+          loadAllData(); // Re-sync data
+        });
+
+        window.addEventListener('offline', () => {
+          document.getElementById('offlineIndicator').style.display = 'flex';
+          showToast('Sin conexión a internet', 'warning');
+        });
+
+        // Check initial online status
+        if (!navigator.onLine) {
+          document.getElementById('offlineIndicator').style.display = 'flex';
+        }
       } else {
         window.location.href = 'index.html';
       }
@@ -1084,13 +1152,17 @@
       if (!client) return;
 
       const address = encodeURIComponent(client.address?.street || client.firstName + ' ' + client.lastName);
-      const url = `maps://maps.apple.com/?q=${address}`;
-      window.location.href = url;
 
-      // Fallback to Google Maps after a short delay
-      setTimeout(() => {
+      // Detect iOS/macOS for Apple Maps
+      const isAppleDevice = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+
+      if (isAppleDevice) {
+        // Use Apple Maps on Apple devices
+        window.location.href = `maps://maps.apple.com/?q=${address}`;
+      } else {
+        // Use Google Maps on other devices (Android, PC, etc.)
         window.open(`https://maps.google.com/?q=${address}`, '_blank');
-      }, 500);
+      }
 
       window.closeModal();
     };
@@ -1127,13 +1199,17 @@
       if (!officeSettings) return;
 
       const address = encodeURIComponent(officeSettings.address);
-      const url = `maps://maps.apple.com/?q=${address}`;
-      window.location.href = url;
 
-      // Fallback to Google Maps after a short delay
-      setTimeout(() => {
+      // Detect iOS/macOS for Apple Maps
+      const isAppleDevice = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+
+      if (isAppleDevice) {
+        // Use Apple Maps on Apple devices
+        window.location.href = `maps://maps.apple.com/?q=${address}`;
+      } else {
+        // Use Google Maps on other devices (Android, PC, etc.)
         window.open(`https://maps.google.com/?q=${address}`, '_blank');
-      }, 500);
+      }
 
       window.closeModal();
     };
@@ -1702,6 +1778,18 @@
               </div>
             ` : ''}
 
+            ${schedule.notes && schedule.notes.trim() ? `
+              <div style="background: linear-gradient(135deg, var(--warning-50) 0%, var(--warning-100) 100%); border: 3px solid var(--warning-600); border-radius: 12px; padding: 18px; margin-bottom: 12px; box-shadow: 0 6px 16px rgba(245, 158, 11, 0.25);">
+                <div style="font-size: 14px; color: var(--warning-800); font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 22px;">⚠️</span>
+                  <span>INSTRUCCIONES ESPECIALES</span>
+                </div>
+                <div style="background: white; border-radius: 8px; padding: 12px; font-size: 14px; color: var(--gray-900); line-height: 1.5;">
+                  ${schedule.notes}
+                </div>
+              </div>
+            ` : ''}
+
             ${(client.notes || client.comments) ? `
               <div style="background: var(--gray-50); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
                 <div style="font-size: 12px; color: var(--gray-600); font-weight: 600; margin-bottom: 4px;">📝 Notas</div>
@@ -1956,9 +2044,50 @@
       }
     };
 
-    window.completeJob = function() {
+    // ============================================
+    // SESSION VALIDATION
+    // ============================================
+    async function validateSession() {
+      // Check if user is still authenticated
+      if (!auth.currentUser) {
+        return { valid: false, reason: 'not_authenticated' };
+      }
+
+      // Check online status
+      if (!navigator.onLine) {
+        return { valid: false, reason: 'offline' };
+      }
+
+      // Try to refresh auth token (optional - don't block if it fails)
+      try {
+        await auth.currentUser.getIdToken(true); // Force refresh
+      } catch (error) {
+        // Token refresh failed, but user is still authenticated
+        // This is usually due to API key restrictions in dev environment
+        // We'll allow the operation to proceed since user exists
+        console.warn('Token refresh failed (likely due to API key restrictions):', error);
+      }
+
+      return { valid: true };
+    }
+
+    window.completeJob = async function() {
       if (!window.APP_STATE.currentJob || !window.APP_STATE.jobStartTime) {
         showToast('No hay trabajo en progreso', 'warning');
+        return;
+      }
+
+      // Validate session before completing job
+      const sessionCheck = await validateSession();
+      if (!sessionCheck.valid) {
+        if (sessionCheck.reason === 'offline') {
+          showToast('Sin conexión a internet. Verifica tu conexión y vuelve a intentar.', 'error');
+        } else if (sessionCheck.reason === 'token_expired' || sessionCheck.reason === 'not_authenticated') {
+          showToast('Tu sesión ha expirado. Redirigiendo al inicio de sesión...', 'error');
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 2000);
+        }
         return;
       }
 
@@ -2207,15 +2336,16 @@
 
       const address = encodeURIComponent(client.address.street || '');
 
-      // Try Apple Maps first
-      const appleUrl = `maps://maps.apple.com/?q=${address}`;
-      window.location.href = appleUrl;
+      // Detect iOS/macOS for Apple Maps
+      const isAppleDevice = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
 
-      // Fallback to Google Maps after 500ms
-      setTimeout(() => {
-        const googleUrl = `https://maps.google.com/?q=${address}`;
-        window.open(googleUrl, '_blank');
-      }, 500);
+      if (isAppleDevice) {
+        // Use Apple Maps on Apple devices
+        window.location.href = `maps://maps.apple.com/?q=${address}`;
+      } else {
+        // Use Google Maps on other devices (Android, PC, etc.)
+        window.open(`https://maps.google.com/?q=${address}`, '_blank');
+      }
     };
 
     function renderScheduleTab() {
@@ -2330,11 +2460,6 @@
         .join('');
 
       container.innerHTML = `
-        ${window.APP_STATE.todaySchedules.some(s => s.status !== 'completed' && s.status !== 'cancelled') ? `
-          <button class="btn btn-block btn-primary" style="margin-bottom: 16px;" onclick="openRouteInMaps()">
-            🗺️ Ver Ruta Completa
-          </button>
-        ` : ''}
         ${scheduleHtml}
       `;
     }
@@ -2355,64 +2480,6 @@
     window.openClientInMaps = function(clientId, event) {
       event.stopPropagation();
       window.navigateToClient(clientId);
-    };
-
-    window.openRouteInMaps = function() {
-      const sortedSchedules = window.APP_STATE.todaySchedules
-        .filter(s => s.status !== 'cancelled' && s.status !== 'completed')
-        .sort((a, b) => (a.routeOrder || Infinity) - (b.routeOrder || Infinity));
-
-      if (sortedSchedules.length === 0) {
-        showToast('No hay trabajos activos para mostrar ruta', 'warning');
-        return;
-      }
-
-      // Collect client addresses
-      const clientAddresses = sortedSchedules
-        .map(s => {
-          const client = window.APP_STATE.clients[s.clientId];
-          return client?.address?.street || null;
-        })
-        .filter(a => a);
-
-      if (clientAddresses.length === 0) {
-        showToast('No hay direcciones disponibles', 'warning');
-        return;
-      }
-
-      // Get office coordinates from settings
-      const officeSettings = window.APP_STATE.officeSettings;
-      const officeStart = officeSettings?.start?.street || null;
-      const officeEnd = officeSettings?.end?.street || officeSettings?.start?.street || null;
-
-      // Build route: Office → Client #1 → Client #2 → ... → Office
-      const addresses = [];
-      if (officeStart) addresses.push(encodeURIComponent(officeStart)); // Start at office
-      addresses.push(...clientAddresses.map(a => encodeURIComponent(a))); // All clients
-      if (officeEnd && addresses.length > 1) {
-        // Only add office end if it's different from last client or office is set
-        const lastClient = clientAddresses[clientAddresses.length - 1];
-        if (officeEnd !== lastClient) {
-          addresses.push(encodeURIComponent(officeEnd)); // End at office
-        }
-      }
-
-      // Try Apple Maps first with multiple destinations
-      if (addresses.length === 1) {
-        const appleUrl = `maps://maps.apple.com/?q=${addresses[0]}`;
-        window.location.href = appleUrl;
-      } else {
-        // Apple Maps with directions
-        const waypointString = addresses.join('&daddr=');
-        const appleUrl = `maps://maps.apple.com/?daddr=${waypointString}`;
-        window.location.href = appleUrl;
-      }
-
-      // Fallback to Google Maps
-      setTimeout(() => {
-        const googleUrl = `https://www.google.com/maps/dir/${addresses.join('/')}`;
-        window.open(googleUrl, '_blank');
-      }, 500);
     };
 
     function renderHoursTab() {
@@ -3781,9 +3848,59 @@
       const leader = teamLeaderId ? window.APP_STATE.teamMembers.find(m => m.id === teamLeaderId) : null;
       const members = window.APP_STATE.teamMembers.filter(m => !teamLeaderId || m.id !== teamLeaderId);
 
+      // Get week range and day names
       const { monday, sunday } = getCurrentWeekRange();
       const weekStart = formatDate(monday).split(' ')[0];
       const weekEnd = formatDate(sunday).split(' ')[0];
+
+      const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+      const daysInWeek = [];
+      for (let d = new Date(monday); d <= sunday; d.setDate(d.getDate() + 1)) {
+        daysInWeek.push({
+          date: getLocalDateString(new Date(d)),
+          name: dayNames[new Date(d).getDay() === 0 ? 6 : new Date(d).getDay() - 1]
+        });
+      }
+
+      // Helper to render employee card with expandable hours
+      const renderEmployeeCard = (employee, isLeader = false) => {
+        const empData = window.APP_STATE.hoursByEmployee[employee.id];
+        const totalHours = empData ? empData.totalHours.toFixed(1) : '0.0';
+
+        // Get daily hours for this employee
+        let dailyBreakdown = '';
+        daysInWeek.forEach(day => {
+          const dayJobs = empData?.byDay[day.date] || [];
+          const dayHours = dayJobs.reduce((total, job) => total + (job.duration || 0), 0).toFixed(1);
+          dailyBreakdown += `
+            <div class="day-hours">
+              <span style="font-weight: 600;">${day.name}</span>
+              <span>${dayHours} hrs</span>
+            </div>
+          `;
+        });
+
+        const cardStyle = isLeader
+          ? 'border: 2px solid var(--primary-500); background: linear-gradient(135deg, var(--primary-50) 0%, white 100%);'
+          : '';
+
+        return `
+          <div class="card employee-card" style="${cardStyle}" onclick="toggleEmployeeHours('${employee.id}')">
+            <div style="font-size: 12px; font-weight: 700; color: var(--primary-700); text-transform: uppercase; margin-bottom: 12px;">${isLeader ? '👑 Líder de Equipo' : ''}</div>
+            <div class="employee-header">
+              <span class="expand-icon" id="icon-${employee.id}">▶</span>
+              <div class="avatar" style="background: ${getAvatarColor(employee.firstName)}">${employee.firstName[0]}${employee.lastName[0]}</div>
+              <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: var(--gray-900);">${employee.firstName} ${employee.lastName}</div>
+                <div style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">Horas esta semana: <span style="font-weight: 700; color: var(--primary-600);">${totalHours}</span></div>
+              </div>
+            </div>
+            <div class="employee-hours-breakdown hidden" id="breakdown-${employee.id}">
+              ${dailyBreakdown}
+            </div>
+          </div>
+        `;
+      };
 
       let html = `
         <div style="margin-bottom: 24px;">
@@ -3794,49 +3911,35 @@
         </div>
       `;
 
+      // Render leader
       if (leader) {
-        const leaderData = window.APP_STATE.hoursByEmployee[leader.id];
-        const leaderHours = leaderData ? leaderData.totalHours.toFixed(1) : '0.0';
-
-        html += `
-          <div class="card" style="border: 2px solid var(--primary-500); background: linear-gradient(135deg, var(--primary-50) 0%, white 100%);">
-            <div style="font-size: 12px; font-weight: 700; color: var(--primary-700); text-transform: uppercase; margin-bottom: 12px;">👑 Líder de Equipo</div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div class="avatar" style="background: ${getAvatarColor(leader.firstName)}">${leader.firstName[0]}${leader.lastName[0]}</div>
-              <div style="flex: 1;">
-                <div style="font-size: 18px; font-weight: 700; color: var(--gray-900);">${leader.firstName} ${leader.lastName}</div>
-                <div style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">Horas esta semana: <span style="font-weight: 700; color: var(--primary-600);">${leaderHours}</span></div>
-              </div>
-            </div>
-          </div>
-        `;
+        html += renderEmployeeCard(leader, true);
       }
 
+      // Render members
       if (members.length > 0) {
         html += `
           <h3 style="font-size: 14px; font-weight: 700; color: var(--gray-900); margin: 24px 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">👥 Miembros del Equipo</h3>
         `;
-
-        html += members.map(member => {
-          const memberData = window.APP_STATE.hoursByEmployee[member.id];
-          const memberHours = memberData ? memberData.totalHours.toFixed(1) : '0.0';
-
-          return `
-            <div class="card">
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <div class="avatar" style="background: ${getAvatarColor(member.firstName)}">${member.firstName[0]}${member.lastName[0]}</div>
-                <div style="flex: 1;">
-                  <div style="font-weight: 700; color: var(--gray-900);">${member.firstName} ${member.lastName}</div>
-                  <div style="font-size: 12px; color: var(--gray-600); margin-top: 2px;">Horas: <span style="font-weight: 600; color: var(--primary-600);">${memberHours}</span></div>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
+        html += members.map(member => renderEmployeeCard(member, false)).join('');
       }
 
       container.innerHTML = html;
     }
+
+    // Toggle employee hours breakdown
+    window.toggleEmployeeHours = function(employeeId) {
+      const breakdown = document.getElementById(`breakdown-${employeeId}`);
+      const icon = document.getElementById(`icon-${employeeId}`);
+
+      if (breakdown && breakdown.classList.contains('hidden')) {
+        breakdown.classList.remove('hidden');
+        icon.classList.add('expanded');
+      } else if (breakdown) {
+        breakdown.classList.add('hidden');
+        icon.classList.remove('expanded');
+      }
+    };
 
     // Helper for hours summary (needed for back button)
     window.getHoursSummaryHtml = function() {
