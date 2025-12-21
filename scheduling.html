@@ -859,7 +859,6 @@
           <div class="form-group">
             <label class="form-label" data-i18n="selectTeam">Select Team <span class="text-gray-500" style="font-weight: normal; font-size: 0.9rem;">(optional)</span></label>
             <select class="form-select" id="scheduleTeam">
-              <option value="">-- Select Team --</option>
             </select>
           </div>
         </div>
@@ -1026,7 +1025,6 @@
         <button type="button" class="btn btn-danger btn-sm" id="deleteAllDayJobsBtn" title="Delete All">
           <span>🗑️</span> <span class="btn-text">Delete All</span>
         </button>
-        <button type="button" class="btn btn-secondary btn-sm" id="closeDayJobsBtn" data-i18n="close">Close</button>
         <button type="button" class="btn btn-secondary btn-sm" id="previewAllRoutesBtn" title="Preview Routes">
           <span>🗺️</span> <span class="btn-text">Routes</span>
         </button>
@@ -2133,6 +2131,14 @@
       }
     }
 
+    // Helper function to calculate the next route order for a given date and team
+    function getNextRouteOrder(dateStr, teamId) {
+      const daySchedules = schedules.filter(s => s.date === dateStr && (s.teamId || '') === (teamId || ''));
+      if (daySchedules.length === 0) return 1;
+      const maxOrder = Math.max(...daySchedules.map(s => Number(s.routeOrder || 0)));
+      return maxOrder + 1;
+    }
+
     async function handleScheduleDrop(scheduleId, newDate, isCopy) {
       const schedule = schedules.find(s => s.id === scheduleId);
       if (!schedule) return;
@@ -2161,6 +2167,7 @@
       try {
         if (isCopy) {
           // Create a new schedule (copy)
+          const nextOrder = getNextRouteOrder(newDate, schedule.teamId || '');
           const newScheduleData = {
             clientId: schedule.clientId,
             teamId: schedule.teamId || '',
@@ -2169,24 +2176,25 @@
             estimatedDuration: schedule.estimatedDuration || 2,
             status: newStatus,
             notes: schedule.notes || '',
-            routeOrder: 0,
+            routeOrder: nextOrder,
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now()
           };
-          
+
           const docRef = await addDoc(collection(db, 'schedules'), newScheduleData);
-          await logScheduleAction(AuditActions.CREATE, docRef.id, 
+          await logScheduleAction(AuditActions.CREATE, docRef.id,
             `Copied ${client?.firstName || ''} ${client?.lastName || ''} to ${newDate}`);
           showToast('success', 'Copied', `Job copied to ${newDate}`);
         } else {
           // Update existing schedule (move)
+          const nextOrder = getNextRouteOrder(newDate, schedule.teamId || '');
           await updateDoc(doc(db, 'schedules', scheduleId), {
             date: newDate,
             status: newStatus,
-            routeOrder: 0,
+            routeOrder: nextOrder,
             updatedAt: Timestamp.now()
           });
-          await logScheduleAction(AuditActions.UPDATE, scheduleId, 
+          await logScheduleAction(AuditActions.UPDATE, scheduleId,
             `Moved ${client?.firstName || ''} ${client?.lastName || ''} to ${newDate}`);
           showToast('success', 'Moved', `Job moved to ${newDate}`);
         }
@@ -2423,15 +2431,18 @@ const scheduleData = {
         notes: document.getElementById('scheduleNotes').value.trim(),
         updatedAt: Timestamp.now()
       };
-      
+
       try {
         if (editingScheduleId) {
           await updateDoc(doc(db, 'schedules', editingScheduleId), scheduleData);
-          await logScheduleAction(AuditActions.UPDATE, editingScheduleId, 
+          await logScheduleAction(AuditActions.UPDATE, editingScheduleId,
             `${client.firstName} ${client.lastName} - ${date}`);
           showToast('success', i18n.t('success'), i18n.t('scheduleUpdated'));
         } else {
+          // When creating a new schedule, assign the next route order
+          const nextOrder = getNextRouteOrder(date, teamId || '');
           scheduleData.createdAt = Timestamp.now();
+          scheduleData.routeOrder = nextOrder;
           const docRef = await addDoc(collection(db, 'schedules'), scheduleData);
           await logScheduleAction(AuditActions.CREATE, docRef.id, 
             `${client.firstName} ${client.lastName} - ${date}`);
@@ -3080,8 +3091,8 @@ const scheduleData = {
     }
 
     async function distributeAndRouteDay(dateStr) {
-      let daySchedules = schedules.filter(s => s.date === dateStr && s.status !== 'cancelled');
-      if (daySchedules.length === 0) { showToast('warning', 'No Jobs', 'No jobs to distribute'); return; }
+      let daySchedules = schedules.filter(s => s.date === dateStr && s.status === 'scheduled');
+      if (daySchedules.length === 0) { showToast('warning', 'No Jobs', 'No scheduled jobs to distribute'); return; }
 
       const activeTeams = teams.filter(t => t.isActive !== false);
       if (activeTeams.length === 0) { showToast('error', 'No Teams', 'No active teams'); return; }
@@ -3355,14 +3366,13 @@ function formatDateStr(date) {
 
     function populateTeamSelect() {
       const select = document.getElementById('scheduleTeam');
-      select.innerHTML = '<option value="">-- Select Team --</option>' +
-        teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-      
+      select.innerHTML = teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+
       const filterSelect = document.getElementById('teamFilter');
       filterSelect.innerHTML = '<option value="">All Teams</option>' +
         teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
       // Default the schedule team to the first team if available
-      if (teams && teams.length > 0 && select.value === '') select.value = teams[0].id;
+      if (teams && teams.length > 0) select.value = teams[0].id;
     }
 
     function onClientChange() {
@@ -3588,6 +3598,8 @@ function formatDateStr(date) {
 
       try {
         let added = 0;
+        // Track the next route order as we add schedules in this batch
+        let nextRouteOrder = getNextRouteOrder(dateStr, teamId || '');
 
         for (const clientId of selectedClients) {
           const client = clients.find(c => c.id === clientId);
@@ -3608,7 +3620,7 @@ function formatDateStr(date) {
             estimatedDuration: duration,
             status: 'scheduled',
             notes: '',
-            routeOrder: 0,
+            routeOrder: nextRouteOrder,
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now()
           };
@@ -3616,12 +3628,14 @@ function formatDateStr(date) {
           try {
             await addDoc(collection(db, 'schedules'), scheduleData);
             added++;
+            nextRouteOrder++; // Increment for next iteration
           } catch (error) {
             console.error('Error adding schedule:', error);
           }
         }
 
         showToast('success', 'Success', `${added} clients added to ${dateStr}`);
+        showToast('info', 'Reminder', 'Edit each job individually to add specific add-ons');
         closeModal('bulkAddModal');
         await loadSchedules();
         renderCalendar();
@@ -3860,7 +3874,6 @@ function formatDateStr(date) {
 
       // Day Jobs Modal
       document.getElementById('closeDayJobsModal').addEventListener('click', () => closeModal('dayJobsModal'));
-      document.getElementById('closeDayJobsBtn').addEventListener('click', () => closeModal('dayJobsModal'));
       document.getElementById('addJobForDayBtn').addEventListener('click', () => {
         closeModal('dayJobsModal');
         openAddScheduleModal(selectedDate);
