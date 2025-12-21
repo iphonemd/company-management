@@ -924,14 +924,6 @@
             loadAllData();
           });
         }
-
-        // Render UI
-        renderAllTabs();
-
-        // Auto-redirect to trabajo tab if there's a job in progress
-        if (window.APP_STATE.currentJob) {
-          window.switchTab('current-job');
-        }
       } else {
         window.location.href = 'index.html';
       }
@@ -1322,6 +1314,12 @@
         updateHeaderStatus();
         renderAllTabs();
 
+        // Auto-redirect to trabajo tab if there's a job in progress
+        if (window.APP_STATE.currentJob) {
+          startJobTimer();
+          window.switchTab('current-job');
+        }
+
         // Check for morning navigation prompt
         checkMorningNavigationPrompt();
       } catch (error) {
@@ -1541,7 +1539,28 @@
     function renderCurrentJobTab() {
       const container = document.getElementById('currentJobContent');
 
+      // Check if there's a currentJob in memory
       if (window.APP_STATE.currentJob) {
+        renderActiveJobCard(container);
+        return;
+      }
+
+      // Check if there's an in_progress schedule in the fresh data
+      const inProgressSchedule = window.APP_STATE.todaySchedules.find(s => s.status === 'in_progress');
+      if (inProgressSchedule) {
+        // Load the in-progress job into APP_STATE
+        window.APP_STATE.currentJob = {
+          id: inProgressSchedule.id,
+          clientId: inProgressSchedule.clientId,
+          workingEmployees: inProgressSchedule.workingEmployees || [],
+          serviceDetails: inProgressSchedule.serviceDetails
+        };
+        // Try to restore the start time from actualStartTime
+        if (inProgressSchedule.actualStartTime) {
+          window.APP_STATE.jobStartTime = inProgressSchedule.actualStartTime.toDate ? inProgressSchedule.actualStartTime.toDate() : new Date(inProgressSchedule.actualStartTime);
+        } else {
+          window.APP_STATE.jobStartTime = new Date();
+        }
         renderActiveJobCard(container);
       } else {
         renderNoJobState(container);
