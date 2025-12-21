@@ -2103,6 +2103,23 @@
           }
         }
 
+        // Create payment record
+        const paymentRecord = {
+          clientId: schedule.clientId,
+          scheduleId: schedule.id,
+          paymentMethod: paymentType,
+          status: 'pending',
+          date: Timestamp.now(),
+          createdAt: Timestamp.now()
+        };
+
+        // Add amount if payment method is efectivo (cash)
+        if (paymentType === 'efectivo' && amountReceived !== null) {
+          paymentRecord.amount = amountReceived;
+        }
+
+        await addDoc(collection(db, 'payments'), paymentRecord);
+
         // Log to audit log
         await addDoc(collection(db, 'auditLog'), {
           action: 'job_completed',
