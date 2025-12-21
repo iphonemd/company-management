@@ -576,6 +576,12 @@
     .font-semibold {
       font-weight: 600;
     }
+
+    /* Toast Positioning - Above Bottom Nav */
+    /* Bottom nav is 50px + safe area, add 20px clearance */
+    .toast-container {
+      bottom: calc(70px + max(0px, env(safe-area-inset-bottom))) !important;
+    }
   </style>
 </head>
 <body>
@@ -1862,14 +1868,21 @@
       try {
         // Update schedule status
         const scheduleRef = doc(db, 'schedules', scheduleId);
+        const now = Timestamp.now();
         await updateDoc(scheduleRef, {
           status: 'in_progress',
-          actualStartTime: Timestamp.now(),
+          actualStartTime: now,
           workingEmployees: selectedEmployeeIds
         });
 
-        // Find the schedule locally and update current job
+        // Find the schedule locally and update it
         const schedule = window.APP_STATE.todaySchedules.find(s => s.id === scheduleId);
+        if (schedule) {
+          schedule.status = 'in_progress';
+          schedule.actualStartTime = now;
+          schedule.workingEmployees = selectedEmployeeIds;
+        }
+
         window.APP_STATE.currentJob = {
           id: scheduleId,
           clientId: schedule.clientId,
@@ -1883,7 +1896,7 @@
         window.closeModal();
         showToast('Trabajo iniciado', 'success');
         updateHeaderStatus();
-        renderCurrentJobTab();
+        renderAllTabs();
       } catch (error) {
         console.error('Error starting job:', error);
         showToast('Error al iniciar trabajo', 'error');
@@ -2024,6 +2037,30 @@
 
       try {
         const schedule = window.APP_STATE.currentJob;
+
+        // Check if job is still in progress (prevent concurrent completion from multiple devices)
+        const currentScheduleDoc = await getDoc(doc(db, 'schedules', schedule.id));
+        if (!currentScheduleDoc.exists()) {
+          showToast('Trabajo no encontrado', 'error');
+          return;
+        }
+
+        const currentScheduleStatus = currentScheduleDoc.data().status;
+        if (currentScheduleStatus !== 'in_progress') {
+          showToast('Trabajo completado en otro dispositivo', 'error');
+          // Clear current job state
+          window.APP_STATE.currentJob = null;
+          window.APP_STATE.jobStartTime = null;
+          if (window.APP_STATE.jobTimerInterval) {
+            clearInterval(window.APP_STATE.jobTimerInterval);
+          }
+          await clearDBState();
+          updateHeaderStatus();
+          renderAllTabs();
+          window.closeModal();
+          return;
+        }
+
         const client = window.APP_STATE.clients[schedule.clientId];
         const endTime = new Date();
         const durationMs = endTime.getTime() - window.APP_STATE.jobStartTime.getTime();
@@ -2097,7 +2134,6 @@
         updateHeaderStatus();
         renderAllTabs();
         window.closeModal();
-        window.switchTab('schedule');
 
         showToast('Trabajo completado', 'success');
 
@@ -2187,7 +2223,7 @@
           const isCancelled = schedule.status === 'cancelled';
 
           return `
-            <div class="card" style="cursor: pointer; ${isActive ? 'border: 2px solid var(--warning-500); background: linear-gradient(135deg, var(--warning-50) 0%, white 100%);' : ''}" onclick="toggleScheduleDetails('${schedule.id}')">
+            <div class="card" style="cursor: pointer; ${isActive ? 'border: 2px solid var(--warning-500); background: linear-gradient(135deg, var(--warning-50) 0%, white 100%);' : isCompleted ? 'border: 2px solid var(--success-500); background: linear-gradient(135deg, var(--success-50) 0%, white 100%);' : ''}" onclick="toggleScheduleDetails('${schedule.id}')">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
                   <div style="width: 40px; height: 40px; border-radius: 50%; background: ${isCompleted ? 'var(--success-100)' : isActive ? 'var(--warning-100)' : 'var(--primary-100)'}; display: flex; align-items: center; justify-content: center; font-weight: 700; color: ${isCompleted ? 'var(--success-700)' : isActive ? 'var(--warning-700)' : 'var(--primary-700)'}; flex-shrink: 0;">
