@@ -739,7 +739,8 @@
       deleteDoc,
       Timestamp,
       signOut,
-      onAuthStateChanged
+      onAuthStateChanged,
+      onSnapshot
     } from './js/firebase-config.js';
 
     import { i18n } from './js/i18n.js';
@@ -932,6 +933,12 @@
     window.logout = async function() {
       if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) return;
       try {
+        // Clean up listener before logout
+        if (weekHoursUnsubscribe) {
+          weekHoursUnsubscribe();
+          weekHoursUnsubscribe = null;
+        }
+
         // Clear all local data
         localStorage.clear();
         await clearDBState();
@@ -1303,8 +1310,17 @@
       }
     }
 
-    async function loadWeekHours() {
+    // Real-time listener for week hours
+    let weekHoursUnsubscribe = null;
+
+    async function setupWeekHoursListener() {
       try {
+        // Clean up existing listener
+        if (weekHoursUnsubscribe) {
+          weekHoursUnsubscribe();
+          weekHoursUnsubscribe = null;
+        }
+
         const { monday, sunday } = getCurrentWeekRange();
 
         const daysInWeek = [];
@@ -1340,43 +1356,54 @@
           return;
         }
 
-        const snap = await getDocs(jobCompletionsQuery);
+        // Set up real-time listener instead of one-time getDocs
+        weekHoursUnsubscribe = onSnapshot(jobCompletionsQuery, (snapshot) => {
+          const hoursByEmployee = {};
+          window.APP_STATE.teamMembers.forEach(emp => {
+            hoursByEmployee[emp.id] = {
+              employee: emp,
+              totalHours: 0,
+              byDay: {},
+              byClient: {},
+              jobCompletions: []
+            };
 
-        const hoursByEmployee = {};
-        window.APP_STATE.teamMembers.forEach(emp => {
-          hoursByEmployee[emp.id] = {
-            employee: emp,
-            totalHours: 0,
-            byDay: {},
-            byClient: {},
-            jobCompletions: []
-          };
-
-          daysInWeek.forEach(day => {
-            hoursByEmployee[emp.id].byDay[day] = [];
+            daysInWeek.forEach(day => {
+              hoursByEmployee[emp.id].byDay[day] = [];
+            });
           });
+
+          snapshot.docs.forEach(doc => {
+            const jc = doc.data();
+            jc.id = doc.id;
+
+            if (!hoursByEmployee[jc.employeeId]) return;
+
+            hoursByEmployee[jc.employeeId].totalHours += jc.duration || 0;
+            hoursByEmployee[jc.employeeId].byDay[jc.date].push(jc);
+            hoursByEmployee[jc.employeeId].jobCompletions.push(jc);
+
+            if (!hoursByEmployee[jc.employeeId].byClient[jc.clientId]) {
+              hoursByEmployee[jc.employeeId].byClient[jc.clientId] = [];
+            }
+            hoursByEmployee[jc.employeeId].byClient[jc.clientId].push(jc);
+          });
+
+          window.APP_STATE.hoursByEmployee = hoursByEmployee;
+
+          // Auto-render when data changes
+          renderHoursTab();
+        }, (error) => {
+          console.error('Error in week hours listener:', error);
         });
-
-        snap.docs.forEach(doc => {
-          const jc = doc.data();
-          jc.id = doc.id;
-
-          if (!hoursByEmployee[jc.employeeId]) return;
-
-          hoursByEmployee[jc.employeeId].totalHours += jc.duration || 0;
-          hoursByEmployee[jc.employeeId].byDay[jc.date].push(jc);
-          hoursByEmployee[jc.employeeId].jobCompletions.push(jc);
-
-          if (!hoursByEmployee[jc.employeeId].byClient[jc.clientId]) {
-            hoursByEmployee[jc.employeeId].byClient[jc.clientId] = [];
-          }
-          hoursByEmployee[jc.employeeId].byClient[jc.clientId].push(jc);
-        });
-
-        window.APP_STATE.hoursByEmployee = hoursByEmployee;
       } catch (error) {
-        console.error('Error loading week hours:', error);
+        console.error('Error setting up week hours listener:', error);
       }
+    }
+
+    // Maintain loadWeekHours as alias for backwards compatibility
+    async function loadWeekHours() {
+      return setupWeekHoursListener();
     }
 
     async function loadAllData() {
@@ -3343,10 +3370,9 @@
           timestamp: Timestamp.now()
         });
 
-        await loadWeekHours();
         window.closeModal();
         showToast('Horas actualizadas', 'success');
-        renderHoursTab();
+        // Listener will auto-update the UI
       } catch (error) {
         console.error('Error saving hours:', error);
         showToast('Error al guardar horas', 'error');
@@ -3364,10 +3390,9 @@
           await deleteDoc(doc(db, 'jobCompletions', job.id));
         }
 
-        await loadWeekHours();
         window.closeModal();
         showToast('Horas eliminadas', 'success');
-        renderHoursTab();
+        // Listener will auto-update the UI
       } catch (error) {
         console.error('Error deleting hours:', error);
         showToast('Error al eliminar horas', 'error');
@@ -3397,7 +3422,7 @@
               <div style="font-size: 12px; color: var(--gray-600);">${formatTimeForInput(start)} - ${formatTimeForInput(end)}</div>
               <div style="display: flex; gap: 8px; margin-top: 8px;">
                 <button style="flex: 1; padding: 6px; background: var(--primary-500); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" onclick="editSpecificEntry('${entry.id}', '${employeeId}', '${date}')">Editar</button>
-                <button style="flex: 1; padding: 6px; background: var(--danger-500); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" onclick="deleteSpecificEntry('${entry.id}', '${employeeId}')">Eliminar</button>
+                <button style="flex: 1; padding: 6px; background: var(--danger-500); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" onclick="deleteSpecificEntry('${entry.id}', '${employeeId}', '${date}')">Eliminar</button>
               </div>
             </div>
           `;
@@ -3695,10 +3720,9 @@
         await addDoc(collection(db, 'jobCompletions'), jobCompletion);
         await logAudit('create', 'jobCompletions', null, { type: 'manual_entry', date, employee: employeeId, client: clientId, duration });
 
-        await loadWeekHours();
         window.closeModal();
         showToast('Entrada agregada', 'success');
-        renderHoursTab();
+        // Listener will auto-update the UI
       } catch (error) {
         console.error('Error saving entry:', error);
         showToast('Error al guardar entrada', 'error');
@@ -3752,10 +3776,9 @@
         await addDoc(collection(db, 'jobCompletions'), jobCompletion);
         await logAudit('create', 'jobCompletions', null, { type: 'manual_entry', date, employee: employeeId, client: clientId, duration });
 
-        await loadWeekHours();
         window.closeModal();
         showToast('Entrada agregada', 'success');
-        renderHoursTab();
+        // Listener will auto-update the UI
       } catch (error) {
         console.error('Error saving entry:', error);
         showToast('Error al guardar entrada', 'error');
@@ -3883,35 +3906,30 @@
 
         await logAudit('update', 'jobCompletions', entryId, { employee: employeeId, newDuration: duration });
 
-        await loadWeekHours();
         showToast('Entrada actualizada', 'success');
-        window.editDayEmployeeHours(employeeId, date);
+        // Listener will auto-update APP_STATE, reopen modal with updated data
+        setTimeout(() => {
+          window.editDayEmployeeHours(employeeId, date);
+        }, 100);
       } catch (error) {
         console.error('Error updating entry:', error);
         showToast('Error al actualizar entrada', 'error');
       }
     };
 
-    window.deleteSpecificEntry = async function(entryId, employeeId) {
+    window.deleteSpecificEntry = async function(entryId, employeeId, date) {
       if (!confirm('¿Eliminar esta entrada?')) return;
 
       try {
         await deleteDoc(doc(db, 'jobCompletions', entryId));
         await logAudit('delete', 'jobCompletions', entryId, { employee: employeeId });
 
-        await loadWeekHours();
         showToast('Entrada eliminada', 'success');
 
-        // Reopen the edit dialog
-        const currentDate = new Date();
-        const empData = window.APP_STATE.hoursByEmployee[employeeId];
-        if (empData && empData.byDay) {
-          const dateStr = Object.keys(empData.byDay)[0];
-          window.editDayEmployeeHours(employeeId, dateStr);
-        } else {
-          window.closeModal();
-          renderHoursTab();
-        }
+        // Listener will auto-update APP_STATE, just reopen modal with correct date
+        setTimeout(() => {
+          window.editDayEmployeeHours(employeeId, date);
+        }, 100); // Small delay to allow listener to process
       } catch (error) {
         console.error('Error deleting entry:', error);
         showToast('Error al eliminar entrada', 'error');
