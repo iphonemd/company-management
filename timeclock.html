@@ -2234,7 +2234,8 @@
               paymentType: paymentType,
               amountReceived: amountReceived,
               employeeNotes: employeeNotes,
-              createdAt: Timestamp.now()
+              createdAt: Timestamp.now(),
+              createdByAuthUid: auth.currentUser.uid
             });
           }
         }
@@ -3321,7 +3322,8 @@
           manual: true,
           teamId: teamId,
           replaced: false,
-          createdAt: Timestamp.now()
+          createdAt: Timestamp.now(),
+          createdByAuthUid: auth.currentUser.uid
         });
 
         // Log to audit
