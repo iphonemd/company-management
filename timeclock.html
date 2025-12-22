@@ -978,6 +978,14 @@
           document.getElementById('teamSelect').addEventListener('change', (e) => {
             window.APP_STATE.selectedTeamId = e.target.value;
             localStorage.setItem('teamclock_selectedTeam', e.target.value);
+
+            // For admins: also set currentTeam so operations work correctly
+            if (window.APP_STATE.isAdmin && e.target.value) {
+              window.APP_STATE.currentTeam = window.APP_STATE.allTeams.find(t => t.id === e.target.value) || null;
+            } else {
+              window.APP_STATE.currentTeam = null;
+            }
+
             loadAllData();
           });
         }
@@ -1482,7 +1490,8 @@
               id: savedState.currentJob.scheduleId,
               clientId: savedState.currentJob.clientId,
               workingEmployees: savedState.currentJob.workingEmployees,
-              serviceDetails: fullScheduleData.serviceDetails
+              serviceDetails: fullScheduleData.serviceDetails,
+              notes: fullScheduleData.notes
             };
             window.APP_STATE.jobStartTime = new Date(savedState.currentJob.startTime);
             startJobTimer();
@@ -1635,7 +1644,8 @@
           id: inProgressSchedule.id,
           clientId: inProgressSchedule.clientId,
           workingEmployees: inProgressSchedule.workingEmployees || [],
-          serviceDetails: inProgressSchedule.serviceDetails
+          serviceDetails: inProgressSchedule.serviceDetails,
+          notes: inProgressSchedule.notes
         };
         // Try to restore the start time from actualStartTime
         if (inProgressSchedule.actualStartTime) {
@@ -1790,13 +1800,6 @@
               </div>
             ` : ''}
 
-            ${(client.notes || client.comments) ? `
-              <div style="background: var(--gray-50); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-                <div style="font-size: 12px; color: var(--gray-600); font-weight: 600; margin-bottom: 4px;">📝 Notas</div>
-                <div style="font-size: 14px; color: var(--gray-900);">${client.notes || client.comments}</div>
-              </div>
-            ` : ''}
-
             ${schedule.serviceDetails?.addOns && schedule.serviceDetails.addOns.length > 0 ? `
               <div style="background: linear-gradient(135deg, var(--success-50) 0%, var(--success-100) 100%); border: 3px solid var(--success-500); border-radius: 12px; padding: 18px; margin-bottom: 12px; box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);">
                 <div style="font-size: 14px; color: var(--success-800); font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
@@ -1888,7 +1891,8 @@
           id: schedule.id,
           clientId: schedule.clientId,
           workingEmployees: schedule.workingEmployees || [],
-          serviceDetails: schedule.serviceDetails
+          serviceDetails: schedule.serviceDetails,
+          notes: schedule.notes
         };
         // Try to restore the start time from actualStartTime
         if (schedule.actualStartTime) {
@@ -1975,7 +1979,8 @@
           id: scheduleId,
           clientId: schedule.clientId,
           workingEmployees: selectedEmployeeIds,
-          serviceDetails: schedule.serviceDetails
+          serviceDetails: schedule.serviceDetails,
+          notes: schedule.notes
         };
         window.APP_STATE.jobStartTime = new Date();
 
@@ -2438,12 +2443,12 @@
                   </div>
                 ` : ''}
 
-                ${(client.notes || client.comments) ? `
+                ${schedule.notes && schedule.notes.trim() ? `
                   <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                    <span style="color: var(--gray-600); font-size: 13px;">📝</span>
+                    <span style="color: var(--warning-600); font-size: 13px;">⚠️</span>
                     <div style="flex: 1;">
-                      <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Notas</div>
-                      <div style="font-size: 14px; color: var(--gray-900);">${client.notes || client.comments}</div>
+                      <div style="font-size: 12px; color: var(--warning-700); font-weight: 600; margin-bottom: 4px;">Instrucciones Especiales</div>
+                      <div style="font-size: 14px; color: var(--gray-900);">${schedule.notes}</div>
                     </div>
                   </div>
                 ` : ''}
@@ -2671,6 +2676,22 @@
       window.openModal('Horas', content);
     };
 
+    // Helper function to check if times are out of range (5 AM - 8 PM)
+    function isTimeOutOfRange(startMin, endMin) {
+      const MIN_MIN = 300;   // 5 AM
+      const MAX_MIN = 1200;  // 8 PM
+      return startMin < MIN_MIN || endMin > MAX_MIN;
+    }
+
+    // Helper function to format time for display
+    function formatTimeDisplay(minutes) {
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+      return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`;
+    }
+
     window.editClientHours = function(employeeId, clientId) {
       const empData = window.APP_STATE.hoursByEmployee[employeeId];
       const emp = empData.employee;
@@ -2698,6 +2719,18 @@
       const defaultStartMin = earliestStart ? (earliestStart.getHours() * 60 + earliestStart.getMinutes()) : 480; // 8 AM
       const defaultEndMin = latestEnd ? (latestEnd.getHours() * 60 + latestEnd.getMinutes()) : 600; // 10 AM
 
+      // Check if times are out of range
+      const isOutOfRange = isTimeOutOfRange(defaultStartMin, defaultEndMin);
+      const warningBanner = isOutOfRange ? `
+        <div style="background: var(--warning-100); border: 2px solid var(--warning-600); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: center;">
+          <div style="font-size: 20px; margin-bottom: 8px;">⚠️</div>
+          <div style="font-weight: 600; color: var(--warning-900); margin-bottom: 8px;">Horas fuera del rango permitido</div>
+          <div style="font-size: 12px; color: var(--warning-800); line-height: 1.4;">
+            Estas horas están registradas fuera del horario normal (5 AM - 8 PM). Contáctate con el administrador para ajustarlas en employee-hours.html
+          </div>
+        </div>
+      ` : '';
+
       const modalContent = `
         <h3 style="margin-top: 0; margin-bottom: 8px;">Editar Horas</h3>
         <div style="text-align: center; margin-bottom: 24px;">
@@ -2705,6 +2738,8 @@
           <div style="font-size: 16px; font-weight: 700;">${client.firstName} ${client.lastName}</div>
           <div style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">Empleado: ${emp.firstName} ${emp.lastName}</div>
         </div>
+
+        ${warningBanner}
 
         <div style="margin-bottom: 20px; text-align: center;">
           <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Horas Totales</div>
@@ -2716,11 +2751,13 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
           <div>
             <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Inicio</label>
-            <input type="time" id="startTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+            <input type="time" id="startTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;" ${isOutOfRange ? 'readonly' : ''}>
+            ${isOutOfRange ? `<div style="font-size: 11px; color: var(--warning-700); margin-top: 4px;">Actual: ${formatTimeDisplay(defaultStartMin)}</div>` : ''}
           </div>
           <div>
             <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Fin</label>
-            <input type="time" id="endTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+            <input type="time" id="endTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;" ${isOutOfRange ? 'readonly' : ''}>
+            ${isOutOfRange ? `<div style="font-size: 11px; color: var(--warning-700); margin-top: 4px;">Actual: ${formatTimeDisplay(defaultEndMin)}</div>` : ''}
           </div>
         </div>
 
@@ -2738,7 +2775,7 @@
           </div>
 
           <!-- Clean Line-Based Slider Container -->
-          <div id="timeSliderContainer" style="position: relative; height: 100px; margin-bottom: 16px;">
+          <div id="timeSliderContainer" style="position: relative; height: 100px; margin-bottom: 16px; ${isOutOfRange ? 'opacity: 0.5; pointer-events: none;' : ''}">
             <!-- Background timeline (5 AM to 8 PM) -->
             <div id="timelineBar" style="position: absolute; top: 40px; left: 0; right: 0; height: 4px; background: #ddd; border-radius: 2px;"></div>
 
@@ -2759,7 +2796,7 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
           <button class="btn btn-block btn-secondary" onclick="window.closeModal()">Cancelar</button>
-          <button class="btn btn-block btn-primary" onclick="saveEditedHours('${employeeId}', '${clientId}', '${jobs[0].date}')">Guardar</button>
+          <button class="btn btn-block btn-primary" onclick="saveEditedHours('${employeeId}', '${clientId}', '${jobs[0].date}')" ${isOutOfRange ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>Guardar</button>
         </div>
 
         <button class="btn btn-block btn-danger" onclick="deleteClientHours('${employeeId}', '${clientId}')">
@@ -2768,6 +2805,7 @@
 
         <input type="hidden" id="editStartMinutes" value="${defaultStartMin}">
         <input type="hidden" id="editEndMinutes" value="${defaultEndMin}">
+        <input type="hidden" id="isOutOfRange" value="${isOutOfRange}">
       `;
 
       window.openModal('Editar Horas', modalContent);
@@ -2985,6 +3023,14 @@
           const m = endMin % 60;
           endTimeInput.value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
         }
+        // Update displayHours
+        if (!isNaN(startMin) && !isNaN(endMin)) {
+          const hours = (endMin - startMin) / 60;
+          const displayHoursEl = document.getElementById('displayHours');
+          if (displayHoursEl) {
+            displayHoursEl.textContent = hours.toFixed(1);
+          }
+        }
       };
 
       // Global movement and stop listeners
@@ -3190,6 +3236,15 @@
           const m = endMin % 60;
           endTimeInput.value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
         }
+        // Update displayHours based on the prefix
+        if (!isNaN(startMin) && !isNaN(endMin)) {
+          const hours = (endMin - startMin) / 60;
+          const displayId = prefix + 'DisplayHours';
+          const displayHoursEl = document.getElementById(displayId);
+          if (displayHoursEl) {
+            displayHoursEl.textContent = hours.toFixed(1);
+          }
+        }
       };
 
       // Global listeners
@@ -3371,10 +3426,15 @@
       // If no schedules loaded for this date, fetch them from Firestore
       if (schedulesForDate.length === 0) {
         try {
+          const teamId = window.APP_STATE.currentTeam?.id || window.APP_STATE.selectedTeamId;
+          if (!teamId) {
+            console.warn('No team selected for schedules query');
+            return;
+          }
           const schedulesQuery = query(
             collection(db, 'schedules'),
             where('date', '==', date),
-            where('teamId', '==', window.APP_STATE.currentTeam.id)
+            where('teamId', '==', teamId)
           );
           const snap = await getDocs(schedulesQuery);
           schedulesForDate = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -3483,10 +3543,15 @@
       // If no schedules loaded for this date, fetch them from Firestore
       if (schedulesForDate.length === 0) {
         try {
+          const teamId = window.APP_STATE.currentTeam?.id || window.APP_STATE.selectedTeamId;
+          if (!teamId) {
+            console.warn('No team selected for schedules query');
+            return;
+          }
           const schedulesQuery = query(
             collection(db, 'schedules'),
             where('date', '==', date),
-            where('teamId', '==', window.APP_STATE.currentTeam.id)
+            where('teamId', '==', teamId)
           );
           const snap = await getDocs(schedulesQuery);
           schedulesForDate = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -3612,13 +3677,18 @@
           employeeName: emp.firstName + ' ' + emp.lastName,
           clientId: clientId,
           clientName: client.firstName + ' ' + client.lastName,
-          teamId: window.APP_STATE.currentTeam.id,
           duration: duration,
           startTime: Timestamp.fromDate(startDate),
           endTime: Timestamp.fromDate(endDate),
           manual: true,
-          createdAt: Timestamp.now()
+          createdAt: Timestamp.now(),
+          createdByAuthUid: auth.currentUser.uid
         };
+
+        // Add teamId if currentTeam exists
+        if (window.APP_STATE.currentTeam) {
+          jobCompletion.teamId = window.APP_STATE.currentTeam.id;
+        }
 
         await addDoc(collection(db, 'jobCompletions'), jobCompletion);
         await logAudit('create', 'jobCompletions', null, { type: 'manual_entry', date, employee: employeeId, client: clientId, duration });
@@ -3664,13 +3734,18 @@
           employeeName: emp.firstName + ' ' + emp.lastName,
           clientId: clientId,
           clientName: client.firstName + ' ' + client.lastName,
-          teamId: window.APP_STATE.currentTeam.id,
           duration: duration,
           startTime: Timestamp.fromDate(startDate),
           endTime: Timestamp.fromDate(endDate),
           manual: true,
-          createdAt: Timestamp.now()
+          createdAt: Timestamp.now(),
+          createdByAuthUid: auth.currentUser.uid
         };
+
+        // Add teamId if currentTeam exists
+        if (window.APP_STATE.currentTeam) {
+          jobCompletion.teamId = window.APP_STATE.currentTeam.id;
+        }
 
         await addDoc(collection(db, 'jobCompletions'), jobCompletion);
         await logAudit('create', 'jobCompletions', null, { type: 'manual_entry', date, employee: employeeId, client: clientId, duration });
@@ -3701,9 +3776,23 @@
       const startMinutes = start.getHours() * 60 + start.getMinutes();
       const endMinutes = end.getHours() * 60 + end.getMinutes();
 
+      // Check if times are out of range
+      const isOutOfRange = isTimeOutOfRange(startMinutes, endMinutes);
+      const warningBanner = isOutOfRange ? `
+        <div style="background: var(--warning-100); border: 2px solid var(--warning-600); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: center;">
+          <div style="font-size: 20px; margin-bottom: 8px;">⚠️</div>
+          <div style="font-weight: 600; color: var(--warning-900); margin-bottom: 8px;">Horas fuera del rango permitido</div>
+          <div style="font-size: 12px; color: var(--warning-800); line-height: 1.4;">
+            Estas horas están registradas fuera del horario normal (5 AM - 8 PM). Contáctate con el administrador para ajustarlas en employee-hours.html
+          </div>
+        </div>
+      ` : '';
+
       const modalContent = `
         <h3 style="margin: 0 0 8px 0; font-size: 16px;">Editar Entrada</h3>
         <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 16px;">Cliente: ${client ? client.firstName + ' ' + client.lastName : 'Sin cliente'}</div>
+
+        ${warningBanner}
 
         <div style="margin-bottom: 20px; text-align: center;">
           <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Horas Totales</div>
@@ -3715,11 +3804,13 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
           <div>
             <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Inicio</label>
-            <input type="time" id="editEntryStartTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+            <input type="time" id="editEntryStartTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;" ${isOutOfRange ? 'readonly' : ''}>
+            ${isOutOfRange ? `<div style="font-size: 11px; color: var(--warning-700); margin-top: 4px;">Actual: ${formatTimeDisplay(startMinutes)}</div>` : ''}
           </div>
           <div>
             <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px;">Hora Fin</label>
-            <input type="time" id="editEntryEndTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;">
+            <input type="time" id="editEntryEndTimeInput" style="width: 100%; padding: 10px; border: 2px solid var(--gray-300); border-radius: 8px; font-size: 14px; font-family: 'Outfit', monospace; box-sizing: border-box;" ${isOutOfRange ? 'readonly' : ''}>
+            ${isOutOfRange ? `<div style="font-size: 11px; color: var(--warning-700); margin-top: 4px;">Actual: ${formatTimeDisplay(endMinutes)}</div>` : ''}
           </div>
         </div>
 
@@ -3735,7 +3826,7 @@
             <span>8 PM</span>
           </div>
 
-          <div id="editEntryTimeSliderContainer" style="position: relative; height: 100px; margin-bottom: 16px;">
+          <div id="editEntryTimeSliderContainer" style="position: relative; height: 100px; margin-bottom: 16px; ${isOutOfRange ? 'opacity: 0.5; pointer-events: none;' : ''}">
             <div id="editEntryTimelineBar" style="position: absolute; top: 40px; left: 0; right: 0; height: 4px; background: #ddd; border-radius: 2px;"></div>
             <div id="editEntrySliderFill" style="position: absolute; top: 40px; height: 6px; background: var(--primary-500); border-radius: 3px; cursor: grab; z-index: 2;" data-type="fill"></div>
             <div id="editEntryStartHandle" style="position: absolute; top: 25px; left: 0; width: 40px; height: 40px; background: white; border: 3px solid var(--primary-600); border-radius: 50%; cursor: grab; z-index: 3; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transform: translateX(-50%); display: flex; align-items: center; justify-content: center;" data-type="start">
@@ -3749,11 +3840,12 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <button style="padding: 12px; background: var(--gray-300); color: var(--gray-700); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="window.editDayEmployeeHours('${employeeId}', '${date}')">Atrás</button>
-          <button style="padding: 12px; background: var(--primary-500); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="updateSpecificEntry('${entryId}', '${employeeId}', '${date}')">Guardar</button>
+          <button style="padding: 12px; background: var(--primary-500); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="updateSpecificEntry('${entryId}', '${employeeId}', '${date}')" ${isOutOfRange ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>Guardar</button>
         </div>
 
         <input type="hidden" id="editEntryStartMinutes" value="${startMinutes}">
         <input type="hidden" id="editEntryEndMinutes" value="${endMinutes}">
+        <input type="hidden" id="isOutOfRange" value="${isOutOfRange}">
       `;
 
       window.openModal('Editar Entrada', modalContent);
