@@ -761,6 +761,10 @@
                 <span>🗺️</span>
                 <span>Distribute Weekly</span>
               </button>
+              <button class="btn btn-secondary" id="weeklyNotificationBtn" title="Notify all teams about weekly schedule">
+                <span>📅</span>
+                <span>Notificar Horario Semanal</span>
+              </button>
               <button class="btn btn-primary" id="addScheduleBtn">
                 <span>➕</span>
                 <span data-i18n="scheduleJob">Schedule Job</span>
@@ -1012,6 +1016,53 @@
   </div>
 </div>
 
+<!-- Weekly Notification Modal -->
+<div class="modal modal-lg" id="weeklyNotificationModal">
+  <div class="modal-header">
+    <h3 class="modal-title">📅 Notificar Horario Semanal</h3>
+    <button class="modal-close" id="closeWeeklyNotificationModal">✕</button>
+  </div>
+  <div class="modal-body">
+    <p class="mb-4">Envía notificaciones push a todos los líderes de equipo con trabajos programados para la semana seleccionada.</p>
+
+    <div class="form-group">
+      <label class="form-label">Seleccionar Semana (Lunes - Domingo)</label>
+      <div class="week-selector">
+        <button type="button" class="btn btn-outline btn-sm" id="notifyPrevWeekBtn">◀</button>
+        <div class="week-display" id="notifyWeekDisplay">
+          <span class="week-range" id="notifyWeekRangeText">Dic 16 - Dic 22, 2024</span>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" id="notifyNextWeekBtn">▶</button>
+      </div>
+      <input type="hidden" id="notifyWeekStart">
+      <input type="hidden" id="notifyWeekEnd">
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-body">
+        <h4 class="mb-3">Equipos con Trabajos Programados</h4>
+        <div id="weeklyNotificationPreview">
+          <!-- Populated by JS: team list with job counts -->
+          <div class="text-gray-500 text-center p-4">Cargando...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-body">
+        <div class="flex justify-between items-center">
+          <span>Notificaciones a enviar:</span>
+          <span class="text-2xl font-bold text-primary" id="notificationCount">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" id="cancelWeeklyNotificationBtn">Cancelar</button>
+    <button type="button" class="btn btn-primary" id="sendWeeklyNotificationBtn">📅 Enviar Notificaciones</button>
+  </div>
+</div>
+
   <!-- Day Jobs Modal (for clicking on a day) -->
   <div class="modal modal-lg" id="dayJobsModal">
     <div class="modal-header">
@@ -1145,10 +1196,11 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script type="module">
-    import { 
+    import {
       auth, db, onAuthStateChanged, signOut,
-      collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc, 
-      query, where, orderBy, Timestamp
+      collection, doc, getDoc, getDocs, addDoc, updateDoc, setDoc, deleteDoc,
+      query, where, orderBy, Timestamp,
+      SEND_NOTIFICATION_FUNCTION_URL
     } from './js/firebase-config.js';
     import { i18n } from './js/i18n.js';
     import { 
@@ -1736,6 +1788,327 @@
     };
 
     // ============================================
+    // SEND PUSH NOTIFICATIONS
+    // ============================================
+    window.sendTeamNotification = async function(teamId, dateStr) {
+      try {
+        if (!currentAdmin) {
+          showToast('error', 'Error', 'Admin authentication required');
+          return;
+        }
+
+        const team = teams.find(t => t.id === teamId);
+        if (!team) {
+          showToast('error', 'Error', 'Team not found');
+          return;
+        }
+
+        // Get the scheduled jobs for this team and date
+        const daySchedules = schedules.filter(s =>
+          s.date === dateStr &&
+          (s.teamId === teamId || (teamId === 'unassigned' && !s.teamId)) &&
+          s.status !== 'cancelled'
+        );
+
+        if (daySchedules.length === 0) {
+          showToast('warning', 'Sin trabajos', 'No hay trabajos programados para este equipo en esta fecha');
+          return;
+        }
+
+        // Format the notification message
+        const dateObj = new Date(dateStr + 'T00:00:00');
+        const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
+        const dateFormatted = dateObj.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+
+        const message = {
+          title: `📅 Cambio de Horario - ${team.name || 'Sin Asignar'}`,
+          body: `Se hicieron cambios a tu horario para el ${dayName}, ${dateFormatted}. Por favor revisa la aplicación.`,
+          teamIds: [teamId],
+          url: '/timeclock.html?tab=schedule'
+        };
+
+        console.log('DEBUG: Sending notification with message:', message);
+
+        // Call Cloud Function to send notifications
+        const response = await fetch(SEND_NOTIFICATION_FUNCTION_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${await auth.currentUser?.getIdToken()}`
+          },
+          body: JSON.stringify(message)
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to send notification');
+        }
+
+        const result = await response.json();
+        console.log('DEBUG: Cloud Function response:', result);
+        console.log(`DEBUG: Found ${result.recipientCount || 0} subscriptions, sent to ${result.successCount || 0} devices`);
+
+        showToast('success', 'Notifications sent', `Found ${result.recipientCount || 0} subscription${result.recipientCount !== 1 ? 's' : ''} - sent to ${result.successCount || 0} device${result.successCount !== 1 ? 's' : ''}`);
+
+        // Log to audit trail
+        await logAudit('SEND_NOTIFICATION', 'team', teamId, {
+          date: dateStr,
+          jobCount: daySchedules.length,
+          recipientCount: result.recipientCount || 0,
+          successCount: result.successCount || 0,
+          failureCount: result.failureCount || 0
+        });
+      } catch (error) {
+        console.error('Error sending notification:', error);
+        showToast('error', 'Error', error.message || 'Failed to send notification');
+      }
+    };
+
+    // ============================================
+    // WEEKLY NOTIFICATION - HELPER FUNCTIONS
+    // ============================================
+
+    /**
+     * Get Monday of the week containing the given date
+     * Work week is Monday-Sunday
+     */
+    function getMondayOfWeek(date) {
+      const d = new Date(date);
+      const day = d.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+      d.setDate(diff);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    /**
+     * Get Sunday of the week (6 days after Monday)
+     */
+    function getSundayOfWeek(mondayDate) {
+      const d = new Date(mondayDate);
+      d.setDate(d.getDate() + 6);
+      d.setHours(23, 59, 59, 999);
+      return d;
+    }
+
+    // State for weekly notification modal
+    let notifyWeekStart = null;
+
+    /**
+     * Initialize and open weekly notification modal
+     */
+    window.openWeeklyNotificationModal = function() {
+      // Default to current week (this week's Monday)
+      const today = new Date();
+      notifyWeekStart = getMondayOfWeek(today);
+
+      updateWeeklyNotificationSelector();
+      updateWeeklyNotificationPreview();
+
+      openModal('weeklyNotificationModal');
+    };
+
+    /**
+     * Update week selector display
+     */
+    function updateWeeklyNotificationSelector() {
+      const monday = notifyWeekStart;
+      const sunday = getSundayOfWeek(monday);
+
+      // Format: "16 dic - 22 dic, 2024" (Spanish locale)
+      const mondayStr = formatDate(monday, { day: 'numeric', month: 'short' });
+      const sundayStr = formatDate(sunday, { day: 'numeric', month: 'short', year: 'numeric' });
+      const rangeText = `${mondayStr} - ${sundayStr}`;
+
+      document.getElementById('notifyWeekRangeText').textContent = rangeText;
+
+      // Update hidden inputs (YYYY-MM-DD format)
+      document.getElementById('notifyWeekStart').value = formatDateStr(monday);
+      document.getElementById('notifyWeekEnd').value = formatDateStr(sunday);
+
+      // Refresh preview with new week
+      updateWeeklyNotificationPreview();
+    }
+
+    /**
+     * Navigate to previous/next week
+     */
+    function navigateNotificationWeek(direction) {
+      notifyWeekStart = addDays(notifyWeekStart, direction * 7);
+      updateWeeklyNotificationSelector();
+    }
+
+    /**
+     * Update preview of teams with jobs in selected week
+     */
+    function updateWeeklyNotificationPreview() {
+      const startDateStr = document.getElementById('notifyWeekStart').value;
+      const endDateStr = document.getElementById('notifyWeekEnd').value;
+
+      if (!startDateStr || !endDateStr) {
+        document.getElementById('weeklyNotificationPreview').innerHTML =
+          '<div class="text-gray-500 text-center p-4">Selecciona una semana</div>';
+        document.getElementById('notificationCount').textContent = '0';
+        return;
+      }
+
+      // Find all schedules in this week (Mon-Sun)
+      const weekSchedules = schedules.filter(s => {
+        return s.date >= startDateStr && s.date <= endDateStr && s.status !== 'cancelled';
+      });
+
+      // Group by team
+      const teamJobCounts = {};
+      const teamIdsWithJobs = new Set();
+
+      weekSchedules.forEach(schedule => {
+        const teamId = schedule.teamId || 'unassigned';
+        teamJobCounts[teamId] = (teamJobCounts[teamId] || 0) + 1;
+        teamIdsWithJobs.add(teamId);
+      });
+
+      // Render preview
+      const previewContainer = document.getElementById('weeklyNotificationPreview');
+
+      if (teamIdsWithJobs.size === 0) {
+        previewContainer.innerHTML =
+          '<div class="text-gray-500 text-center p-4">No hay trabajos programados para esta semana</div>';
+        document.getElementById('notificationCount').textContent = '0';
+        return;
+      }
+
+      let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
+
+      // Show teams with jobs
+      Array.from(teamIdsWithJobs).forEach(teamId => {
+        const team = teams.find(t => t.id === teamId);
+        const teamName = team ? team.name : 'Sin Asignar';
+        const jobCount = teamJobCounts[teamId];
+
+        html += `
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--gray-200);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 500;">${teamName}</span>
+              <span style="color: var(--gray-600);">${jobCount} trabajo${jobCount !== 1 ? 's' : ''}</span>
+            </div>
+          </li>
+        `;
+      });
+
+      html += '</ul>';
+      previewContainer.innerHTML = html;
+
+      // Update notification count (number of teams that will receive notifications)
+      document.getElementById('notificationCount').textContent = teamIdsWithJobs.size;
+    }
+
+    /**
+     * Send weekly schedule notifications to all teams with jobs
+     */
+    window.sendWeeklyNotification = async function() {
+      try {
+        if (!currentAdmin) {
+          showToast('error', 'Error', 'Admin authentication required');
+          return;
+        }
+
+        const startDateStr = document.getElementById('notifyWeekStart').value;
+        const endDateStr = document.getElementById('notifyWeekEnd').value;
+
+        if (!startDateStr || !endDateStr) {
+          showToast('error', 'Error', 'Selecciona una semana válida');
+          return;
+        }
+
+        // Find all teams with jobs in this week
+        const weekSchedules = schedules.filter(s => {
+          return s.date >= startDateStr && s.date <= endDateStr && s.status !== 'cancelled';
+        });
+
+        const teamIdsWithJobs = new Set();
+        weekSchedules.forEach(s => {
+          const teamId = s.teamId || 'unassigned';
+          teamIdsWithJobs.add(teamId);
+        });
+
+        if (teamIdsWithJobs.size === 0) {
+          showToast('warning', 'Sin trabajos', 'No hay trabajos programados para esta semana');
+          return;
+        }
+
+        // Format notification message
+        const monday = new Date(startDateStr);
+        const sunday = new Date(endDateStr);
+
+        // Format dates for message body (Spanish locale)
+        const mondayFormatted = formatDate(monday, { day: 'numeric', month: 'short' });
+        const sundayFormatted = formatDate(sunday, { day: 'numeric', month: 'short' });
+
+        const message = {
+          title: '📅 Horario Semanal Publicado!',
+          body: `Revisa tus trabajos para la semana del ${mondayFormatted} - ${sundayFormatted}`,
+          teamIds: Array.from(teamIdsWithJobs),
+          url: '/timeclock.html?tab=schedule'
+        };
+
+        // Show loading state
+        const sendBtn = document.getElementById('sendWeeklyNotificationBtn');
+        const originalText = sendBtn.innerHTML;
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<span class="spinner"></span> Enviando...';
+
+        console.log('DEBUG: Sending weekly notification:', message);
+
+        // Call Cloud Function
+        const response = await fetch(SEND_NOTIFICATION_FUNCTION_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${await auth.currentUser?.getIdToken()}`
+          },
+          body: JSON.stringify(message)
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to send notifications');
+        }
+
+        const result = await response.json();
+        console.log('DEBUG: Cloud Function response:', result);
+
+        // Show success message
+        showToast(
+          'success',
+          'Notificaciones enviadas',
+          `${result.successCount || 0} notificación${result.successCount !== 1 ? 'es' : ''} enviada${result.successCount !== 1 ? 's' : ''} a ${teamIdsWithJobs.size} equipo${teamIdsWithJobs.size !== 1 ? 's' : ''}`
+        );
+
+        // Log to audit trail
+        await logAudit('SEND_NOTIFICATION', 'weekly_schedule', null, {
+          weekStart: startDateStr,
+          weekEnd: endDateStr,
+          teamCount: teamIdsWithJobs.size,
+          recipientCount: result.recipientCount || 0,
+          successCount: result.successCount || 0,
+          failureCount: result.failureCount || 0
+        });
+
+        // Close modal
+        closeModal('weeklyNotificationModal');
+
+      } catch (error) {
+        console.error('Error sending weekly notification:', error);
+        showToast('error', 'Error', error.message || 'No se pudieron enviar las notificaciones');
+      } finally {
+        // Restore button state
+        const sendBtn = document.getElementById('sendWeeklyNotificationBtn');
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '📅 Enviar Notificaciones';
+      }
+    };
+
+    // ============================================
     // SHOW DAY JOBS
     // ============================================
     window.showDayJobs = function(dateStr) {
@@ -1780,8 +2153,9 @@
             <div class="team-jobs-group mb-4">
               <div class="team-jobs-header">
                 <div style="display:flex; align-items:center; gap:8px;">
-                  <h4 class="mb-2" style="margin:0;">${team.name} <span class="text-gray-500" style="font-weight:normal; margin-left: 8px; font-size: 0.9rem;">(${clientCount} client${clientCount !== 1 ? 's' : ''})</span></h4>
-                  <button class="btn btn-sm btn-outline" onclick="previewRouteForTeam('${team.id}', '${dateStr}')">🗺️ Preview Route</button>
+                  <h4 class="mb-2" style="margin:0;">${team.name} <span class="text-gray-500" style="font-weight:normal; margin-left: 8px; font-size: 0.9rem;">(${clientCount} cliente${clientCount !== 1 ? 's' : ''})</span></h4>
+                  <button class="btn btn-sm btn-outline" onclick="previewRouteForTeam('${team.id}', '${dateStr}')">🗺️ Vista Previa</button>
+                  <button class="btn btn-sm btn-primary" onclick="sendTeamNotification('${team.id}', '${dateStr}')">🔔 Notificar Cambio</button>
                 </div>
               </div>
               <div class="team-jobs-list">
@@ -1799,8 +2173,9 @@
             <div class="team-jobs-group mb-4">
               <div class="team-jobs-header">
                 <div style="display:flex; align-items:center; gap:8px;">
-                  <h4 class="mb-2" style="margin:0;">Unassigned <span class="text-gray-500" style="font-weight:normal; margin-left: 8px; font-size: 0.9rem;">(${unassignedCount} client${unassignedCount !== 1 ? 's' : ''})</span></h4>
-                  <button class="btn btn-sm btn-outline" onclick="previewRouteForTeam('unassigned', '${dateStr}')">🗺️ Preview Route</button>
+                  <h4 class="mb-2" style="margin:0;">Sin Asignar <span class="text-gray-500" style="font-weight:normal; margin-left: 8px; font-size: 0.9rem;">(${unassignedCount} cliente${unassignedCount !== 1 ? 's' : ''})</span></h4>
+                  <button class="btn btn-sm btn-outline" onclick="previewRouteForTeam('unassigned', '${dateStr}')">🗺️ Vista Previa</button>
+                  <button class="btn btn-sm btn-primary" onclick="sendTeamNotification('unassigned', '${dateStr}')">🔔 Notificar Cambio</button>
                 </div>
               </div>
               <div class="team-jobs-list">${unassignedGroup.map(s => renderJobCard(s)).join('')}</div>
@@ -3871,6 +4246,14 @@ function formatDateStr(date) {
       document.getElementById('cancelAutoScheduleBtn').addEventListener('click', () => closeModal('autoScheduleModal'));
       document.getElementById('generateSchedulesBtn').addEventListener('click', generateSchedules);
       document.getElementById('autoClientFilter').addEventListener('change', estimateJobs);
+
+      // Weekly Notification Modal
+      document.getElementById('weeklyNotificationBtn')?.addEventListener('click', openWeeklyNotificationModal);
+      document.getElementById('closeWeeklyNotificationModal')?.addEventListener('click', () => closeModal('weeklyNotificationModal'));
+      document.getElementById('cancelWeeklyNotificationBtn')?.addEventListener('click', () => closeModal('weeklyNotificationModal'));
+      document.getElementById('notifyPrevWeekBtn')?.addEventListener('click', () => navigateNotificationWeek(-1));
+      document.getElementById('notifyNextWeekBtn')?.addEventListener('click', () => navigateNotificationWeek(1));
+      document.getElementById('sendWeeklyNotificationBtn')?.addEventListener('click', sendWeeklyNotification);
 
       // Day Jobs Modal
       document.getElementById('closeDayJobsModal').addEventListener('click', () => closeModal('dayJobsModal'));
