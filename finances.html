@@ -989,6 +989,35 @@
     </div>
   </div>
 
+  <!-- Quick Add Schedule Modal -->
+  <div class="modal" id="quickAddScheduleModal">
+    <div class="modal-header">
+      <h3 class="modal-title">Add to Schedule</h3>
+      <button class="modal-close" id="closeQuickAddScheduleModal">✕</button>
+    </div>
+    <div class="modal-body" id="quickAddScheduleBody">
+      <!-- Content will be populated by JavaScript -->
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelQuickAddScheduleBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirmQuickAddScheduleBtn">Add & Link</button>
+    </div>
+  </div>
+
+  <!-- Link Invoice to Schedule Modal -->
+  <div class="modal" id="linkInvoiceToScheduleModal">
+    <div class="modal-header">
+      <h3 class="modal-title">Link Invoice to Schedule</h3>
+      <button class="modal-close" id="closeLinkInvoiceToScheduleModal">✕</button>
+    </div>
+    <div class="modal-body" id="linkInvoiceToScheduleBody">
+      <!-- Content will be populated by JavaScript -->
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="cancelLinkInvoiceBtn">Cancel</button>
+    </div>
+  </div>
+
   <!-- Company Settings Modal -->
   <div class="modal modal-lg" id="companySettingsModal">
     <div class="modal-header">
@@ -1099,6 +1128,7 @@
     let invoices = [];
     let schedules = [];
     let completedSchedules = [];
+    let teams = [];
     
     let currentDateRange = 'week';
     let startDate = null;
@@ -1158,6 +1188,7 @@
 
       // Load data
       await loadClients();
+      await loadTeams();
       await loadCompanySettings();
       await loadData();
 
@@ -1279,7 +1310,19 @@
         });
         populateClientSelect();
       } catch (error) {
-        
+
+      }
+    }
+
+    async function loadTeams() {
+      try {
+        const snapshot = await getDocs(collection(db, 'teams'));
+        teams = [];
+        snapshot.forEach(doc => {
+          teams.push({ id: doc.id, ...doc.data() });
+        });
+      } catch (error) {
+        console.error('Error loading teams:', error);
       }
     }
 
@@ -1312,7 +1355,7 @@
       try {
         const q = query(collection(db, 'payments'), orderBy('date', 'desc'));
         const snapshot = await getDocs(q);
-        
+
         payments = [];
         snapshot.forEach(doc => {
           const payment = { id: doc.id, ...doc.data() };
@@ -1321,8 +1364,45 @@
             payments.push(payment);
           }
         });
+
+        // Link existing unlinked payments to their schedules' invoices
+        await linkUnlinkedPaymentsToInvoices();
       } catch (error) {
-        
+
+      }
+    }
+
+    // Recovery function: Link existing payments to invoices based on their schedules
+    async function linkUnlinkedPaymentsToInvoices() {
+      try {
+        const allPaymentsSnapshot = await getDocs(collection(db, 'payments'));
+
+        for (const paymentDoc of allPaymentsSnapshot.docs) {
+          const payment = paymentDoc.data();
+
+          // Only process payments that don't have linkedInvoiceId and have a scheduleId
+          if (!payment.linkedInvoiceId && payment.scheduleId) {
+            try {
+              // Get the schedule to see if it has an invoiceId
+              const scheduleDoc = await getDoc(doc(db, 'schedules', payment.scheduleId));
+
+              if (scheduleDoc.exists()) {
+                const schedule = scheduleDoc.data();
+
+                if (schedule.invoiceId) {
+                  // Link this payment to the invoice
+                  await updateDoc(paymentDoc.ref, {
+                    linkedInvoiceId: schedule.invoiceId
+                  });
+                }
+              }
+            } catch (error) {
+              // Silently handle errors
+            }
+          }
+        }
+      } catch (error) {
+        // Silently handle errors
       }
     }
 
@@ -1348,27 +1428,27 @@
       try {
         const q = query(collection(db, 'invoices'), orderBy('invoiceDate', 'desc'));
         const snapshot = await getDocs(q);
-        
+
         invoices = [];
         snapshot.forEach(doc => {
           invoices.push({ id: doc.id, ...doc.data() });
         });
       } catch (error) {
-        
+        console.error('Error loading invoices:', error);
       }
     }
 
     async function loadSchedules() {
       try {
-        const q = query(collection(db, 'schedules'), where('status', '==', 'completed'));
-        const snapshot = await getDocs(q);
+        // Load ALL schedules (not just completed ones)
+        const snapshot = await getDocs(collection(db, 'schedules'));
 
         schedules = [];
         snapshot.forEach(doc => {
           schedules.push({ id: doc.id, ...doc.data() });
         });
       } catch (error) {
-        
+        console.error('Error loading schedules:', error);
       }
     }
 
@@ -1683,9 +1763,21 @@
       tbody.innerHTML = jobsWithPaymentStatus.map(job => {
         const client = clients[job.clientId] || {};
         const completedDate = job.actualEndTime?.toDate ? job.actualEndTime.toDate() : (job.date ? new Date(job.date) : new Date());
+
+        // ✅ NEW: Check if job schedule has a linked invoice
+        const linkedInvoice = job.invoiceId ? invoices.find(inv => inv.id === job.invoiceId) : null;
+        const invoiceIndicator = linkedInvoice ? `
+          <div style="display: inline-flex; align-items: center; gap: 4px; background: var(--info-100); color: var(--info-700); padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 2px;">
+            📋 ${linkedInvoice.invoiceNumber} - ${linkedInvoice.status}
+          </div>
+        ` : '';
+
         return `<tr>
           <td>${formatDate(completedDate, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-          <td><div class="font-semibold">${client.firstName || ''} ${client.lastName || 'Unknown'}</div></td>
+          <td>
+            <div class="font-semibold">${client.firstName || ''} ${client.lastName || 'Unknown'}</div>
+            ${invoiceIndicator}
+          </td>
           <td><div class="text-sm">${client.address?.street || ''}</div><div class="text-xs text-gray-500">${client.address?.city || ''}</div></td>
           <td>${getServiceSummary(clients[job.clientId])}</td>
           <td class="font-semibold">${formatCurrency(job.serviceDetails?.totalPrice || 0)}</td>
@@ -1739,12 +1831,21 @@
         const client = clients[payment.clientId];
         const schedule = schedules.find(s => s.id === payment.scheduleId);
         const date = payment.date?.toDate ? payment.date.toDate() : new Date(payment.date);
-        
+
+        // ✅ NEW: Check if payment is linked to an invoice
+        const linkedInvoice = invoices.find(inv => inv.id === (payment.linkedInvoiceId || payment.invoiceId));
+        const invoiceIndicator = linkedInvoice ? `
+          <div style="display: inline-flex; align-items: center; gap: 4px; background: var(--info-100); color: var(--info-700); padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 2px;">
+            📋 ${linkedInvoice.invoiceNumber}
+          </div>
+        ` : '';
+
         return `
           <tr>
             <td>${formatDate(date, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
             <td>
               <div class="font-semibold">${client?.firstName || ''} ${client?.lastName || 'Unknown'}</div>
+              ${invoiceIndicator}
             </td>
             <td>${getServiceSummary(clients[payment.clientId])}</td>
             <td>
@@ -2057,7 +2158,15 @@
           notes: document.getElementById('recordPaymentNotes').value
         });
 
-        // If this payment is linked to an invoice, mark the invoice as paid
+        // If this payment is linked to an invoice, automatically mark the invoice as paid
+        if (payment?.linkedInvoiceId) {
+          await updateDoc(doc(db, 'invoices', payment.linkedInvoiceId), {
+            status: 'paid',
+            updatedAt: Timestamp.now()
+          });
+        }
+
+        // Also handle old invoiceId field for backward compatibility
         if (payment?.invoiceId) {
           await updateDoc(doc(db, 'invoices', payment.invoiceId), {
             status: 'paid',
@@ -2069,13 +2178,26 @@
         showToast('success', i18n.t('success'), 'Payment recorded');
 
         closeModal('paymentModal');
+
+        // Reload ALL data so everything updates
         await loadPayments();
         await loadInvoices();
+        await loadSchedules();  // Also reload schedules for completed jobs
         updateSummary();
-        renderPayments();
-        renderInvoices();
-      } catch (error) {
 
+        // Render everything
+        renderPayments();
+
+        // Reset invoice filter to show all invoices (so user can see the updated paid invoice)
+        const invoiceFilter = document.getElementById('invoiceStatusFilter');
+        if (invoiceFilter) {
+          invoiceFilter.value = '';  // Clear the filter
+        }
+
+        renderInvoices();
+        renderCompletedJobs();  // Also update completed jobs
+      } catch (error) {
+        console.error('Error saving payment:', error);
         showToast('error', i18n.t('error'), 'Failed to record payment');
       }
     }
@@ -2271,8 +2393,11 @@
       }
     }
 
+    let pendingInvoiceData = null;
+
     async function saveInvoice() {
       const clientId = document.getElementById('invoiceClient').value;
+
       if (!clientId) {
         showToast('error', i18n.t('error'), 'Please select a client');
         return;
@@ -2316,39 +2441,297 @@
           await updateDoc(doc(db, 'invoices', editingInvoiceId), invoiceData);
           editingInvoiceId = null;
           showToast('success', i18n.t('success'), 'Invoice updated');
+          closeModal('invoiceModal');
+          await loadInvoices();
+          await loadPayments();
+          updateSummary();
+          renderInvoices();
+          renderPayments();
         } else {
-          // Create new invoice
-          invoiceData.status = 'draft';
-          invoiceData.createdAt = Timestamp.now();
-          invoiceData.createdBy = currentAdmin.id;
+          // Check if client has a scheduled job today BEFORE creating invoice
+          const todayStr = toLocalDateString(new Date());
 
-          const docRef = await addDoc(collection(db, 'invoices'), invoiceData);
+          try {
+            const schedulesSnap = await getDocs(
+              query(
+                collection(db, 'schedules'),
+                where('clientId', '==', clientId),
+                where('date', '==', todayStr),
+                where('status', '!=', 'completed')
+              )
+            );
 
-          // Create linked payment record (INSIDE the try block)
-          await addDoc(collection(db, 'payments'), {
-            invoiceId: docRef.id,
-            clientId,
-            date: Timestamp.fromDate(invoiceDate),
-            amount: total,
-            status: 'pending',
-            source: 'invoice',
-            createdAt: Timestamp.now()
-          });
+            if (!schedulesSnap.empty) {
+              // Found schedule(s) - create invoice and automatically link to first schedule
+              invoiceData.status = 'draft';
+              invoiceData.createdAt = Timestamp.now();
+              invoiceData.createdBy = currentAdmin.id;
 
-          showToast('success', i18n.t('success'), 'Invoice created');
+              const docRef = await addDoc(collection(db, 'invoices'), invoiceData);
+
+              // Link to first schedule
+              const firstSchedule = schedulesSnap.docs[0];
+              await updateDoc(doc(db, 'schedules', firstSchedule.id), {
+                invoiceId: docRef.id
+              });
+
+              showToast('success', i18n.t('success'), 'Invoice created and linked to schedule');
+              closeModal('invoiceModal');
+              await loadInvoices();
+              await loadPayments();
+              updateSummary();
+              renderInvoices();
+              renderPayments();
+            } else {
+              // No schedule found - store invoice data and show modal to add schedule first
+              pendingInvoiceData = {
+                invoiceData,
+                invoiceDate
+              };
+              closeModal('invoiceModal');
+              showQuickAddScheduleModal(clientId, null, invoiceDate);
+            }
+          } catch (error) {
+            console.error('Error checking for schedules:', error);
+            showToast('error', i18n.t('error'), 'Error checking schedule');
+          }
         }
-
-        closeModal('invoiceModal');
-        await loadInvoices();
-        await loadPayments();
-        updateSummary();
-        renderInvoices();
-        renderPayments();
       } catch (error) {
         console.error('Error saving invoice:', error);
         showToast('error', i18n.t('error'), 'Failed to save invoice');
       }
     }
+
+    // ============================================
+    // QUICK ADD SCHEDULE (from invoice creation)
+    // ============================================
+    let pendingScheduleData = {};
+
+    function calculateNextRouteOrderForTeam(teamId) {
+      if (!teamId) return 1;
+
+      const todayStr = toLocalDateString(new Date());
+
+      // Filter by date AND teamId
+      const teamSchedulesToday = schedules.filter(s => s.date === todayStr && s.teamId === teamId);
+
+      const routeOrders = teamSchedulesToday.map(s => s.routeOrder || 0);
+      const maxRouteOrder = routeOrders.length > 0 ? Math.max(...routeOrders) : 0;
+      const nextRouteOrder = maxRouteOrder + 1;
+
+      return nextRouteOrder;
+    }
+
+    function updateRouteOrderDisplay() {
+      const teamId = document.getElementById('teamSelect')?.value;
+      const routeOrderDisplay = document.getElementById('routeOrderDisplay');
+
+      if (!routeOrderDisplay) return;
+
+      if (!teamId) {
+        routeOrderDisplay.innerHTML = `
+          <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Route Order (Auto-assigned)</div>
+          <div style="font-size: 16px; font-weight: 700; color: var(--gray-500);">Select a team first</div>
+        `;
+        document.getElementById('routeOrder').value = '';
+      } else {
+        const nextRoute = calculateNextRouteOrderForTeam(teamId);
+        routeOrderDisplay.innerHTML = `
+          <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Route Order (Auto-assigned)</div>
+          <div style="font-size: 20px; font-weight: 700; color: var(--primary-600);">#${nextRoute}</div>
+          <div style="font-size: 12px; color: var(--gray-600); margin-top: 4px;">Will be added as #${nextRoute} in today's route</div>
+        `;
+        document.getElementById('routeOrder').value = nextRoute;
+      }
+    }
+
+    function showQuickAddScheduleModal(clientId, invoiceId, invoiceDate) {
+      const client = clients[clientId] || {};
+
+      // Store data for the button handler
+      pendingScheduleData = { clientId, invoiceId, invoiceDate };
+
+      const modalContent = `
+        <p style="margin: 0 0 16px 0; color: var(--gray-700);">
+          <strong>${client.firstName} ${client.lastName}</strong> is not scheduled for today.
+          <br>Would you like to add them now?
+        </p>
+
+        <div style="background: var(--info-50); border: 1px solid var(--info-300); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+          <div style="font-size: 12px; color: var(--info-700); font-weight: 600;">ℹ️ Quick Add</div>
+          <div style="font-size: 13px; color: var(--info-800); margin-top: 4px;">
+            Add client to today's schedule and automatically link this invoice.
+          </div>
+        </div>
+
+        <div style="margin-bottom: 16px; padding: 12px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px;" id="routeOrderDisplay">
+          <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Route Order (Auto-assigned)</div>
+          <div style="font-size: 16px; font-weight: 700; color: var(--gray-500);">Select a team first</div>
+        </div>
+        <input type="hidden" id="routeOrder" value="">
+
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--gray-900);">Team Assignment</label>
+          <select id="teamSelect" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px; background: white;">
+            <option value="">-- Select Team --</option>
+            ${teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('') || '<option disabled>No teams available</option>'}
+          </select>
+        </div>
+      `;
+
+      // Populate modal body
+      document.getElementById('quickAddScheduleBody').innerHTML = modalContent;
+
+      // Add event listener to team select for dynamic route order calculation
+      setTimeout(() => {
+        const teamSelect = document.getElementById('teamSelect');
+        if (teamSelect) {
+          teamSelect.addEventListener('change', updateRouteOrderDisplay);
+        }
+      }, 0);
+
+      openModal('quickAddScheduleModal');
+    }
+
+    window.quickCreateScheduleAndLink = async function(clientId, invoiceId) {
+      try {
+        const routeOrder = parseInt(document.getElementById('routeOrder')?.value) || 1;
+        const teamId = document.getElementById('teamSelect')?.value;
+
+        if (!teamId) {
+          showToast('error', 'Error', 'Please select a team');
+          return;
+        }
+
+        const todayStr = toLocalDateString(new Date());
+
+        // Create schedule
+        const scheduleRef = await addDoc(collection(db, 'schedules'), {
+          clientId: clientId,
+          date: todayStr,
+          teamId: teamId,
+          routeOrder: routeOrder,
+          status: 'scheduled',
+          serviceDetails: {
+            addOns: [],
+            totalPrice: 0 // Will be calculated from invoice
+          },
+          createdAt: Timestamp.now(),
+          createdBy: currentAdmin.id
+        });
+
+        // If there's pending invoice data, create the invoice now
+        let createdInvoiceId = invoiceId;
+        if (pendingInvoiceData) {
+          const invoiceDataToCreate = {
+            ...pendingInvoiceData.invoiceData,
+            status: 'draft',
+            createdAt: Timestamp.now(),
+            createdBy: currentAdmin.id
+          };
+
+          const invoiceRef = await addDoc(collection(db, 'invoices'), invoiceDataToCreate);
+          createdInvoiceId = invoiceRef.id;
+          pendingInvoiceData = null; // Clear pending data
+        }
+
+        // Link invoice to schedule
+        await updateDoc(doc(db, 'schedules', scheduleRef.id), {
+          invoiceId: createdInvoiceId
+        });
+
+        showToast('success', 'Success', `${clients[clientId]?.firstName} added to schedule and invoice linked!`);
+
+        // Reload and close
+        await loadInvoices();
+        await loadPayments();
+        updateSummary();
+        renderInvoices();
+        renderPayments();
+
+      } catch (error) {
+        console.error('Error creating schedule:', error);
+        showToast('error', 'Error', 'Failed to add to schedule');
+      }
+    };
+
+    // ============================================
+    // INVOICE TO SCHEDULE LINKING
+    // ============================================
+    let pendingLinkData = {};
+
+    function showInvoiceScheduleLinkModal(schedules, invoiceId, clientId, invoiceDate) {
+      const client = clients[clientId] || {};
+
+      // Store data for the schedule selection
+      pendingLinkData = { invoiceId, schedules };
+
+      const modalContent = `
+        <p style="margin: 0 0 16px 0; color: var(--gray-700);">
+          Link this invoice to a scheduled job for ${client.firstName} ${client.lastName}?
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+          ${schedules.map(schedule => {
+            const startTime = schedule.scheduledStartTime ? new Date(schedule.scheduledStartTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : 'TBD';
+            return `
+              <div
+                onclick="linkInvoiceToSchedule('${invoiceId}', '${schedule.id}'); closeModal('linkInvoiceToScheduleModal');"
+                style="padding: 12px; background: var(--primary-50); border: 1px solid var(--primary-300); border-radius: 8px; cursor: pointer; transition: all 0.2s;"
+                onmouseover="this.style.background='var(--primary-100)'; this.style.borderColor='var(--primary-500)';"
+                onmouseout="this.style.background='var(--primary-50)'; this.style.borderColor='var(--primary-300)';"
+              >
+                <div style="font-weight: 600; color: var(--primary-900); margin-bottom: 4px;">
+                  Route #${schedule.routeOrder || 'TBD'} @ ${startTime}
+                </div>
+                <div style="font-size: 13px; color: var(--primary-700);">
+                  Status: <span style="text-transform: capitalize;">${schedule.status}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="closeModal('linkInvoiceToScheduleModal');"
+          >
+            Don't Link
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost"
+            onclick="closeModal('linkInvoiceToScheduleModal');"
+          >
+            Skip for Now
+          </button>
+        </div>
+      `;
+
+      // Populate modal body
+      document.getElementById('linkInvoiceToScheduleBody').innerHTML = modalContent;
+
+      openModal('linkInvoiceToScheduleModal');
+    }
+
+    window.linkInvoiceToSchedule = async function(invoiceId, scheduleId) {
+      try {
+        await updateDoc(doc(db, 'schedules', scheduleId), {
+          invoiceId: invoiceId
+        });
+
+        showToast('success', 'Linked', 'Invoice linked to schedule');
+        await loadInvoices();
+        await loadPayments();
+        renderInvoices();
+        renderPayments();
+      } catch (error) {
+        console.error('Error linking invoice to schedule:', error);
+        showToast('error', 'Error', 'Failed to link invoice to schedule');
+      }
+    };
 
     window.viewInvoice = function(id) {
       currentInvoiceId = id;
@@ -2468,18 +2851,35 @@
         i18n.t('delete'),
         i18n.t('cancel')
       );
-      
+
       if (!confirmed) return;
-      
+
       try {
+        // Remove invoiceId from linked schedules
+        const schedulesSnap = await getDocs(
+          query(collection(db, 'schedules'), where('invoiceId', '==', id))
+        );
+
+        for (const scheduleDoc of schedulesSnap.docs) {
+          await updateDoc(scheduleDoc.ref, {
+            invoiceId: null
+          });
+        }
+
+        // Remove old payment records linked via invoiceId (backward compat)
         const linkedPayment = payments.find(p => p.invoiceId === id);
-        if  (linkedPayment) await deleteDoc(doc(db, 'payments', linkedPayment.id));
+        if (linkedPayment) await deleteDoc(doc(db, 'payments', linkedPayment.id));
+
         await deleteDoc(doc(db, 'invoices', id));
+
         showToast('success', i18n.t('success'), 'Invoice deleted');
         await loadInvoices();
+        await loadPayments();
+        await loadSchedules();
         renderInvoices();
+        renderPayments();
       } catch (error) {
-        
+        console.error('Error deleting invoice:', error);
         showToast('error', i18n.t('error'), 'Failed to delete invoice');
       }
     }; 
@@ -2932,6 +3332,18 @@
       document.getElementById('invoiceClient').addEventListener('change', onClientSelect);
       document.getElementById('invoiceTaxEnabled').addEventListener('change', updateInvoiceTotals);
       document.getElementById('invoiceTaxPercentage').addEventListener('input', updateInvoiceTotals);
+
+      // Quick Add Schedule Modal
+      document.getElementById('closeQuickAddScheduleModal').addEventListener('click', () => closeModal('quickAddScheduleModal'));
+      document.getElementById('cancelQuickAddScheduleBtn').addEventListener('click', () => closeModal('quickAddScheduleModal'));
+      document.getElementById('confirmQuickAddScheduleBtn').addEventListener('click', () => {
+        quickCreateScheduleAndLink(pendingScheduleData.clientId, pendingScheduleData.invoiceId);
+        closeModal('quickAddScheduleModal');
+      });
+
+      // Link Invoice to Schedule Modal
+      document.getElementById('closeLinkInvoiceToScheduleModal').addEventListener('click', () => closeModal('linkInvoiceToScheduleModal'));
+      document.getElementById('cancelLinkInvoiceBtn').addEventListener('click', () => closeModal('linkInvoiceToScheduleModal'));
 
       // Invoice Preview
       document.getElementById('closePreviewModal').addEventListener('click', () => closeModal('invoicePreviewModal'));

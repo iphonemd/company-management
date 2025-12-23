@@ -2142,44 +2142,26 @@
       }
 
       // Show payment/notes modal
-      // Check if client requires invoice
-      const requiresInvoice = client && client.requiresInvoice;
+      // ✅ NEW: Check if schedule has a linked invoice
+      const linkedInvoiceId = schedule.invoiceId;
 
-      // Load unpaid invoices for this client
-      let unpaidInvoices = [];
-      try {
-        const invoicesSnap = await getDocs(
-          query(
-            collection(db, 'invoices'),
-            where('clientId', '==', schedule.clientId),
-            where('status', '!=', 'paid')
-          )
-        );
-        unpaidInvoices = invoicesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      } catch (error) {
-        console.warn('Error loading invoices:', error);
-      }
-
-      const invoiceWarning = requiresInvoice ? `
-        <div style="background: linear-gradient(135deg, var(--warning-50) 0%, var(--warning-100) 100%); border: 2px solid var(--warning-500); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+      const invoiceWarning = linkedInvoiceId ? `
+        <div style="background: linear-gradient(135deg, var(--info-50) 0%, var(--info-100) 100%); border: 2px solid var(--info-500); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
           <div style="display: flex; align-items: flex-start; gap: 10px;">
             <div style="font-size: 20px; flex-shrink: 0;">📋</div>
             <div>
-              <div style="font-weight: 700; color: var(--warning-900); margin-bottom: 4px;">Cliente de Factura</div>
-              <div style="font-size: 13px; color: var(--warning-800); line-height: 1.4;">¿Recibiste pago para esta factura? Si es así, selecciona el método de pago.</div>
+              <div style="font-weight: 700; color: var(--info-900); margin-bottom: 4px;">Factura Pendiente</div>
+              <div style="font-size: 13px; color: var(--info-800); line-height: 1.4;">
+                Este cliente tiene una factura pendiente. El administrador registrará el pago cuando lo reciba.
+              </div>
             </div>
           </div>
         </div>
       ` : '';
 
-      const invoiceSelectHtml = requiresInvoice && unpaidInvoices.length > 0 ? `
-        <div>
-          <label style="display: block; font-weight: 600; margin-bottom: 8px; color: var(--gray-900);">Factura</label>
-          <select id="selectedInvoice" style="width: 100%; padding: 10px; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 14px; background: white;">
-            <option value="">-- Selecciona una factura --</option>
-            ${unpaidInvoices.map(inv => `<option value="${inv.id}">INV-${inv.invoiceNumber} - $${inv.total.toFixed(2)}</option>`).join('')}
-          </select>
-        </div>
+      // ✅ NEW: Store linkedInvoiceId in hidden field for later use
+      const invoiceSelectHtml = linkedInvoiceId ? `
+        <input type="hidden" id="selectedInvoice" value="${linkedInvoiceId}">
       ` : '';
 
       const modalContent = `
@@ -2330,9 +2312,9 @@
           paymentRecord.amount = amountReceived;
         }
 
-        // Link to invoice if selected
-        if (selectedInvoiceId) {
-          paymentRecord.invoiceId = selectedInvoiceId;
+        // ✅ Link to invoice if schedule has one
+        if (schedule.invoiceId) {
+          paymentRecord.linkedInvoiceId = schedule.invoiceId;
         }
 
         await addDoc(collection(db, 'payments'), paymentRecord);
