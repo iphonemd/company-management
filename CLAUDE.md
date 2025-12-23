@@ -20,10 +20,18 @@ python -m http.server 8000
 
 **Production Deployment (Firebase Hosting):**
 ```bash
+# Development (cleanpro-74d87):
+# python -m http.server 8000
+
+# Production deployment to mendez-cleaning:
+cp js/firebase-config.prod.js js/firebase-config.js
 firebase deploy --only hosting
+cp js/firebase-config.dev.js js/firebase-config.js  # Switch back to dev
 ```
 
-Live at: https://cleanpro-74d87.web.app
+**Live URLs:**
+- Development: https://cleanpro-74d87.web.app
+- Production: https://mendezcleaningapp.com (custom domain) or https://mendez-cleaning.web.app
 
 ## Firebase Configuration & Security
 
@@ -31,30 +39,91 @@ Live at: https://cleanpro-74d87.web.app
 
 ⚠️ **IMPORTANT: API keys are kept OUT of the repository for security.**
 
-- `js/firebase-config.js` - **Local only** (in .gitignore, never committed)
+**Configuration Files:**
+- `js/firebase-config.js` - **Active config** (in .gitignore, never committed) - currently points to development
+- `js/firebase-config.dev.js` - **Development environment** (cleanpro-74d87) - safe to commit as reference
+- `js/firebase-config.prod.js` - **Production environment** (mendez-cleaning) - safe to commit as reference
 - `js/firebase-config.template.js` - Safe template reference (safe to commit)
 
-**When setting up locally or deploying:**
-1. Copy `firebase-config.template.js` to `firebase-config.js` if it doesn't exist
-2. Update only the `apiKey` field with your Firebase API key from GCP Console
-3. Keep all other config values unchanged
-4. **Never commit `firebase-config.js`** to GitHub - it's automatically ignored
+**Development → Production Workflow:**
 
-**Deployment workflow:**
-1. Commit code changes to GitHub (firebase-config.js will NOT be included due to .gitignore)
-2. Pull the latest code to your deployment machine
-3. Ensure `firebase-config.js` exists locally with the correct API key
-4. Run `firebase deploy --only hosting` to deploy to Firebase Hosting
-5. Firebase automatically uses your project credentials for the hosted version
+1. **Develop locally against cleanpro-74d87:**
+   ```bash
+   python -m http.server 8000
+   # firebase-config.js points to development (cleanpro-74d87)
+   # Make code changes, test locally
+   ```
+
+2. **When ready to deploy to production (mendez-cleaning):**
+   ```bash
+   cp js/firebase-config.prod.js js/firebase-config.js
+   firebase deploy --only hosting
+   ```
+
+3. **After successful deployment, switch back to development:**
+   ```bash
+   cp js/firebase-config.dev.js js/firebase-config.js
+   # Continue editing against cleanpro-74d87
+   ```
+
+4. **Commit code changes to GitHub:**
+   - `firebase-config.js` will NOT be included (in .gitignore)
+   - Code changes only are committed
+   - Both dev and prod configs are safe to commit as references
 
 ### API Key Restrictions (GCP Console)
 
-The API key is restricted to:
+**Development (cleanpro-74d87) API Key:**
 - **APIs:** Identity Toolkit API, Cloud Firestore API
 - **Application restrictions:** HTTP referrers
   - `https://cleanpro-74d87.web.app/*`
   - `https://cleanpro-74d87.firebaseapp.com/*`
   - `localhost:8000/*` (for local development)
+
+**Production (mendez-cleaning) API Key:**
+- **APIs:** Identity Toolkit API, Cloud Firestore API
+- **Application restrictions:** HTTP referrers
+  - `https://mendezcleaningapp.com/*` (custom domain)
+  - `https://mendez-cleaning.web.app/*` (Firebase domain)
+  - `localhost:8000/*` (for local testing if needed)
+
+### Switching Firebase CLI Accounts
+
+Two Firebase accounts manage different environments:
+- **Development:** `2ndacctgames@gmail.com` (cleanpro-74d87 project)
+- **Production:** `mendezcleaning283@gmail.com` (mendez-cleaning project)
+
+**To switch to Development (cleanpro-74d87):**
+```bash
+firebase logout
+firebase login  # Sign in with 2ndacctgames@gmail.com
+# Update .firebaserc to point to cleanpro-74d87:
+# {
+#   "projects": {
+#     "default": "cleanpro-74d87"
+#   }
+# }
+```
+
+**To switch to Production (mendez-cleaning):**
+```bash
+firebase logout
+firebase login  # Sign in with mendezcleaning283@gmail.com
+# Update .firebaserc to point to mendez-cleaning:
+# {
+#   "projects": {
+#     "default": "mendez-cleaning"
+#   }
+# }
+```
+
+**Quick Deployment to Production:**
+```bash
+# While logged in as mendezcleaning283@gmail.com:
+cp js/firebase-config.prod.js js/firebase-config.js
+firebase deploy --only hosting --project mendez-cleaning
+cp js/firebase-config.dev.js js/firebase-config.js  # Switch back to dev config
+```
 
 ## Architecture
 

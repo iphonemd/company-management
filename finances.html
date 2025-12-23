@@ -801,13 +801,19 @@
         
         <div class="form-group">
           <label class="form-label" data-i18n="paymentMethod">Payment Method</label>
-          <select class="form-select" id="recordPaymentMethod">
+          <select class="form-select" id="recordPaymentMethod" onchange="toggleCustomPaymentMethod()">
             <option value="cash">💵 Cash</option>
             <option value="check">📝 Check</option>
             <option value="card">💳 Card</option>
             <option value="venmo">📱 Venmo</option>
             <option value="zelle">📲 Zelle</option>
+            <option value="other">📋 Other</option>
           </select>
+        </div>
+
+        <div class="form-group hidden" id="customPaymentMethodGroup">
+          <label class="form-label">Payment Method Name</label>
+          <input type="text" class="form-input" id="customPaymentMethod" placeholder="e.g., Wire Transfer, ACH, etc.">
         </div>
 
         <div class="form-group">
@@ -864,6 +870,24 @@
           </div>
         </div>
 
+        <!-- Tax Settings -->
+        <div class="grid grid-cols-2 mb-4">
+          <div class="form-group">
+            <label class="form-checkbox">
+              <input type="checkbox" id="invoiceTaxEnabled">
+              <span class="checkbox-label">Apply Tax</span>
+            </label>
+            <small class="text-gray-500">Enable to apply tax to this invoice</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tax Percentage</label>
+            <div class="input-with-suffix">
+              <input type="number" class="form-input" id="invoiceTaxPercentage" min="0" max="100" step="0.01" placeholder="5.00">
+              <span class="input-suffix">%</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Invoice Items -->
         <div class="form-group">
           <label class="form-label">Invoice Items</label>
@@ -872,8 +896,7 @@
               <table class="table" id="invoiceItemsTable">
                 <thead>
                   <tr>
-                    <th style="width: 50%;">Description</th>
-                    <th>Qty</th>
+                    <th style="width: 60%;">Description</th>
                     <th>Rate</th>
                     <th>Amount</th>
                     <th style="width: 50px;"></th>
@@ -1022,6 +1045,24 @@
           <label class="form-label form-label-required">Default Message</label>
           <textarea class="form-input" id="settingsEmailMessage" rows="4" required></textarea>
           <small class="text-gray-500">Use {invoiceNumber}, {amount}, {dueDate} as placeholders</small>
+        </div>
+
+        <!-- Tax Settings Section -->
+        <h4 class="mt-6">Tax Settings</h4>
+        <div class="form-group">
+          <label class="form-checkbox">
+            <input type="checkbox" id="settingsTaxEnabled">
+            <span class="checkbox-label">Enable Tax on Invoices</span>
+          </label>
+          <small class="text-gray-500">Enable this to apply default tax percentage to invoices (can be overridden per invoice)</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Default Tax Percentage</label>
+          <div class="input-with-suffix">
+            <input type="number" class="form-input" id="settingsTaxPercentage" min="0" max="100" step="0.01" placeholder="5.00">
+            <span class="input-suffix">%</span>
+          </div>
+          <small class="text-gray-500">Default tax percentage to apply to invoices (e.g., 5.00 for 5%)</small>
         </div>
       </form>
     </div>
@@ -1348,7 +1389,9 @@
             address: 'Your Business Address',
             city: 'City',
             state: 'State',
-            zip: 'ZIP'
+            zip: 'ZIP',
+            taxEnabled: false,
+            taxPercentage: 5.00
           };
         }
 
@@ -1361,8 +1404,22 @@
             message: 'Please find attached your invoice. Payment is due within 7 days.'
           };
         }
+
+        // Populate form fields
+        document.getElementById('settingsCompanyName').value = companyInfo.name || '';
+        document.getElementById('settingsTagline').value = companyInfo.tagline || '';
+        document.getElementById('settingsPhone').value = companyInfo.phone || '';
+        document.getElementById('settingsEmail').value = companyInfo.email || '';
+        document.getElementById('settingsAddress').value = companyInfo.address || '';
+        document.getElementById('settingsCity').value = companyInfo.city || '';
+        document.getElementById('settingsState').value = companyInfo.state || '';
+        document.getElementById('settingsZip').value = companyInfo.zip || '';
+        document.getElementById('settingsEmailSubject').value = invoiceEmailTemplate.subject || '';
+        document.getElementById('settingsEmailMessage').value = invoiceEmailTemplate.message || '';
+        document.getElementById('settingsTaxEnabled').checked = companyInfo.taxEnabled || false;
+        document.getElementById('settingsTaxPercentage').value = companyInfo.taxPercentage || 5.00;
       } catch (error) {
-        
+
       }
     }
 
@@ -1549,7 +1606,7 @@
         // Update local invoice object so PDF shows correct status
          invoice.status = 'sent';
 
-        const pdfDoc = generateInvoicePDF(invoice, client);
+        const pdfDoc = await generateInvoicePDF(invoice, client);
         const pdfBlob = pdfDoc.output('blob');
         const fileName = `Invoice-${invoice.invoiceNumber}.pdf`;
         
@@ -1817,6 +1874,7 @@
             <td>
               <div class="table-actions">
                 <button class="btn btn-ghost btn-icon btn-sm" onclick="viewInvoice('${invoice.id}')" title="View">👁️</button>
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="editInvoice('${invoice.id}')" title="Edit">✏️</button>
                 <button class="btn btn-ghost btn-icon btn-sm" onclick="printInvoiceById('${invoice.id}')" title="Print">🖨️</button>
                 <button class="btn btn-ghost btn-icon btn-sm" onclick="sendInvoice('${invoice.id}')" title="Send">📧</button>
                 <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteInvoice('${invoice.id}')" title="Delete">🗑️</button>
@@ -1943,39 +2001,81 @@
     // ============================================
     // PAYMENT FUNCTIONS
     // ============================================
+    window.toggleCustomPaymentMethod = function() {
+      const method = document.getElementById('recordPaymentMethod').value;
+      const customGroup = document.getElementById('customPaymentMethodGroup');
+      if (method === 'other') {
+        customGroup.classList.remove('hidden');
+      } else {
+        customGroup.classList.add('hidden');
+      }
+    };
+
     window.markAsPaid = async function(id) {
       editingPaymentId = id;
       const payment = payments.find(p => p.id === id);
       if (!payment) return;
-      
+
       document.getElementById('recordPaymentAmount').value = payment.amount || '';
-      document.getElementById('recordPaymentMethod').value = payment.paymentMethod || 'cash';
+
+      // Check if payment method is custom (not in the standard list)
+      const standardMethods = ['cash', 'check', 'card', 'venmo', 'zelle'];
+      const isCustomMethod = payment.paymentMethod && !standardMethods.includes(payment.paymentMethod);
+
+      if (isCustomMethod) {
+        document.getElementById('recordPaymentMethod').value = 'other';
+        document.getElementById('customPaymentMethod').value = payment.paymentMethod || '';
+      } else {
+        document.getElementById('recordPaymentMethod').value = payment.paymentMethod || 'cash';
+        document.getElementById('customPaymentMethod').value = '';
+      }
+
       document.getElementById('recordPaymentNotes').value = '';
-      
+      toggleCustomPaymentMethod();
+
       openModal('paymentModal');
     };
 
     async function savePayment() {
       if (!editingPaymentId) return;
-      
+
       try {
+        // Get the payment to check if it's linked to an invoice
+        const payment = payments.find(p => p.id === editingPaymentId);
+
+        // If custom payment method is selected, use the custom text input value
+        let paymentMethod = document.getElementById('recordPaymentMethod').value;
+        if (paymentMethod === 'other') {
+          paymentMethod = document.getElementById('customPaymentMethod').value || 'Other';
+        }
+
         await updateDoc(doc(db, 'payments', editingPaymentId), {
           status: 'paid',
-          paymentMethod: document.getElementById('recordPaymentMethod').value,
+          paymentMethod: paymentMethod,
           amount: parseFloat(document.getElementById('recordPaymentAmount').value),
           paidAt: Timestamp.now(),
           notes: document.getElementById('recordPaymentNotes').value
         });
-        
+
+        // If this payment is linked to an invoice, mark the invoice as paid
+        if (payment?.invoiceId) {
+          await updateDoc(doc(db, 'invoices', payment.invoiceId), {
+            status: 'paid',
+            updatedAt: Timestamp.now()
+          });
+        }
+
         await logPaymentAction(AuditActions.UPDATE, editingPaymentId, 'Marked as paid');
         showToast('success', i18n.t('success'), 'Payment recorded');
-        
+
         closeModal('paymentModal');
         await loadPayments();
+        await loadInvoices();
         updateSummary();
         renderPayments();
+        renderInvoices();
       } catch (error) {
-        
+
         showToast('error', i18n.t('error'), 'Failed to record payment');
       }
     }
@@ -1983,23 +2083,58 @@
     // ============================================
     // INVOICE FUNCTIONS
     // ============================================
+    let editingInvoiceId = null;
+
     function openInvoiceModal() {
+      editingInvoiceId = null;
       document.getElementById('invoiceForm').reset();
       invoiceItems = [{ description: 'Cleaning Service', quantity: 1, rate: 0 }];
       renderInvoiceItems();
-      
+
       // Generate invoice number
       const invoiceNum = 'INV-' + Date.now().toString().slice(-6);
       document.getElementById('invoiceNumber').value = invoiceNum;
-      
+
       // Set dates
       const today = new Date();
       document.getElementById('invoiceDate').value = toLocalDateString(today);
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 7);
       document.getElementById('invoiceDueDate').value = toLocalDateString(dueDate);
+
+      // Set tax defaults from company settings
+      document.getElementById('invoiceTaxEnabled').checked = companyInfo.taxEnabled || false;
+      document.getElementById('invoiceTaxPercentage').value = companyInfo.taxPercentage || 5.00;
+
       openModal('invoiceModal');
     }
+
+    window.editInvoice = function(invoiceId) {
+      const invoice = invoices.find(i => i.id === invoiceId);
+      if (!invoice) return;
+
+      editingInvoiceId = invoiceId;
+      document.getElementById('invoiceForm').reset();
+
+      // Populate form with invoice data
+      const invoiceDate = invoice.invoiceDate?.toDate ? invoice.invoiceDate.toDate() : new Date(invoice.invoiceDate);
+      const dueDate = invoice.dueDate?.toDate ? invoice.dueDate.toDate() : new Date(invoice.dueDate);
+
+      document.getElementById('invoiceClient').value = invoice.clientId;
+      document.getElementById('invoiceNumber').value = invoice.invoiceNumber;
+      document.getElementById('invoiceDate').value = toLocalDateString(invoiceDate);
+      document.getElementById('invoiceDueDate').value = toLocalDateString(dueDate);
+      document.getElementById('invoiceTaxEnabled').checked = invoice.taxEnabled || false;
+      document.getElementById('invoiceTaxPercentage').value = invoice.taxPercentage || 5.00;
+      document.getElementById('invoiceNotes').value = invoice.notes || '';
+
+      // Load invoice items
+      invoiceItems = (invoice.items || []).map(item => ({...item}));
+      renderInvoiceItems();
+      updateInvoiceTotals();
+
+      openModal('invoiceModal');
+    };
 
     function populateClientSelect() {
       const select = document.getElementById('invoiceClient');
@@ -2017,25 +2152,23 @@
 
     function renderInvoiceItems() {
       const tbody = document.getElementById('invoiceItemsBody');
-      
+
       tbody.innerHTML = invoiceItems.map((item, index) => `
         <tr>
           <td>
-            <input type="text" class="form-input" value="${item.description}" 
+            <input type="text" class="form-input" value="${item.description}"
                    onchange="updateInvoiceItem(${index}, 'description', this.value)">
           </td>
-          <td style="width: 80px;">
-            <input type="number" class="form-input" value="${item.quantity}" min="1"
-                   onchange="updateInvoiceItem(${index}, 'quantity', this.value)">
-          </td>
-          <td style="width: 120px;">
-            <div class="input-group">
-              <span class="input-group-prepend">$</span>
+          <td style="width: 180px;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="padding: 0 8px;">$</span>
               <input type="number" class="form-input" value="${item.rate}" step="0.01"
-                     onchange="updateInvoiceItem(${index}, 'rate', this.value)">
+                     onchange="updateInvoiceItem(${index}, 'rate', this.value)"
+                     oninput="updateInvoiceItemLive(${index}, 'rate', this.value)"
+                     style="flex: 1; min-width: 140px;">
             </div>
           </td>
-          <td class="font-semibold">${formatCurrency(item.quantity * item.rate)}</td>
+          <td class="font-semibold amount-${index}">${formatCurrency(item.rate)}</td>
           <td>
             ${invoiceItems.length > 1 ? `
               <button type="button" class="btn btn-ghost btn-icon btn-sm" onclick="removeInvoiceItem(${index})">🗑️</button>
@@ -2043,19 +2176,48 @@
           </td>
         </tr>
       `).join('');
-      
+
       updateInvoiceTotals();
     }
 
     window.updateInvoiceItem = function(index, field, value) {
-      if (field === 'quantity') {
-        invoiceItems[index].quantity = parseInt(value) || 1;
-      } else if (field === 'rate') {
+      if (field === 'rate') {
         invoiceItems[index].rate = parseFloat(value) || 0;
+        // Ensure qty is always 1
+        invoiceItems[index].quantity = 1;
       } else {
         invoiceItems[index][field] = value;
       }
       updateInvoiceTotals();
+    };
+
+    window.updateInvoiceItemLive = function(index, field, value) {
+      const rate = parseFloat(value) || 0;
+      const amountCell = document.querySelector(`.amount-${index}`);
+      if (amountCell) {
+        amountCell.textContent = formatCurrency(rate);
+      }
+      // Update totals in real-time as well
+      updateInvoiceTotalsLive(rate, index);
+    };
+
+    function updateInvoiceTotalsLive(newRate, index) {
+      const subtotal = invoiceItems.reduce((sum, item, i) => {
+        return sum + (item.quantity * (i === index ? newRate : item.rate));
+      }, 0);
+
+      const taxEnabled = document.getElementById('invoiceTaxEnabled').checked;
+      const taxPercentage = parseFloat(document.getElementById('invoiceTaxPercentage').value) || 0;
+      const tax = taxEnabled ? (subtotal * taxPercentage / 100) : 0;
+      const total = subtotal + tax;
+
+      const subtotalEl = document.getElementById('invoiceSubtotal');
+      const taxEl = document.getElementById('invoiceTax');
+      const totalEl = document.getElementById('invoiceTotal');
+
+      if (subtotalEl) subtotalEl.textContent = formatCurrency(subtotal);
+      if (taxEl) taxEl.textContent = formatCurrency(tax);
+      if (totalEl) totalEl.textContent = formatCurrency(total);
     };
 
     window.removeInvoiceItem = function(index) {
@@ -2070,12 +2232,33 @@
 
     function updateInvoiceTotals() {
       const subtotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
-      const tax = 0; // Could add tax calculation here
+
+      // Get tax settings from form
+      const taxEnabled = document.getElementById('invoiceTaxEnabled').checked;
+      const taxPercentage = parseFloat(document.getElementById('invoiceTaxPercentage').value) || 0;
+
+      const tax = taxEnabled ? (subtotal * taxPercentage / 100) : 0;
       const total = subtotal + tax;
-      
+
+      // Update tax label to show the percentage
+      const taxLabel = taxEnabled ? `Tax (${taxPercentage.toFixed(2)}%)` : 'Tax (0%)';
+      document.querySelector('.flex.justify-between p-2:nth-child(2) span:first-child')?.textContent || updateTaxLabel(taxLabel);
+
       document.getElementById('invoiceSubtotal').textContent = formatCurrency(subtotal);
       document.getElementById('invoiceTax').textContent = formatCurrency(tax);
       document.getElementById('invoiceTotal').textContent = formatCurrency(total);
+    }
+
+    function updateTaxLabel(label) {
+      // Find and update the tax label in the DOM
+      const taxElements = document.querySelectorAll('.flex.justify-between');
+      for (let el of taxElements) {
+        const span = el.querySelector('span');
+        if (span && span.textContent.includes('Tax')) {
+          span.textContent = label;
+          break;
+        }
+      }
     }
 
     function onClientSelect() {
@@ -2094,9 +2277,15 @@
         showToast('error', i18n.t('error'), 'Please select a client');
         return;
       }
-      
+
       const subtotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
-      
+
+      // Calculate tax
+      const taxEnabled = document.getElementById('invoiceTaxEnabled').checked;
+      const taxPercentage = parseFloat(document.getElementById('invoiceTaxPercentage').value) || 0;
+      const tax = taxEnabled ? (subtotal * taxPercentage / 100) : 0;
+      const total = subtotal + tax;
+
       // Fix date parsing to avoid timezone issues
       const invoiceDateStr = document.getElementById('invoiceDate').value;
       const dueDateStr = document.getElementById('invoiceDueDate').value;
@@ -2104,7 +2293,7 @@
       const [dYear, dMonth, dDay] = dueDateStr.split('-').map(Number);
       const invoiceDate = new Date(iYear, iMonth - 1, iDay, 12, 0, 0);
       const dueDate = new Date(dYear, dMonth - 1, dDay, 12, 0, 0);
-      
+
       const invoiceData = {
         clientId,
         invoiceNumber: document.getElementById('invoiceNumber').value,
@@ -2112,29 +2301,43 @@
         dueDate: Timestamp.fromDate(dueDate),
         items: invoiceItems,
         subtotal,
-        tax: 0,
-        total: subtotal,
-        status: 'draft',
+        taxEnabled,
+        taxPercentage,
+        tax,
+        total,
         notes: document.getElementById('invoiceNotes').value,
-        createdAt: Timestamp.now(),
-        createdBy: currentAdmin.id
+        updatedAt: Timestamp.now(),
+        updatedBy: currentAdmin.id
       };
-      
+
       try {
-        const docRef = await addDoc(collection(db, 'invoices'), invoiceData);
-        
-        // Create linked payment record (INSIDE the try block)
-        await addDoc(collection(db, 'payments'), {
-          invoiceId: docRef.id,
-          clientId,
-          date: Timestamp.fromDate(invoiceDate),
-          amount: subtotal,
-          status: 'pending',
-          source: 'invoice',
-          createdAt: Timestamp.now()
-        });
-        
-        showToast('success', i18n.t('success'), 'Invoice created');
+        if (editingInvoiceId) {
+          // Update existing invoice (don't change status)
+          await updateDoc(doc(db, 'invoices', editingInvoiceId), invoiceData);
+          editingInvoiceId = null;
+          showToast('success', i18n.t('success'), 'Invoice updated');
+        } else {
+          // Create new invoice
+          invoiceData.status = 'draft';
+          invoiceData.createdAt = Timestamp.now();
+          invoiceData.createdBy = currentAdmin.id;
+
+          const docRef = await addDoc(collection(db, 'invoices'), invoiceData);
+
+          // Create linked payment record (INSIDE the try block)
+          await addDoc(collection(db, 'payments'), {
+            invoiceId: docRef.id,
+            clientId,
+            date: Timestamp.fromDate(invoiceDate),
+            amount: total,
+            status: 'pending',
+            source: 'invoice',
+            createdAt: Timestamp.now()
+          });
+
+          showToast('success', i18n.t('success'), 'Invoice created');
+        }
+
         closeModal('invoiceModal');
         await loadInvoices();
         await loadPayments();
@@ -2142,8 +2345,8 @@
         renderInvoices();
         renderPayments();
       } catch (error) {
-        
-        showToast('error', i18n.t('error'), 'Failed to create invoice');
+        console.error('Error saving invoice:', error);
+        showToast('error', i18n.t('error'), 'Failed to save invoice');
       }
     }
 
@@ -2151,17 +2354,20 @@
       currentInvoiceId = id;
       const invoice = invoices.find(i => i.id === id);
       if (!invoice) return;
-      
+
       const client = clients[invoice.clientId] || {};
       const invoiceDate = invoice.invoiceDate?.toDate ? invoice.invoiceDate.toDate() : new Date();
       const dueDate = invoice.dueDate?.toDate ? invoice.dueDate.toDate() : new Date();
-      
+
       document.getElementById('invoicePreviewContent').innerHTML = `
         <div class="invoice-preview">
           <div class="invoice-header">
-            <div>
-              <div class="invoice-logo">🧹 ${companyInfo?.name || 'Mendez Cleaning'}</div>
-              <div class="text-gray-500 mt-2">${companyInfo?.tagline || 'Professional Cleaning Services'}</div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <img src="images/logo.png" alt="Company Logo" style="height: 60px; width: 180px; object-fit: contain;">
+              <div>
+                <div class="invoice-logo" style="margin: 0;">${companyInfo?.name || 'Mendez Cleaning'}</div>
+                <div class="text-gray-500 mt-2">${companyInfo?.tagline || 'Professional Cleaning Services'}</div>
+              </div>
             </div>
             <div class="invoice-title">
               <h2>INVOICE</h2>
@@ -2199,12 +2405,6 @@
               <div class="invoice-meta-label">Due Date</div>
               <div class="invoice-meta-value">${formatDate(dueDate, { month: 'long', day: 'numeric', year: 'numeric' })}</div>
             </div>
-            <div class="invoice-meta-item">
-              <div class="invoice-meta-label">Status</div>
-              <div class="invoice-meta-value">
-                <span class="badge badge-${invoice.status === 'paid' ? 'success' : 'warning'}">${invoice.status}</span>
-              </div>
-            </div>
           </div>
           
           <table class="invoice-table">
@@ -2235,7 +2435,7 @@
                 <span>${formatCurrency(invoice.subtotal || 0)}</span>
               </div>
               <div class="invoice-totals-row">
-                <span>Tax</span>
+                <span>Tax${invoice.taxPercentage ? ` (${invoice.taxPercentage}%)` : ''}</span>
                 <span>${formatCurrency(invoice.tax || 0)}</span>
               </div>
               <div class="invoice-totals-row total">
@@ -2284,7 +2484,7 @@
       }
     }; 
 
-    function generateInvoicePDF(invoice, client, returnBase64 = false) {
+    async function generateInvoicePDF(invoice, client, returnBase64 = false, includeStatus = true) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
@@ -2300,30 +2500,44 @@
       // === HEADER SECTION ===
       let yPos = 10;
 
-      // Logo and Company Name on Left
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...primaryColor);
-      doc.text('🧹 ' + (companyInfo?.name || 'Mendez Cleaning'), 20, yPos);
-
-      // Tagline
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...grayColor);
-      doc.text(companyInfo?.tagline || 'Professional Cleaning Services', 20, yPos + 6);
+      // Add logo image
+      try {
+        const response = await fetch('images/logo.png');
+        if (response.ok) {
+          const blob = await response.blob();
+          const reader = new FileReader();
+          await new Promise((resolve, reject) => {
+            reader.onload = () => {
+              const imgData = reader.result;
+              const pageWidth = doc.internal.pageSize.getWidth();
+              const logoHeight = 30; // Logo height in mm
+              const logoWidth = 90; // Logo width in mm (3:1 aspect ratio)
+              const xPos = (pageWidth - logoWidth) / 2; // Center horizontally
+              doc.addImage(imgData, 'PNG', xPos, yPos, logoWidth, logoHeight);
+              resolve();
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          yPos += 35; // Adjust yPos to account for logo
+        }
+      } catch (error) {
+        // Logo not found, continue without it
+      }
 
       // Invoice label on right
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...darkColor);
-      doc.text('INVOICE', 150, yPos + 3, { align: 'center' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      doc.text('INVOICE', pageWidth - 20, 15, { align: 'center' });
 
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...grayColor);
-      doc.text('#' + invoice.invoiceNumber, 150, yPos + 10, { align: 'center' });
+      doc.text('#' + invoice.invoiceNumber, pageWidth - 20, 22, { align: 'center' });
 
-      yPos += 18;
+      yPos += 8;
 
       // === FROM AND BILL TO SECTIONS ===
       // From section
@@ -2391,27 +2605,35 @@
 
       // === INVOICE DETAILS BOX ===
       doc.setFillColor(...lightBgColor);
-      doc.rect(20, yPos, 170, 25, 'F');
+      const detailsBoxHeight = includeStatus ? 25 : 17;
+      doc.rect(20, yPos, 170, detailsBoxHeight, 'F');
 
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...grayColor);
       doc.text('Invoice Date:', 25, yPos + 7);
       doc.text('Due Date:', 25, yPos + 15);
-      doc.text('Status:', 25, yPos + 23);
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...darkColor);
       doc.text(formatDate(invoiceDate, { month: 'long', day: 'numeric', year: 'numeric' }), 80, yPos + 7);
       doc.text(formatDate(dueDate, { month: 'long', day: 'numeric', year: 'numeric' }), 80, yPos + 15);
 
-      // Status badge
-      const statusColors = { draft: [107, 114, 128], sent: [59, 130, 246], paid: [34, 197, 94], overdue: [239, 68, 68] };
-      const statusColor = statusColors[invoice.status] || statusColors.draft;
-      doc.setTextColor(...statusColor);
-      doc.text(invoice.status.toUpperCase(), 80, yPos + 23);
+      // Status badge (only if includeStatus is true)
+      if (includeStatus) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...grayColor);
+        doc.text('Status:', 25, yPos + 23);
 
-      yPos += 32;
+        const statusColors = { draft: [107, 114, 128], sent: [59, 130, 246], paid: [34, 197, 94], overdue: [239, 68, 68] };
+        const statusColor = statusColors[invoice.status] || statusColors.draft;
+        doc.setTextColor(...statusColor);
+        doc.setFont('helvetica', 'bold');
+        doc.text(invoice.status.toUpperCase(), 80, yPos + 23);
+      }
+
+      yPos += detailsBoxHeight + 7;
 
       // === ITEMS TABLE ===
       const tableTop = yPos;
@@ -2517,38 +2739,38 @@
       return doc;
     }
 
-    function printInvoice() {
+    async function printInvoice() {
       const invoice = invoices.find(i => i.id === currentInvoiceId);
       if (!invoice) {
         showToast('error', 'Error', 'Invoice not found');
         return;
       }
       const client = clients[invoice.clientId] || {};
-      const doc = generateInvoicePDF(invoice, client);
+      const doc = await generateInvoicePDF(invoice, client, false, false);
       doc.autoPrint();
       window.open(doc.output('bloburl'), '_blank');
     }
 
 
-    function downloadInvoicePDF() {
+    async function downloadInvoicePDF() {
       const invoice = invoices.find(i => i.id === currentInvoiceId);
       if (!invoice) {
         showToast('error', 'Error', 'Invoice not found');
         return;
       }
       const client = clients[invoice.clientId] || {};
-      const doc = generateInvoicePDF(invoice, client);
+      const doc = await generateInvoicePDF(invoice, client, false, false);
       doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
     }
 
-    window.printInvoiceById = function(id) {
+    window.printInvoiceById = async function(id) {
       const invoice = invoices.find(i => i.id === id);
       if (!invoice) {
         showToast('error', 'Error', 'Invoice not found');
         return;
       }
       const client = clients[invoice.clientId] || {};
-      const pdfDoc = generateInvoicePDF(invoice, client);
+      const pdfDoc = await generateInvoicePDF(invoice, client, false, false);
       pdfDoc.autoPrint();
       window.open(pdfDoc.output('bloburl'), '_blank');
     };
@@ -2601,6 +2823,8 @@
         city: document.getElementById('settingsCity').value.trim(),
         state: document.getElementById('settingsState').value.trim(),
         zip: document.getElementById('settingsZip').value.trim(),
+        taxEnabled: document.getElementById('settingsTaxEnabled').checked,
+        taxPercentage: parseFloat(document.getElementById('settingsTaxPercentage').value) || 0,
         updatedAt: Timestamp.now(),
         updatedBy: currentAdmin.id
       };
@@ -2622,7 +2846,7 @@
         showToast('success', 'Success', 'Company settings saved');
         closeModal('companySettingsModal');
       } catch (error) {
-        
+
         showToast('error', 'Error', 'Failed to save settings');
       }
     }
@@ -2706,6 +2930,8 @@
       document.getElementById('saveInvoiceBtn').addEventListener('click', saveInvoice);
       document.getElementById('addInvoiceItemBtn').addEventListener('click', addInvoiceItem);
       document.getElementById('invoiceClient').addEventListener('change', onClientSelect);
+      document.getElementById('invoiceTaxEnabled').addEventListener('change', updateInvoiceTotals);
+      document.getElementById('invoiceTaxPercentage').addEventListener('input', updateInvoiceTotals);
 
       // Invoice Preview
       document.getElementById('closePreviewModal').addEventListener('click', () => closeModal('invoicePreviewModal'));
