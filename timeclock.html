@@ -649,6 +649,7 @@
           <span>Sin conexión</span>
         </div>
         <div class="header-actions">
+          <button class="header-btn" id="notifBtn" title="Habilitar Notificaciones">🔔</button>
           <button class="header-btn" id="refreshBtn" title="Actualizar" onclick="location.reload()">🔄</button>
           <button class="header-btn" id="logoutBtn" title="Cerrar Sesión" onclick="logout()">🚪</button>
         </div>
@@ -740,7 +741,8 @@
       Timestamp,
       signOut,
       onAuthStateChanged,
-      onSnapshot
+      onSnapshot,
+      VAPID_PUBLIC_KEY
     } from './js/firebase-config.js';
 
     import { i18n } from './js/i18n.js';
@@ -768,6 +770,150 @@
       } catch (error) {
         console.warn('Audit logging failed:', error);
         // Don't throw - logging shouldn't block the operation
+      }
+    }
+
+    // ============================================
+    // PUSH NOTIFICATIONS
+    // ============================================
+
+    // Helper: Convert base64 string to ArrayBuffer
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
+
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
+    async function subscribeToPushNotifications() {
+      try {
+        showToast('info', 'Push Setup', 'STEP 1: Checking support');
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+          showToast('error', 'Not Supported', 'STEP 1 FAIL: Not supported on this device');
+          return;
+        }
+
+        showToast('info', 'Push Setup', 'STEP 2: Request permission');
+        try {
+          const permission = await Notification.requestPermission();
+          console.log('Permission:', permission);
+        } catch (e) {
+          showToast('error', 'Permission Error', 'STEP 2 ERROR: ' + (e?.message || 'perm error'));
+        }
+
+        showToast('info', 'Push Setup', 'STEP 3: Register SW');
+        try {
+          const registration = await navigator.serviceWorker.register('sw.js');
+          showToast('info', 'Push Setup', 'STEP 4: Get subscription');
+
+          let subscription = await registration.pushManager.getSubscription();
+          if (!subscription) {
+            showToast('info', 'Push Setup', 'STEP 5: Create subscription');
+            const vapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: vapidKey
+            });
+            showToast('info', 'Push Setup', 'STEP 5: ✓ Subscription created');
+          }
+
+          showToast('info', 'Push Setup', 'STEP 6: Save to Firestore');
+          const user = window.APP_STATE.user;
+          console.log('DEBUG: Current user UID:', user.uid);
+          console.log('DEBUG: Is user authenticated:', !!user);
+          showToast('info', 'Debug Info', `UID: ${user.uid.substring(0, 10)}...`);
+          const userSnap = await getDoc(doc(db, 'users', user.uid));
+          const userData = userSnap.data() || {};
+          const p256dh = subscription.getKey('p256dh');
+          const auth = subscription.getKey('auth');
+
+          const subscriptionData = {
+            userId: user.uid,
+            employeeId: userData.employeeId || user.uid,
+            teamId: userData.teamId || null,
+            endpoint: subscription.endpoint,
+            subscription: {
+              endpoint: subscription.endpoint,
+              keys: {
+                p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(p256dh))),
+                auth: btoa(String.fromCharCode.apply(null, new Uint8Array(auth)))
+              }
+            },
+            isActive: true,
+            createdAt: Timestamp.now(),
+            lastUpdated: Timestamp.now(),
+            deviceType: /iPad|iPhone|iPod/.test(navigator.userAgent) ? 'iOS' : 'Android',
+            deviceInfo: navigator.userAgent
+          };
+
+          const existingSubSnap = await getDocs(query(collection(db, 'pushSubscriptions'), where('userId', '==', user.uid)));
+          if (existingSubSnap.empty) {
+            await addDoc(collection(db, 'pushSubscriptions'), subscriptionData);
+          } else {
+            await updateDoc(doc(db, 'pushSubscriptions', existingSubSnap.docs[0].id), subscriptionData);
+          }
+
+          showToast('success', 'Setup Complete', '✓ Notifications enabled');
+        } catch (error) {
+          // Capture full error details to localStorage for debugging
+          const errorDetail = {
+            name: error?.name || 'Error',
+            message: error?.message || 'no message',
+            code: error?.code || 'no code',
+            toString: String(error),
+            stack: error?.stack || 'no stack',
+            keys: Object.keys(error || {}),
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent
+          };
+          localStorage.setItem('pushNotificationError', JSON.stringify(errorDetail, null, 2));
+          console.error('Push subscription error stored in localStorage:', errorDetail);
+
+          // Extract more detailed error info for display
+          let displayMsg = error?.message || error?.code || String(error) || 'unknown error';
+          // For Firestore permission errors, extract the key info
+          if (displayMsg.includes('permission-denied') || displayMsg.includes('PERMISSION_DENIED')) {
+            displayMsg = 'Firestore permission denied - check rules';
+          } else if (displayMsg.includes('unauthenticated')) {
+            displayMsg = 'Not authenticated - try logging out and back in';
+          }
+          displayMsg = displayMsg.substring(0, 150);
+          showToast('error', 'Firestore Error', displayMsg);
+          console.error('Full error:', error);
+        }
+      } catch (error) {
+        // Capture full error details to localStorage for debugging
+        const errorDetail = {
+          name: error?.name || 'Error',
+          message: error?.message || 'no message',
+          code: error?.code || 'no code',
+          toString: String(error),
+          stack: error?.stack || 'no stack',
+          keys: Object.keys(error || {}),
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent
+        };
+        localStorage.setItem('pushNotificationError', JSON.stringify(errorDetail, null, 2));
+        console.error('Push subscription outer error stored in localStorage:', errorDetail);
+
+        // Extract more detailed error info for display
+        let displayMsg = error?.message || error?.code || String(error) || 'unknown error';
+        if (displayMsg.includes('permission-denied') || displayMsg.includes('PERMISSION_DENIED')) {
+          displayMsg = 'Firestore permission denied - check rules';
+        } else if (displayMsg.includes('unauthenticated')) {
+          displayMsg = 'Not authenticated - try logging out and back in';
+        }
+        displayMsg = displayMsg.substring(0, 150);
+        showToast('error', 'Outer Error', displayMsg);
+        console.error('Outer error:', error);
       }
     }
 
@@ -970,6 +1116,11 @@
         // Restore session and load data
         await restoreSession();
         await loadAllData();
+
+        // Setup push notification button (only call on user gesture)
+        document.getElementById('notifBtn').addEventListener('click', async () => {
+          await subscribeToPushNotifications().catch(err => console.error('Push notification setup failed:', err));
+        });
 
         // Setup auto-sync on visibility change
         document.addEventListener('visibilitychange', handleVisibilityChange);
